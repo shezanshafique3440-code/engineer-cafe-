@@ -26,11 +26,15 @@ export const env = {
     );
   },
   get siteUrl() {
-    return (
+    // Hosts such as Render expose only a bare hostname, so add the scheme when
+    // it is missing rather than letting `new URL()` throw during the build.
+    const raw =
       process.env.NEXT_PUBLIC_SITE_URL ??
       process.env.FRONTEND_URL ??
-      "http://localhost:3000"
-    ).replace(/\/$/, "");
+      process.env.RENDER_EXTERNAL_URL ??
+      "http://localhost:3000";
+    const withScheme = /^https?:\/\//.test(raw) ? raw : `https://${raw}`;
+    return withScheme.replace(/\/$/, "");
   },
   get whatsappFallback() {
     return process.env.WHATSAPP_NUMBER ?? "923001234567";

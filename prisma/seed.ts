@@ -25,6 +25,17 @@ function requireEnv(name: string, fallback?: string): string {
 }
 
 async function main() {
+  // On hosted deploys the seed runs on every build. Re-seeding would overwrite
+  // prices and menu edits made from the admin panel, so when
+  // SEED_ONLY_IF_EMPTY is set we bail out as soon as there is real data.
+  if (process.env.SEED_ONLY_IF_EMPTY === "true") {
+    const existing = await prisma.product.count();
+    if (existing > 0) {
+      console.log(`↩︎  Skipping seed — ${existing} products already exist.`);
+      return;
+    }
+  }
+
   console.log("☕ Seeding Engineer Cafe…");
 
   // ── Settings ──────────────────────────────────────────────────────────────
