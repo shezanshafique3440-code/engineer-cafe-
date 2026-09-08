@@ -19,9 +19,11 @@ services:
     runtime: node
     plan: free
     region: singapore
+    # --include=dev is required: tailwindcss, autoprefixer and tsx are
+    # devDependencies, and npm omits those whenever NODE_ENV=production.
     # `migrate deploy` applies the committed migration; the seed is guarded by
     # SEED_ONLY_IF_EMPTY so redeploys never overwrite menu edits made in admin.
-    buildCommand: npm ci && npx prisma migrate deploy && npm run db:seed && npm run build
+    buildCommand: npm ci --include=dev && npx prisma migrate deploy && npm run db:seed && npm run build
     startCommand: npm start
     healthCheckPath: /
     autoDeploy: true
@@ -46,8 +48,6 @@ services:
 
       - key: NODE_VERSION
         value: "22.11.0"
-      - key: NODE_ENV
-        value: production
 
       # Seed the database only while it is still empty.
       - key: SEED_ONLY_IF_EMPTY
