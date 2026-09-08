@@ -1,0 +1,12 @@
+{
+  "name": "Engineer Cafe",
+  "short_name": "Engineer Cafe",
+  "description": "Engineer Cafe — premium chai, delicious parathas and student-friendly cafe vibes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFBF7",
+  "theme_color": "#B9722A",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

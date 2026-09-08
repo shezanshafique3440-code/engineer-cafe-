@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0v40" fill="none" stroke="#E4D4BC" stroke-width="1" opacity="0.55"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="#F8F3EA"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <circle cx="1050" cy="120" r="220" fill="#E8C296" opacity="0.35"/>
+  <g transform="translate(90 170)">
+    <rect width="72" height="72" rx="18" fill="#232020"/>
+    <path d="M18 28h33a8 8 0 0 1 0 16h-1" stroke="#FDFBF7" stroke-width="3.6" stroke-linecap="round" fill="none"/>
+    <path d="M18 28v15a11 11 0 0 0 11 11h7a11 11 0 0 0 11-11V28z" stroke="#FDFBF7" stroke-width="3.6" stroke-linejoin="round" fill="none"/>
+    <circle cx="56" cy="36" r="3.4" fill="#3DBE8B"/>
+  </g>
+  <text x="186" y="222" font-family="Georgia, serif" font-size="40" font-weight="bold" fill="#171414">Engineer<tspan fill="#B9722A">Cafe</tspan></text>
+  <text x="90" y="330" font-family="Georgia, serif" font-size="62" font-weight="bold" fill="#171414">Chai. Paratha. Aur</text>
+  <text x="90" y="404" font-family="Georgia, serif" font-size="62" font-weight="bold" fill="#B9722A">Engineering Wali Vibes.</text>
+  <text x="90" y="470" font-family="Helvetica, Arial, sans-serif" font-size="27" fill="#57534E">Premium chai, delicious parathas and student-friendly cafe vibes.</text>
+  <text x="90" y="546" font-family="monospace" font-size="21" fill="#985A21">// open 8:00 AM – 2:00 AM  ·  Gulberg III, Lahore</text>
+</svg>

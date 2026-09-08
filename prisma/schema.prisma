@@ -1,0 +1,421 @@
+// Engineer Cafe — relational schema
+// Chai. Paratha. Aur Engineering Wali Vibes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  STAFF
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderType {
+  DELIVERY
+  PICKUP
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  CASH_AT_COUNTER
+  ONLINE
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  HIDDEN
+}
+
+enum SpiceLevel {
+  NONE
+  MILD
+  MEDIUM
+  HOT
+}
+
+enum AddonGroupType {
+  SINGLE
+  MULTIPLE
+}
+
+enum ContactMessageStatus {
+  NEW
+  READ
+  ARCHIVED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  phone        String?
+  passwordHash String
+  role         Role      @default(CUSTOMER)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  addresses Address[]
+  orders    Order[]
+  reviews   Review[]
+  favorites Favorite[]
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label       String   @default("Home")
+  fullName    String
+  phone       String
+  addressLine String
+  area        String?
+  city        String
+  notes       String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  image       String?
+  icon        String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@index([slug])
+}
+
+model Product {
+  id              String     @id @default(cuid())
+  name            String
+  slug            String     @unique
+  description     String
+  longDescription String?
+  categoryId      String
+  category        Category   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  price           Int // stored in PKR (whole rupees)
+  discountPrice   Int?
+  image           String?
+  isAvailable     Boolean    @default(true)
+  isFeatured      Boolean    @default(false)
+  isPopular       Boolean    @default(false)
+  isVegetarian    Boolean    @default(false)
+  spiceLevel      SpiceLevel @default(NONE)
+  prepTimeMinutes Int        @default(10)
+  ingredients     String[]   @default([])
+  calories        Int?
+  stock           Int? // null = unlimited
+  sortOrder       Int        @default(0)
+  ratingAverage   Float      @default(0)
+  ratingCount     Int        @default(0)
+  soldCount       Int        @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  addonGroups AddonGroupOnProduct[]
+  orderItems  OrderItem[]
+  reviews     Review[]
+  favorites   Favorite[]
+  comboItems  ComboItem[]
+
+  @@index([categoryId])
+  @@index([isAvailable, isPopular])
+  @@index([slug])
+}
+
+// A combo product is a normal Product in the "combos" category that references
+// the items it bundles — powers the "Engineer's Deals" homepage section.
+model ComboItem {
+  id        String  @id @default(cuid())
+  comboId   String
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int     @default(1)
+
+  @@unique([comboId, productId])
+  @@index([comboId])
+}
+
+model AddonGroup {
+  id         String         @id @default(cuid())
+  name       String
+  slug       String         @unique
+  type       AddonGroupType @default(SINGLE)
+  isRequired Boolean        @default(false)
+  minSelect  Int            @default(0)
+  maxSelect  Int            @default(1)
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  addons   ProductAddon[]
+  products AddonGroupOnProduct[]
+}
+
+model AddonGroupOnProduct {
+  productId    String
+  addonGroupId String
+  sortOrder    Int    @default(0)
+
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  addonGroup AddonGroup @relation(fields: [addonGroupId], references: [id], onDelete: Cascade)
+
+  @@id([productId, addonGroupId])
+  @@index([addonGroupId])
+}
+
+model ProductAddon {
+  id           String     @id @default(cuid())
+  addonGroupId String
+  addonGroup   AddonGroup @relation(fields: [addonGroupId], references: [id], onDelete: Cascade)
+  name         String
+  price        Int        @default(0)
+  isDefault    Boolean    @default(false)
+  isAvailable  Boolean    @default(true)
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  orderItemAddons OrderItemAddon[]
+
+  @@index([addonGroupId])
+}
+
+model Coupon {
+  id             String       @id @default(cuid())
+  code           String       @unique
+  description    String?
+  discountType   DiscountType @default(PERCENTAGE)
+  discountValue  Int
+  minOrderAmount Int          @default(0)
+  maxDiscount    Int? // caps percentage discounts
+  maxUsage       Int? // null = unlimited
+  usageCount     Int          @default(0)
+  perUserLimit   Int?
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  orders Order[]
+
+  @@index([code])
+}
+
+model Order {
+  id          String @id @default(cuid())
+  orderNumber String @unique
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  customerName  String
+  customerPhone String
+  customerEmail String?
+
+  orderType     OrderType     @default(DELIVERY)
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod @default(CASH_ON_DELIVERY)
+  paymentStatus PaymentStatus @default(UNPAID)
+  paymentRef    String?
+
+  addressLine  String?
+  area         String?
+  city         String?
+  instructions String?
+
+  subtotal    Int
+  discount    Int @default(0)
+  deliveryFee Int @default(0)
+  tax         Int @default(0)
+  total       Int
+
+  couponId   String?
+  coupon     Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponCode String?
+
+  estimatedMinutes Int       @default(25)
+  cancelReason     String?
+  placedAt         DateTime  @default(now())
+  confirmedAt      DateTime?
+  readyAt          DateTime?
+  deliveredAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  items  OrderItem[]
+  events OrderEvent[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  // denormalised so historical orders survive product edits/deletes
+  productName  String
+  productSlug  String
+  productImage String?
+  unitPrice    Int // base price after product discount, excluding addons
+  addonsTotal  Int     @default(0)
+  quantity     Int
+  lineTotal    Int
+  notes        String?
+
+  addons OrderItemAddon[]
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderItemAddon {
+  id          String        @id @default(cuid())
+  orderItemId String
+  orderItem   OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  addonId     String?
+  addon       ProductAddon? @relation(fields: [addonId], references: [id], onDelete: SetNull)
+
+  groupName String
+  addonName String
+  price     Int    @default(0)
+
+  @@index([orderItemId])
+}
+
+model OrderEvent {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([orderId])
+}
+
+model Review {
+  id        String       @id @default(cuid())
+  productId String
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String
+  status    ReviewStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([productId, userId])
+  @@index([productId, status])
+  @@index([status])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model ContactMessage {
+  id        String               @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String
+  status    ContactMessageStatus @default(NEW)
+  createdAt DateTime             @default(now())
+
+  @@index([status])
+}
+
+// Single-row key/value store for runtime-configurable cafe settings.
+model CafeSetting {
+  id           Int     @id @default(1)
+  cafeName     String  @default("Engineer Cafe")
+  tagline      String  @default("Chai. Paratha. Aur Engineering Wali Vibes.")
+  logoUrl      String?
+  phone        String  @default("+92 300 1234567")
+  whatsapp     String  @default("923001234567")
+  email        String  @default("hello@engineercafe.pk")
+  address      String  @default("Block C, Main Boulevard, Gulberg III, Lahore")
+  city         String  @default("Lahore")
+  mapsQuery    String  @default("Gulberg III, Lahore, Pakistan")
+  openingHours String  @default("Mon–Sun · 8:00 AM – 2:00 AM")
+
+  deliveryFee      Int    @default(80)
+  freeDeliveryOver Int?   @default(1500)
+  minOrderAmount   Int    @default(300)
+  taxPercent       Float  @default(0)
+  currency         String @default("PKR")
+  currencySymbol   String @default("Rs.")
+
+  instagramUrl String?
+  facebookUrl  String?
+  tiktokUrl    String?
+
+  codEnabled           Boolean @default(true)
+  cashAtCounterEnabled Boolean @default(true)
+  onlinePaymentEnabled Boolean @default(false)
+  isAcceptingOrders    Boolean @default(true)
+
+  updatedAt DateTime @default(now()) @updatedAt
+}
