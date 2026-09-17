@@ -34,8 +34,8 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   keywords: [
-    "Engineer Cafe", "chai Lahore", "paratha delivery", "karak chai",
-    "student cafe Pakistan", "tea house", "Pakistani cafe", "chai paratha",
+    "Engineer Cafe", "chai Islamabad", "paratha delivery", "karak chai",
+    "student cafe Pakistan", "tea house", "Chatta Bakhtawar", "chai paratha",
   ],
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,

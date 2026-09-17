@@ -300,7 +300,7 @@ export function CheckoutView() {
                   value={form.area}
                   onChange={(e) => set("area", e.target.value)}
                   error={errors.area?.[0]}
-                  placeholder="Gulberg III"
+                  placeholder="Chatta Bakhtawar"
                 />
                 <Input
                   label="City"

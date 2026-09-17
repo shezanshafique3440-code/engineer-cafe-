@@ -19,7 +19,7 @@ export const metadata: Metadata = buildMetadata({
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const [categories, chai, parathas, deals, reviews, settings] = await Promise.all([
+  const [categories, chai, parathas, deals, reviews, settings, heroAgg, bestSeller] = await Promise.all([
     listCategories(),
     listProducts({ category: "chai", popular: true, perPage: 4, sort: "popular" }),
     listProducts({ category: "parathas", popular: true, perPage: 4, sort: "popular" }),
@@ -37,7 +37,27 @@ export default async function HomePage() {
       },
     }),
     getSettings(),
+    prisma.product.aggregate({
+      where: { isAvailable: true },
+      _avg: { prepTimeMinutes: true, ratingAverage: true },
+      _count: true,
+      _sum: { ratingCount: true },
+    }),
+    // The real best seller, so the hero never advertises a withdrawn dish.
+    prisma.product.findFirst({
+      where: { isAvailable: true },
+      orderBy: [{ soldCount: "desc" }, { isFeatured: "desc" }, { ratingAverage: "desc" }],
+      select: { name: true, urduName: true, price: true, discountPrice: true },
+    }),
   ]);
+
+  const ratedCount = heroAgg._sum.ratingCount ?? 0;
+  const heroStats = {
+    avgPrepMinutes: Math.max(1, Math.round(heroAgg._avg.prepTimeMinutes ?? 10)),
+    menuItems: heroAgg._count,
+    rating: ratedCount > 0 ? Number((heroAgg._avg.ratingAverage ?? 0).toFixed(1)) : null,
+    highlight: bestSeller,
+  };
 
   const jsonLd = restaurantJsonLd(settings);
 
@@ -49,7 +69,7 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <Hero />
+      <Hero stats={heroStats} />
 
       <PopularCategories categories={categories} />
 

@@ -77,31 +77,33 @@ export default async function AboutPage() {
           </div>
 
           <div className="space-y-5 text-sm leading-relaxed text-charcoal-600 md:text-base">
+            {/* TODO (cafe owner): replace this section with the cafe's own story.
+                The copy below deliberately describes only what the menu and
+                settings already state — it invents no founders, dates or events. */}
             <h2 className="text-2xl font-bold text-charcoal-900 md:text-3xl">
-              It started with a 2 AM problem.
+              Chai worth interrupting work for.
             </h2>
             <p>
-              Four of us were finishing a final-year project in a rented room in Gulberg. Every dhaba
-              near campus shut by midnight, the one that stayed open served chai that tasted like
-              regret, and nowhere had a socket that worked. We ended up making our own karak chai on
-              a hot plate at 2 AM — and that&apos;s genuinely where this menu came from.
+              {settings.cafeName} sits in {settings.city}, a short walk from where students
+              actually live. The idea is simple: proper doodh patti and karak chai, parathas
+              rolled fresh through the day, and prices a student can sustain more than once a
+              week.
             </p>
             <p>
-              {settings.cafeName} opened as the place we wished had existed: proper doodh patti and
-              karak chai, parathas rolled fresh through the day, prices a student can actually
-              sustain, and a room that treats a long sitting as normal rather than a problem.
+              The menu is deliberately short and done properly — nine kinds of chai, sixteen
+              parathas, anday, and the sides that go with them. Everything is made to order,
+              which is why a kettle takes a little longer than a cup.
             </p>
             <p>
-              Today it&apos;s where students revise, freelancers take calls, teams argue about
-              architecture, and friends stay until closing. The engineering theme isn&apos;t a
-              gimmick — it&apos;s just who keeps showing up.
+              It is built for long sittings. Students revising, freelancers on calls, friends
+              who came for one cup and stayed for four. The engineering name is not a gimmick —
+              it is simply who keeps showing up.
             </p>
 
             <div className="rounded-2xl border-l-4 border-chai-500 bg-cream-100 p-5">
               <p className="font-display text-lg font-bold italic text-charcoal-900">
                 “Coffee is optional. Chai is mandatory.”
               </p>
-              <p className="mt-1 text-xs text-charcoal-400">— painted on our back wall, non-negotiable</p>
             </div>
 
             <dl className="grid grid-cols-3 gap-4 border-t border-cream-200 pt-6">

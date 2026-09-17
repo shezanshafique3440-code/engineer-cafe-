@@ -22,7 +22,7 @@ export function PopularCategories({ categories }: { categories: CategoryDTO[] })
         <SectionHeading
           eyebrow="// browse the stack"
           title="What are you craving?"
-          description="Seven categories, one very consistent chai standard."
+          description={`${categories.length} categories, one very consistent chai standard.`}
           action={
             <Link href="/menu" className="btn-secondary hidden sm:inline-flex">
               Full Menu <ArrowRight className="h-4 w-4" aria-hidden />
@@ -473,6 +473,7 @@ export function LocationSection() {
 /* ── 12. Final CTA ─────────────────────────────────────────────────────── */
 
 export function FinalCta() {
+  const settings = useSettings();
   return (
     <section className="relative overflow-hidden bg-chai-600 py-16 text-cream-50 md:py-20">
       <div className="blueprint absolute inset-0 opacity-20" aria-hidden />
@@ -484,7 +485,7 @@ export function FinalCta() {
           Low battery? Recharge with chai.
         </h2>
         <p className="mx-auto mt-3 max-w-lg text-sm text-chai-100 md:text-base">
-          Delivery across Gulberg in about 30 minutes, or pick up at the counter in 15.
+          Delivery across {settings.city} in about 30 minutes, or pick up at the counter in 15.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link href="/menu" className="btn bg-cream-50 px-6 py-3.5 text-base text-charcoal-900 hover:bg-white">

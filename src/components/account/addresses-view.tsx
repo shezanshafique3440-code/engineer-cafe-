@@ -141,7 +141,7 @@ export function AddressesView({ initialAddresses }: { initialAddresses: Address[
             <Input label="Label" name="label" value={form.label} onChange={(e) => set("label", e.target.value)} error={errors.label?.[0]} placeholder="Home, Hostel, Office" required />
             <Input label="Recipient name" name="fullName" value={form.fullName} onChange={(e) => set("fullName", e.target.value)} error={errors.fullName?.[0]} autoComplete="name" required />
             <Input label="Phone" name="phone" type="tel" inputMode="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} error={errors.phone?.[0]} placeholder="03001234567" required />
-            <Input label="Area" name="area" value={form.area} onChange={(e) => set("area", e.target.value)} error={errors.area?.[0]} placeholder="Gulberg III" />
+            <Input label="Area" name="area" value={form.area} onChange={(e) => set("area", e.target.value)} error={errors.area?.[0]} placeholder="Chatta Bakhtawar" />
             <div className="sm:col-span-2">
               <Textarea label="Street address" name="addressLine" rows={2} value={form.addressLine} onChange={(e) => set("addressLine", e.target.value)} error={errors.addressLine?.[0]} required />
             </div>

@@ -9,7 +9,7 @@ import { ProductCardSkeleton } from "@/components/menu/product-card";
 export const metadata: Metadata = buildMetadata({
   title: "Full Menu — Chai, Parathas, Snacks & Combos",
   description:
-    "Browse the complete Engineer Cafe menu: 20+ kinds of chai, stuffed parathas, snacks, burgers, cold drinks and student combos. Order online in Lahore.",
+    "Browse the complete Engineer Cafe menu: 20+ kinds of chai, stuffed parathas, snacks, burgers, cold drinks and sides. Order online in Islamabad.",
   path: "/menu",
 });
 

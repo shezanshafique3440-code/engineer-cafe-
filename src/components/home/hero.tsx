@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Clock, Star, Truck } from "lucide-react";
+import { useSettings, useMoney } from "@/context/settings-context";
 
 const FLOATING = [
   { symbol: "∑", top: "12%", left: "6%", delay: 0 },
@@ -13,8 +14,19 @@ const FLOATING = [
   { symbol: "∫", top: "44%", left: "3%", delay: 2.1 },
 ];
 
-export function Hero() {
+export type HeroStats = {
+  avgPrepMinutes: number;
+  menuItems: number;
+  /** Average rating across approved reviews, or null while there are none. */
+  rating: number | null;
+  /** Genuinely the best seller; null before anything has been ordered. */
+  highlight: { name: string; urduName: string | null; price: number; discountPrice: number | null } | null;
+};
+
+export function Hero({ stats }: { stats: HeroStats }) {
   const reduceMotion = useReducedMotion();
+  const settings = useSettings();
+  const money = useMoney();
 
   return (
     <section className="relative overflow-hidden border-b border-cream-200 bg-cream-100">
@@ -49,7 +61,7 @@ export function Hero() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-circuit-500 opacity-75" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-circuit-500" />
             </span>
-            Open now · Gulberg III, Lahore
+            Open now · {settings.city}
           </span>
 
           <h1 className="mt-5 text-[2.1rem] font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.4rem]">
@@ -85,9 +97,11 @@ export function Hero() {
 
           <dl className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-cream-300 pt-6">
             {[
-              { icon: Clock, value: "15 min", label: "Avg. prep time" },
-              { icon: Star, value: "4.8", label: "Customer rating" },
-              { icon: Truck, value: "Rs. 80", label: "Delivery fee" },
+              { icon: Clock, value: `${stats.avgPrepMinutes} min`, label: "Avg. prep time" },
+              stats.rating
+                ? { icon: Star, value: stats.rating.toFixed(1), label: "Customer rating" }
+                : { icon: Star, value: `${stats.menuItems}`, label: "Menu items" },
+              { icon: Truck, value: `Rs. ${settings.deliveryFee}`, label: "Delivery fee" },
             ].map((stat) => (
               <div key={stat.label}>
                 <dt className="sr-only">{stat.label}</dt>
@@ -133,16 +147,29 @@ export function Hero() {
               </div>
             )}
 
-            <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
-              <div className="rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur">
-                <p className="font-mono text-[10px] uppercase tracking-wider text-chai-600">Most ordered</p>
-                <p className="mt-0.5 text-sm font-bold text-charcoal-900">Special Engineer Chai</p>
-                <p className="text-xs text-charcoal-500">
-                  <span className="font-bold text-chai-700">Rs. 190</span>{" "}
-                  <span className="line-through">Rs. 220</span>
-                </p>
+            {stats.highlight && (
+              <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
+                <div className="rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-chai-600">
+                    Most ordered
+                  </p>
+                  <p className="mt-0.5 text-sm font-bold text-charcoal-900">
+                    {stats.highlight.name}
+                  </p>
+                  {stats.highlight.urduName && (
+                    <p className="text-xs text-charcoal-500" dir="rtl">{stats.highlight.urduName}</p>
+                  )}
+                  <p className="text-xs text-charcoal-500">
+                    <span className="font-bold text-chai-700">
+                      {money(stats.highlight.discountPrice ?? stats.highlight.price)}
+                    </span>
+                    {stats.highlight.discountPrice && (
+                      <span className="ml-1.5 line-through">{money(stats.highlight.price)}</span>
+                    )}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <motion.div

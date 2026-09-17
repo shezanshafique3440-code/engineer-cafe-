@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { listCategories } from "@/server/products";
+import { getSettings } from "@/server/settings";
 import { buildMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import { MenuBrowser } from "@/components/menu/menu-browser";
 import { ProductCardSkeleton } from "@/components/menu/product-card";
@@ -31,7 +32,7 @@ export async function generateMetadata({
     title: `${category.name} Menu`,
     description:
       category.description ??
-      `Order ${category.name.toLowerCase()} from Engineer Cafe — fresh, affordable and delivered across Lahore.`,
+      `Order ${category.name.toLowerCase()} from Engineer Cafe — fresh, affordable and delivered across ${(await getSettings()).city}.`,
     path: `/menu/${category.slug}`,
     image: category.image,
   });

@@ -398,9 +398,9 @@ model CafeSetting {
   phone        String  @default("+92 300 1234567")
   whatsapp     String  @default("923001234567")
   email        String  @default("hello@engineercafe.pk")
-  address      String  @default("Block C, Main Boulevard, Gulberg III, Lahore")
-  city         String  @default("Lahore")
-  mapsQuery    String  @default("Gulberg III, Lahore, Pakistan")
+  address      String  @default("Hostel City, Chatta Bakhtawar, Islamabad")
+  city         String  @default("Islamabad")
+  mapsQuery    String  @default("Hostel City, Chatta Bakhtawar, Islamabad, Pakistan")
   openingHours String  @default("Mon–Sun · 8:00 AM – 2:00 AM")
 
   deliveryFee      Int    @default(80)
