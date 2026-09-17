@@ -43,34 +43,64 @@ const cloudinaryAdapter: StorageAdapter = {
   name: "cloudinary",
   async upload({ buffer, mime, originalName }) {
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const preset = process.env.CLOUDINARY_UPLOAD_PRESET;
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
-    if (!cloudName || !apiKey || !apiSecret) {
+
+    if (!cloudName) {
+      throw new HttpError(500, "Image uploads are not configured. Please contact support.");
+    }
+    // Two ways in. An unsigned upload preset needs only the cloud name and the
+    // preset, and avoids signing entirely; a signed upload needs the key pair.
+    if (!preset && !(apiKey && apiSecret)) {
       throw new HttpError(500, "Image uploads are not configured. Please contact support.");
     }
 
-    const { createHash } = await import("node:crypto");
-    const timestamp = Math.floor(Date.now() / 1000);
     const folder = "engineer-cafe";
-    const signature = createHash("sha1")
-      .update(`folder=${folder}&timestamp=${timestamp}${apiSecret}`)
-      .digest("hex");
-
     const form = new FormData();
     form.append("file", new Blob([new Uint8Array(buffer)], { type: mime }), originalName);
-    form.append("api_key", apiKey);
-    form.append("timestamp", String(timestamp));
     form.append("folder", folder);
-    form.append("signature", signature);
 
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-      method: "POST",
-      body: form,
-    });
-    if (!response.ok) throw new HttpError(502, "Image upload failed. Please try again.");
-    const result = (await response.json()) as { secure_url?: string };
-    if (!result.secure_url) throw new HttpError(502, "Image upload failed. Please try again.");
-    return { url: result.secure_url };
+    if (preset) {
+      form.append("upload_preset", preset);
+    } else {
+      // Cloudinary signs the parameters that are sent, sorted by name and
+      // joined with "&", with the api_secret appended before hashing.
+      const { createHash } = await import("node:crypto");
+      const timestamp = Math.floor(Date.now() / 1000);
+      const toSign = `folder=${folder}&timestamp=${timestamp}`;
+      const signature = createHash("sha1").update(toSign + apiSecret).digest("hex");
+      form.append("api_key", apiKey!);
+      form.append("timestamp", String(timestamp));
+      form.append("signature", signature);
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: form,
+      });
+    } catch (error) {
+      console.error("[upload:cloudinary] network error", error);
+      throw new HttpError(502, "Couldn't reach the image service. Please try again.");
+    }
+
+    const payload = (await response.json().catch(() => null)) as
+      | { secure_url?: string; error?: { message?: string } }
+      | null;
+
+    if (!response.ok || !payload?.secure_url) {
+      // Cloudinary explains refusals precisely ("Invalid Signature", "Upload
+      // preset not found"). Without this in the logs the failure is a guess.
+      const reason = payload?.error?.message ?? `HTTP ${response.status}`;
+      console.error(
+        `[upload:cloudinary] rejected (${preset ? "unsigned preset" : "signed"}): ${reason}`,
+      );
+      throw new HttpError(502, `Image upload was rejected: ${reason}`);
+    }
+
+    return { url: payload.secure_url };
   },
 };
 

@@ -136,7 +136,12 @@ Images are uploaded through `/api/admin/upload`, which routes to a storage adapt
 by `UPLOAD_PROVIDER`:
 
 - `local` — writes to `public/uploads` (git-ignored). Good for a single VPS.
-- `cloudinary` — signed REST upload; set `CLOUDINARY_*`.
+- `cloudinary` — set `CLOUDINARY_CLOUD_NAME` plus either
+  `CLOUDINARY_UPLOAD_PRESET` (unsigned, simplest) or
+  `CLOUDINARY_API_KEY` + `CLOUDINARY_API_SECRET` (signed). A refusal from
+  Cloudinary is logged with its own message, so "Invalid Signature" or
+  "Upload preset not found" shows up in the server logs rather than a
+  generic failure.
 - `s3` — SigV4-signed PUT, works with AWS S3, Cloudflare R2, MinIO and DigitalOcean Spaces.
 
 Adding another provider means implementing one `StorageAdapter` in `src/server/storage.ts`.
