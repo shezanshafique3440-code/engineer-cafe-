@@ -25,9 +25,7 @@ export function Footer({ settings }: { settings: PublicSettings }) {
     <footer className="mt-auto border-t border-charcoal-800 bg-charcoal-900 text-cream-100">
       <div className="container grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <div className="[&_span.text-charcoal-900]:text-cream-50 [&_span.text-charcoal-300]:text-charcoal-300">
-            <Logo />
-          </div>
+          <Logo src={settings.logoUrl} onDark />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-charcoal-300">
             {settings.tagline}
           </p>

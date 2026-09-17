@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { useSession } from "@/context/session-context";
+import { useSettings } from "@/context/settings-context";
 import { cn, initials } from "@/lib/utils";
 
 const NAV = [
@@ -27,6 +28,7 @@ const NAV = [
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, logout } = useSession();
+  const settings = useSettings();
   const [open, setOpen] = useState(false);
 
   const isActive = (href: string) =>
@@ -35,9 +37,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const sidebar = (
     <div className="flex h-full flex-col bg-charcoal-900 text-cream-100">
       <div className="flex h-16 items-center justify-between border-b border-charcoal-800 px-5">
-        <div className="[&_span.text-charcoal-900]:text-cream-50 [&_span.bg-charcoal-900]:bg-chai-600 [&_span.text-charcoal-300]:text-charcoal-500">
-          <Logo href="/admin" />
-        </div>
+        <Logo href="/admin" src={settings.logoUrl} onDark />
         <button
           type="button"
           onClick={() => setOpen(false)}

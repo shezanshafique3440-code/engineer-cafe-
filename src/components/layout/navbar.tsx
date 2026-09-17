@@ -8,6 +8,7 @@ import { Menu, Search, ShoppingBag, User, X, LogOut, LayoutDashboard, Heart } fr
 import { Logo } from "./logo";
 import { useCart } from "@/context/cart-context";
 import { useSession } from "@/context/session-context";
+import { useSettings } from "@/context/settings-context";
 import { cn } from "@/lib/utils";
 import { SearchDialog } from "@/components/menu/search-dialog";
 
@@ -25,6 +26,7 @@ export function Navbar() {
   const pathname = usePathname();
   const { itemCount } = useCart();
   const { user, logout } = useSession();
+  const settings = useSettings();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -80,7 +82,7 @@ export function Navbar() {
       >
         <nav className="container flex h-16 items-center justify-between gap-4 md:h-[72px]" aria-label="Main">
           <div className="flex items-center gap-8">
-            <Logo />
+            <Logo src={settings.logoUrl} />
             <ul className="hidden items-center gap-1 lg:flex">
               {LINKS.map((link) => (
                 <li key={link.href}>
@@ -239,7 +241,7 @@ export function Navbar() {
               className="absolute right-0 top-0 flex h-full w-[86%] max-w-sm flex-col bg-cream-50 shadow-lift"
             >
               <div className="flex items-center justify-between border-b border-cream-200 px-5 py-4">
-                <Logo />
+                <Logo src={settings.logoUrl} />
                 <button
                   type="button"
                   onClick={() => setMobileOpen(false)}
