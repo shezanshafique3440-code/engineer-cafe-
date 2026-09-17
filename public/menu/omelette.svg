@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#F8F3EA"/><stop offset="1" stop-color="#EFE3CF"/>
+</linearGradient>
+<pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+<path d="M32 0H0v32" fill="none" stroke="#E2D2B6" stroke-width="1" opacity=".45"/>
+</pattern>
+<radialGradient id="glow" cx=".34" cy=".26" r=".75">
+<stop offset="0" stop-color="#FFFFFF" stop-opacity=".55"/>
+<stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+</radialGradient>
+</defs>
+<rect width="800" height="600" fill="url(#bg)"/>
+<rect width="800" height="600" fill="url(#grid)"/>
+<rect width="800" height="600" fill="url(#glow)"/>
+<ellipse cx="400" cy="452" rx="205" ry="49.199999999999996" fill="#D9C9AE" opacity=".22"/><ellipse cx="400" cy="340" rx="236" ry="132" fill="#FFFFFF" stroke="#E6DCCB" stroke-width="4"/><path d="M212 352 C236 258 336 226 412 240 C498 256 580 300 574 356 C520 384 268 390 212 352 Z" fill="#D9A441"/><path d="M232 340 C258 268 342 244 410 256 C486 270 552 306 552 348 C500 368 288 372 232 340 Z" fill="#F5B429"/><path d="M300 268 C346 300 452 306 520 286" fill="none" stroke="#D9A441" stroke-width="7" opacity=".7"/><path d="M286 332 q12 -12 24 -2" stroke="#6E8F4E" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M500 296 q12 -12 24 -2" stroke="#6E8F4E" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M392 344 q12 -12 24 -2" stroke="#6E8F4E" stroke-width="6" fill="none" stroke-linecap="round"/>
+</svg>

@@ -13,6 +13,13 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns,
     formats: ["image/avif", "image/webp"],
+    // The menu art in /public/menu is SVG we author ourselves. The optimizer
+    // refuses SVG by default because a hostile SVG can carry script; the CSP
+    // below strips that capability, which is the configuration Next documents
+    // for serving trusted SVG.
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion", "recharts"],

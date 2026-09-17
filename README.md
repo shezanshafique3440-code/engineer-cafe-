@@ -223,6 +223,20 @@ alongside the English one, and both are shown on the menu.
 | Anday (انڈے) | 5 — half fry, full fry, omelette, tamatar, cheese | Rs. 80 – 130 |
 | Sides & Extras | 5 — Shakeel Lahori chanay, malai plate, disposable charges | Rs. 10 – 300 |
 
+### Menu art
+
+Every dish has its own illustration in `public/menu` — 27 hand-drawn SVGs, one
+per item type, shipped inside the repo. Nothing depends on an outside image
+host, so no picture can 404 later, and the art is themed to match the site
+rather than showing another cafe's food. Swap any of them for a real photograph
+from Admin → Products whenever the cafe has one; on Render, set
+`UPLOAD_PROVIDER=cloudinary` first so uploads survive a redeploy.
+
+Serving these needs `images.dangerouslyAllowSVG` in `next.config.ts`. The flag
+exists because a hostile SVG can carry script; the `contentSecurityPolicy` set
+alongside it (`script-src 'none'; sandbox;`) removes that capability, which is
+the configuration Next documents for trusted SVG.
+
 Where the board printed two prices on one line (`170/220`, `100/200`,
 `180/300`) the item is seeded as two products so both prices stay editable from
 Admin → Products.

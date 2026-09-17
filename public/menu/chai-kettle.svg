@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#F8F3EA"/><stop offset="1" stop-color="#EFE3CF"/>
+</linearGradient>
+<pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+<path d="M32 0H0v32" fill="none" stroke="#E2D2B6" stroke-width="1" opacity=".45"/>
+</pattern>
+<radialGradient id="glow" cx=".34" cy=".26" r=".75">
+<stop offset="0" stop-color="#FFFFFF" stop-opacity=".55"/>
+<stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+</radialGradient>
+</defs>
+<rect width="800" height="600" fill="url(#bg)"/>
+<rect width="800" height="600" fill="url(#grid)"/>
+<rect width="800" height="600" fill="url(#glow)"/>
+<ellipse cx="400" cy="486" rx="210" ry="50.4" fill="#D9C9AE" opacity=".22"/><path d="M262 250 H506 L486 430 C483 456 462 470 438 470 H330 C306 470 285 456 282 430 Z" fill="#B9803F"/><path d="M278 262 H490 L472 424 C470 444 453 456 434 456 H334 C315 456 298 444 296 424 Z" fill="#D8A469"/><path d="M506 292 L596 344 L586 368 L500 330 Z" fill="#B9803F"/><path d="M290 250 C300 196 470 196 480 250 Z" fill="#B9803F"/><path d="M318 214 C340 168 430 168 452 214" fill="none" stroke="#2A2320" stroke-width="16" stroke-linecap="round" opacity=".8"/><ellipse cx="385" cy="196" rx="22" ry="12" fill="#2A2320" opacity=".8"/><ellipse cx="176" cy="486" rx="66" ry="15.84" fill="#D9C9AE" opacity=".22"/><path d="M118 400 H234 L222 464 C220 476 210 482 198 482 H154 C142 482 132 476 130 464 Z" fill="#FFFFFF" stroke="#E6DCCB" stroke-width="3"/><ellipse cx="176" cy="402" rx="56" ry="13" fill="#D8A469"/><ellipse cx="640" cy="486" rx="66" ry="15.84" fill="#D9C9AE" opacity=".22"/><path d="M582 400 H698 L686 464 C684 476 674 482 662 482 H618 C606 482 596 476 594 464 Z" fill="#FFFFFF" stroke="#E6DCCB" stroke-width="3"/><ellipse cx="640" cy="402" rx="56" ry="13" fill="#D8A469"/><path d="M368 158 C354 131.48 384 111.2 364 80" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" opacity=".62"/><path d="M400 158 C386 131.48 416 111.2 396 80" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" opacity=".62"/><path d="M432 158 C418 131.48 448 111.2 428 80" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" opacity=".62"/>
+</svg>
