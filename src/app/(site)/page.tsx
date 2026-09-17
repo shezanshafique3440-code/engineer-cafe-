@@ -25,7 +25,9 @@ export default async function HomePage() {
     listProducts({ category: "parathas", popular: true, perPage: 4, sort: "popular" }),
     listProducts({ category: "combos", perPage: 6, sort: "popular" }),
     prisma.review.findMany({
-      where: { status: "APPROVED", rating: { gte: 4 } },
+      // Only for items still on the menu — a review for a withdrawn dish is
+      // noise at best and misleading at worst.
+      where: { status: "APPROVED", rating: { gte: 4 }, product: { isAvailable: true } },
       orderBy: { createdAt: "desc" },
       take: 6,
       select: {

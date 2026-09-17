@@ -289,6 +289,48 @@ async function main() {
     });
   }
 
+  // ── One-time cleanup of the retired demo reviews ─────────────────────────
+  // Earlier seeds shipped fabricated reviews. Deployments created before that
+  // changed still hold them, and some re-attach to real menu items that share
+  // a name, so they would keep showing as genuine customer feedback. These are
+  // matched on their exact seeded text, so nothing a real customer wrote is
+  // ever touched. Safe to delete this block once every deployment has run it.
+  const RETIRED_DEMO_REVIEWS = [
+    "Genuinely the best karak in Gulberg. I finish my whole assignment on one cup.",
+    "Ginger and elaichi balance is perfect. Ordered it three days straight.",
+    "Needs two hands and a nap afterwards. Worth every rupee.",
+    "Very filling, slightly spicy for me but the cheese saves it.",
+    "Proper pink chai with real pistachios, not the powdered stuff.",
+    "Cheese pull is real. Ask for extra sauce.",
+    "Rs. 299 for chai and aloo paratha — nothing else comes close near campus.",
+    "Ordered at 1:40 AM, arrived hot at 2:05. Legends.",
+    "Good masala, keep the garlic mayo coming.",
+    "Strong enough to fix a production bug.",
+    "My little sister now refuses every other dessert.",
+    "Crispy and juicy, bun could be a touch fresher.",
+  ];
+  const purged = await prisma.review.deleteMany({
+    where: { comment: { in: RETIRED_DEMO_REVIEWS } },
+  });
+  if (purged.count > 0) {
+    console.log(`   Removed ${purged.count} retired demo review(s).`);
+    const touched = await prisma.product.findMany({ select: { id: true } });
+    for (const product of touched) {
+      const agg = await prisma.review.aggregate({
+        where: { productId: product.id, status: "APPROVED" },
+        _avg: { rating: true },
+        _count: { rating: true },
+      });
+      await prisma.product.update({
+        where: { id: product.id },
+        data: {
+          ratingAverage: Math.round((agg._avg.rating ?? 0) * 10) / 10,
+          ratingCount: agg._count.rating,
+        },
+      });
+    }
+  }
+
   // ── Favorites ─────────────────────────────────────────────────────────────
   for (const name of ["Sada Chai", "Chicken Cheese Paratha", "Kashmiri Chai"]) {
     const productId = productIdByName.get(name);
