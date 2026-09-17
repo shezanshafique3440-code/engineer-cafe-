@@ -71,12 +71,20 @@ services:
       - key: WHATSAPP_NUMBER
         sync: false
 
-      # Render's filesystem is ephemeral, so uploaded images would vanish on
-      # redeploy. Switch to `cloudinary` (or `s3`) and add the matching keys
-      # below before uploading product photos from the admin panel.
+      # Render's filesystem is ephemeral, so anything uploaded with the `local`
+      # provider is lost on the next deploy. Set this to `cloudinary` (or `s3`)
+      # before uploading product photos or a logo from the admin panel.
+      #
+      # Deliberately sync:false rather than a fixed value: a hardcoded value
+      # here would overwrite the dashboard on every Blueprint sync, silently
+      # reverting the cafe to `local` and breaking uploads again.
       - key: UPLOAD_PROVIDER
-        value: local
+        sync: false
       - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      # Unsigned upload preset — the simplest option, and the one that cannot
+      # fail on a signature mismatch. Set this OR the key/secret pair below.
+      - key: CLOUDINARY_UPLOAD_PRESET
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
