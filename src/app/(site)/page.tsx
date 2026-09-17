@@ -43,11 +43,17 @@ export default async function HomePage() {
       _count: true,
       _sum: { ratingCount: true },
     }),
-    // The real best seller, so the hero never advertises a withdrawn dish.
+    // Whatever the cafe marks Featured in admin leads the hero; failing that,
+    // the genuine best seller. Either way it is a dish that is actually on the
+    // menu, with its own photograph.
     prisma.product.findFirst({
       where: { isAvailable: true },
-      orderBy: [{ soldCount: "desc" }, { isFeatured: "desc" }, { ratingAverage: "desc" }],
-      select: { name: true, urduName: true, price: true, discountPrice: true },
+      orderBy: [{ isFeatured: "desc" }, { soldCount: "desc" }, { ratingAverage: "desc" }],
+      select: {
+        name: true, urduName: true, slug: true, image: true,
+        price: true, discountPrice: true, isFeatured: true,
+        category: { select: { slug: true } },
+      },
     }),
   ]);
 

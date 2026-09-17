@@ -20,7 +20,16 @@ export type HeroStats = {
   /** Average rating across approved reviews, or null while there are none. */
   rating: number | null;
   /** Genuinely the best seller; null before anything has been ordered. */
-  highlight: { name: string; urduName: string | null; price: number; discountPrice: number | null } | null;
+  highlight: {
+    name: string;
+    urduName: string | null;
+    slug: string;
+    image: string | null;
+    price: number;
+    discountPrice: number | null;
+    isFeatured: boolean;
+    category: { slug: string };
+  } | null;
 };
 
 export function Hero({ stats }: { stats: HeroStats }) {
@@ -125,8 +134,12 @@ export function Hero({ stats }: { stats: HeroStats }) {
         >
           <div className="relative aspect-[4/3.4] overflow-hidden rounded-[1.75rem] border border-cream-300 bg-cream-200 shadow-lift sm:aspect-[4/3]">
             <Image
-              src="https://images.unsplash.com/photo-1571934811356-5cc061b6821f?auto=format&fit=crop&w=1200&q=75"
-              alt="A cup of karak chai served beside a fresh paratha at Engineer Cafe"
+              src={stats.highlight?.image ?? "/menu/chai-doodh.svg"}
+              alt={
+                stats.highlight
+                  ? `${stats.highlight.name} at ${settings.cafeName}`
+                  : `Chai at ${settings.cafeName}`
+              }
               fill
               priority
               sizes="(max-width: 1024px) 100vw, 50vw"
@@ -149,9 +162,12 @@ export function Hero({ stats }: { stats: HeroStats }) {
 
             {stats.highlight && (
               <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
-                <div className="rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur">
+                <Link
+                  href={`/menu/${stats.highlight.category.slug}/${stats.highlight.slug}`}
+                  className="rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur transition hover:bg-white"
+                >
                   <p className="font-mono text-[10px] uppercase tracking-wider text-chai-600">
-                    Most ordered
+                    {stats.highlight.isFeatured ? "Featured" : "Most ordered"}
                   </p>
                   <p className="mt-0.5 text-sm font-bold text-charcoal-900">
                     {stats.highlight.name}
@@ -167,7 +183,7 @@ export function Hero({ stats }: { stats: HeroStats }) {
                       <span className="ml-1.5 line-through">{money(stats.highlight.price)}</span>
                     )}
                   </p>
-                </div>
+                </Link>
               </div>
             )}
           </div>
