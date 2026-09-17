@@ -147,6 +147,34 @@ by `UPLOAD_PROVIDER`:
 Adding another provider means implementing one `StorageAdapter` in `src/server/storage.ts`.
 Uploaded images are never committed into the frontend source.
 
+## Order notifications
+
+The cafe has no SMS gateway and no WhatsApp Business API subscription, so notifications are
+built as pre-written `wa.me` deep links that staff send with one tap. No paid integration, no
+per-message cost, and the update lands on the app the customer already has open.
+
+| Where | What happens |
+|---|---|
+| Any admin page | A new order plays a two-tone chime and raises a toast. The bell in the header carries the pending count and mutes the sound (`localStorage`). |
+| Orders table | A WhatsApp button per row opens a chat with the message for that order's *current* status. |
+| Status change | The confirmation toast carries a **Send** action that opens WhatsApp with the message for the *new* status. |
+| Order detail | A `WhatsApp: <status>` button alongside Print. |
+
+Message bodies live in `src/lib/notifications.ts`, one per `OrderStatus`, written in the same
+Roman Urdu register as the storefront and including the item list, total and a tracking link.
+`toWhatsAppNumber()` normalises Pakistani numbers (`03001234567`, `+92 300-1234567`,
+`3001234567` all become `923001234567`) and returns `null` for anything undialable, so the
+button is disabled rather than opening a broken chat.
+
+The admin shell polls `GET /api/admin/orders/pulse` every 20s — two indexed reads, deliberately
+separate from the much heavier dashboard stats endpoint. The first poll only takes a baseline,
+so opening the panel never announces orders that were already there.
+
+To upgrade to automatic sends later, call a provider from `transitionOrder()` in
+`src/server/orders.ts`; the message builders are pure functions and can be reused as-is.
+
+---
+
 ## Payments
 
 `CASH_ON_DELIVERY` and `CASH_AT_COUNTER` work out of the box and are toggled from admin

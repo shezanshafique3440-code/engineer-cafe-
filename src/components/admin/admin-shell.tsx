@@ -10,6 +10,7 @@ import {
 import { Logo } from "@/components/layout/logo";
 import { useSession } from "@/context/session-context";
 import { useSettings } from "@/context/settings-context";
+import { NewOrderAlert } from "./new-order-alert";
 import { cn, initials } from "@/lib/utils";
 
 const NAV = [
@@ -124,6 +125,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <p className="font-mono text-xs uppercase tracking-wider text-charcoal-400">
             {"// engineer cafe admin"}
           </p>
+          <div className="ml-auto">
+            <NewOrderAlert />
+          </div>
         </header>
 
         <main className="p-4 lg:p-8">{children}</main>

@@ -9,29 +9,36 @@ import { prisma } from "@/lib/prisma";
 export const metadata: Metadata = buildMetadata({
   title: "Our Story",
   description:
-    "Engineer Cafe was built for students, engineers, developers and freelancers — great chai, honest parathas and a table nobody rushes you off.",
+    "Engineer Cafe started with an engineering degree and no job offer. One kettle, one tawa, and a refusal to keep waiting — this is how it began.",
   path: "/about",
 });
 
 export const revalidate = 300;
 
 const VALUES = [
+  { icon: Heart, title: "Built, not inherited", body: "Started by an engineering graduate who ran out of interview calls and decided to stop waiting for one. Every rupee here was earned at this counter." },
   { icon: Leaf, title: "Fresh ingredients", body: "Dough kneaded through the day, milk delivered every morning, chai brewed per order — never held on a warmer." },
-  { icon: Wallet, title: "Affordable pricing", body: "A cutting chai at Rs. 90 and combos under Rs. 400. Student pricing is our default, not a promotion." },
-  { icon: Users, title: "Student-friendly space", body: "Sockets at every table, fast Wi-Fi, a whiteboard wall, and nobody asking you to vacate after one cup." },
+  { icon: Wallet, title: "Affordable pricing", body: "A cup of chai at Rs. 90. Student pricing is our default, not a promotion — because we remember counting the change." },
+  { icon: Users, title: "Student-friendly space", body: "Sockets at every table, room to spread out, and nobody asking you to vacate after one cup." },
   { icon: ShieldCheck, title: "Quality promise", body: "If a paratha reaches you cold or a chai isn't right, tell us on WhatsApp — we remake it, no argument." },
   { icon: Sparkles, title: "Made to your spec", body: "Sugar level, milk, strength, add-ons. Every drink and paratha is configurable, like it should be." },
-  { icon: Heart, title: "Built by regulars", body: "Started by four engineering graduates who spent more nights in chai dhabas than in libraries." },
 ];
 
 export default async function AboutPage() {
-  const [settings, counts] = await Promise.all([
+  const [settings, counts, showcase] = await Promise.all([
     getSettings(),
     Promise.all([
       prisma.product.count({ where: { isAvailable: true } }),
       prisma.order.count({ where: { status: "DELIVERED" } }),
       prisma.user.count({ where: { role: "CUSTOMER" } }),
     ]),
+    // The story deserves the cafe's own food next to it, not a stock photo of
+    // somebody else's cafe.
+    prisma.product.findFirst({
+      where: { isAvailable: true, image: { not: null } },
+      orderBy: [{ isFeatured: "desc" }, { soldCount: "desc" }, { ratingAverage: "desc" }],
+      select: { name: true, image: true },
+    }),
   ]);
   const [menuItems, ordersDelivered, customers] = counts;
 
@@ -54,12 +61,14 @@ export default async function AboutPage() {
         <div className="container relative py-14 md:py-20">
           <p className="eyebrow">{"// our story"}</p>
           <h1 className="mt-2 max-w-3xl text-3xl font-extrabold leading-tight md:text-5xl">
-            A cafe built around the way engineers actually work.
+            The degree didn&apos;t open a door.
+            <br />
+            So he built one.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-charcoal-600 md:text-lg">
-            {settings.cafeName} started as a simple observation: every good idea in this city gets
-            argued out over chai, and almost none of the places serving it were built for people who
-            need three hours and a power socket.
+            {settings.cafeName} did not begin with a business plan or an investor. It began with an
+            engineering degree, a folder of unanswered applications, and a young man who finally got
+            tired of waiting for somebody else to give him permission to start.
           </p>
         </div>
       </section>
@@ -67,44 +76,65 @@ export default async function AboutPage() {
       <section className="section">
         <div className="container grid gap-10 lg:grid-cols-2 lg:gap-14">
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-cream-200">
-            <Image
-              src="https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=1000&q=70"
-              alt="The Engineer Cafe seating area with warm lighting and wooden tables"
-              fill
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              className="object-cover"
-            />
+            {showcase?.image && (
+              <Image
+                src={showcase.image}
+                alt={`${showcase.name} at ${settings.cafeName}`}
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover"
+                priority
+              />
+            )}
           </div>
 
           <div className="space-y-5 text-sm leading-relaxed text-charcoal-600 md:text-base">
-            {/* TODO (cafe owner): replace this section with the cafe's own story.
-                The copy below deliberately describes only what the menu and
-                settings already state — it invents no founders, dates or events. */}
             <h2 className="text-2xl font-bold text-charcoal-900 md:text-3xl">
-              Chai worth interrupting work for.
+              He did everything the right way. It still wasn&apos;t enough.
             </h2>
             <p>
-              {settings.cafeName} sits in {settings.city}, a short walk from where students
-              actually live. The idea is simple: proper doodh patti and karak chai, parathas
-              rolled fresh through the day, and prices a student can sustain more than once a
-              week.
+              Four years of engineering. The semesters that ate themselves, the nights that ran into
+              mornings, the exams survived on chai and stubbornness. And then, at the end of it, the
+              degree — held up in a photograph, the proof that the hard part was over.
             </p>
             <p>
-              The menu is deliberately short and done properly — nine kinds of chai, sixteen
-              parathas, anday, and the sides that go with them. Everything is made to order,
-              which is why a kettle takes a little longer than a cup.
+              Except the hard part had not even started. What followed was the season nobody warns
+              you about: applications sent into silence. Interviews that ended in{" "}
+              <em>we&apos;ll let you know</em>. Reference numbers that led nowhere. A qualified
+              engineer with a folder full of certificates and absolutely nothing to do on a Monday
+              morning.
             </p>
             <p>
-              It is built for long sittings. Students revising, freelancers on calls, friends
-              who came for one cup and stayed for four. The engineering name is not a gimmick —
-              it is simply who keeps showing up.
+              Like everything else in this country, the waiting happened over chai. Cup after cup at
+              roadside dhabas, alongside other graduates carrying the same folder and the same
+              expression. And somewhere in those long, flat afternoons, the question quietly turned
+              itself around. It stopped being <em>who will give me a job?</em> and became{" "}
+              <em>why am I still asking?</em>
             </p>
 
             <div className="rounded-2xl border-l-4 border-chai-500 bg-cream-100 p-5">
               <p className="font-display text-lg font-bold italic text-charcoal-900">
-                “Coffee is optional. Chai is mandatory.”
+                &ldquo;Job nahi mili. Isliye khud bana li.&rdquo;
+              </p>
+              <p className="mt-1.5 text-xs text-charcoal-500">
+                No one gave him a job. So he built one — and then he built a few more.
               </p>
             </div>
+
+            <p>
+              So he stopped asking. The engineering did not go to waste; it simply changed shape. The
+              same mind trained to break a problem into variables turned itself on a kettle, a tawa
+              and a bag of loose-leaf tea. How hot. How long. How much milk. What ratio of gur to
+              patti. He tested it the way he had been taught to test anything — one variable at a
+              time, iteration after iteration, until the cup came out right <em>every single time</em>.
+            </p>
+            <p>
+              The first days were small and unglamorous: one burner, one man, and a great deal of
+              refusing to be embarrassed. Customers came for the chai and stayed because somebody
+              actually cared whether it was good. Word travelled the way it always does — one friend
+              telling another. One kettle became two. A stool became a table. A table became a room
+              full of students who now treat this place as an extension of their hostel.
+            </p>
 
             <dl className="grid grid-cols-3 gap-4 border-t border-cream-200 pt-6">
               {[
@@ -126,6 +156,36 @@ export default async function AboutPage() {
       </section>
 
       <section className="section bg-white">
+        <div className="container">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="eyebrow justify-center">{"// where it stands today"}</p>
+            <h2 className="mt-2 text-2xl font-bold md:text-3xl">
+              Not a fallback. The actual plan.
+            </h2>
+            <div className="mt-5 space-y-4 text-sm leading-relaxed text-charcoal-600 md:text-base">
+              <p>
+                {settings.cafeName} is not the story of a man who failed at engineering and settled
+                for a chai stall. It is the story of a man who applied engineering to chai — which,
+                as anyone who has argued about doodh patti at 2 AM knows, is a far more serious
+                subject than most people are willing to admit.
+              </p>
+              <p>
+                Today the tawa does not get a chance to cool. The menu has grown from a single
+                kettle to {menuItems} items — nine kinds of chai, sixteen parathas, anday, and the
+                sides that go with them. There is a full kitchen, a team, and a queue that forms
+                before the shutters are properly up. Same founder. Same counter. Same obsession with
+                getting the ratio right.
+              </p>
+              <p className="font-semibold text-charcoal-800">
+                And if you are sitting here right now with a degree and no offer letter, holding a
+                cup he made — take the hint.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
         <div className="container">
           <div className="mb-9 max-w-2xl">
             <p className="eyebrow">{"// our mission"}</p>

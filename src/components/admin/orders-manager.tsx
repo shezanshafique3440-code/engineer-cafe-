@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Search, Printer, Eye, RefreshCw, Phone, MapPin } from "lucide-react";
+import { Search, Printer, Eye, RefreshCw, Phone, MapPin, MessageCircle } from "lucide-react";
 import { apiGet, apiPatch, ApiError } from "@/lib/api-client";
 import { useMoney, useSettings } from "@/context/settings-context";
 import { PageHeader, DataTable, TableSkeleton, Modal } from "./ui";
@@ -12,6 +12,7 @@ import {
   ORDER_STATUS_LABEL, ORDER_STATUS_TONE, ORDER_TYPE_LABEL,
   PAYMENT_METHOD_LABEL, nextStatuses,
 } from "@/lib/constants";
+import { whatsappOrderHref, toWhatsAppNumber, NOTIFY_LABEL } from "@/lib/notifications";
 import type { OrderDTO } from "@/server/orders";
 import type { OrderStatus } from "@prisma/client";
 
@@ -105,6 +106,25 @@ function OrdersManagerInner() {
     return () => clearTimeout(timer);
   }, [load]);
 
+  /**
+   * Opens WhatsApp with the status update pre-typed for this customer. The
+   * cafe has no messaging API, so the send stays a deliberate one-tap action
+   * by whoever is on the counter.
+   */
+  const notifyCustomer = (order: OrderDTO, status: OrderStatus = order.status) => {
+    const href = whatsappOrderHref(order, status, {
+      cafeName: settings.cafeName,
+      money,
+      origin: window.location.origin,
+      orderId: order.id,
+    });
+    if (!href) {
+      toast.error(`${order.customerPhone} is not a valid WhatsApp number.`);
+      return;
+    }
+    window.open(href, "_blank", "noopener,noreferrer");
+  };
+
   const updateStatus = async (order: OrderDTO, status: OrderStatus) => {
     if (status === "CANCELLED" && !window.confirm(`Cancel order #${order.orderNumber}?`)) return;
     setUpdating(order.id);
@@ -112,7 +132,16 @@ function OrdersManagerInner() {
       const data = await apiPatch<{ order: OrderDTO }>(`/api/admin/orders/${order.id}`, { status });
       setOrders((current) => current.map((o) => (o.id === order.id ? data.order : o)));
       if (viewing?.id === order.id) setViewing(data.order);
-      toast.success(`#${order.orderNumber} → ${ORDER_STATUS_LABEL[status]}`);
+
+      // Every status change is worth telling the customer about, so the toast
+      // carries the send rather than leaving it to be remembered.
+      const canNotify = Boolean(toWhatsAppNumber(data.order.customerPhone));
+      toast.success(`#${order.orderNumber} → ${ORDER_STATUS_LABEL[status]}`, {
+        description: canNotify ? `Tell ${data.order.customerName} on WhatsApp?` : undefined,
+        action: canNotify
+          ? { label: "Send", onClick: () => notifyCustomer(data.order, status) }
+          : undefined,
+      });
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Couldn't update this order.");
     } finally {
@@ -332,6 +361,16 @@ function OrdersManagerInner() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => notifyCustomer(order)}
+                        disabled={!toWhatsAppNumber(order.customerPhone)}
+                        title={`WhatsApp ${order.customerName}: ${NOTIFY_LABEL[order.status]}`}
+                        aria-label={`Send order ${order.orderNumber} status to ${order.customerName} on WhatsApp`}
+                        className="rounded-lg p-1.5 text-charcoal-400 transition hover:bg-cream-100 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-charcoal-400"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => printOrder(order)}
                         aria-label={`Print order ${order.orderNumber}`}
                         className="rounded-lg p-1.5 text-charcoal-400 transition hover:bg-cream-100 hover:text-chai-600"
@@ -478,6 +517,14 @@ function OrdersManagerInner() {
                   Mark {ORDER_STATUS_LABEL[status]}
                 </Button>
               ))}
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!toWhatsAppNumber(viewing.customerPhone)}
+                onClick={() => notifyCustomer(viewing)}
+              >
+                <MessageCircle className="h-3.5 w-3.5" aria-hidden /> WhatsApp: {NOTIFY_LABEL[viewing.status]}
+              </Button>
               <Button size="sm" variant="secondary" onClick={() => printOrder(viewing)}>
                 <Printer className="h-3.5 w-3.5" aria-hidden /> Print
               </Button>
