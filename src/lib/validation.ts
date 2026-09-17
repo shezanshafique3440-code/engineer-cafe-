@@ -105,6 +105,7 @@ export const contactSchema = z.object({
 
 export const productSchema = z.object({
   name: z.string().trim().min(2, "Product name is required.").max(80),
+  urduName: z.string().trim().max(80).optional().or(z.literal("")),
   slug: z.string().trim().max(90).optional().or(z.literal("")),
   description: z.string().trim().min(5, "Add a short description.").max(200),
   longDescription: z.string().trim().max(1200).optional().or(z.literal("")),

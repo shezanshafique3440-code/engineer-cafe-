@@ -1,6 +1,6 @@
 import { PrismaClient, type Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { CATEGORIES, ADDON_GROUPS, PRODUCTS, COUPONS, SAMPLE_REVIEWS } from "./seed-data";
+import { CATEGORIES, ADDON_GROUPS, PRODUCTS, COUPONS } from "./seed-data";
 
 const prisma = new PrismaClient();
 
@@ -45,9 +45,9 @@ async function main() {
     create: {
       id: 1,
       cafeName: "Engineer Cafe",
-      tagline: "Chai. Paratha. Aur Engineering Wali Vibes.",
-      phone: "+92 300 1234567",
-      whatsapp: process.env.WHATSAPP_NUMBER ?? "923001234567",
+      tagline: "دل چیز ہی کیا… آپ ہماری چائے لیجیے",
+      phone: "0340-0511249",
+      whatsapp: process.env.WHATSAPP_NUMBER ?? "923400511249",
       email: "hello@engineercafe.pk",
       address: "Block C, Main Boulevard, Gulberg III, Lahore",
       city: "Lahore",
@@ -194,6 +194,7 @@ async function main() {
       const slug = slugify(item.name);
       const data: Prisma.ProductUncheckedCreateInput = {
         name: item.name,
+        urduName: item.urduName,
         slug,
         description: item.description,
         longDescription: item.longDescription ?? null,
@@ -231,18 +232,50 @@ async function main() {
     }
   }
 
-  // ── Combo contents (second pass — needs all products to exist) ────────────
-  for (const item of PRODUCTS.combos ?? []) {
-    const comboId = productIdByName.get(item.name);
-    if (!comboId || !item.combo) continue;
-    await prisma.comboItem.deleteMany({ where: { comboId } });
-    for (const part of item.combo) {
-      const productId = productIdByName.get(part.name);
-      if (!productId) continue;
-      await prisma.comboItem.create({
-        data: { comboId, productId, quantity: part.quantity },
+  // ── Remove anything no longer on the menu ─────────────────────────────────
+  // `db:seed` makes the database match this file. Products that have appeared
+  // in an order are archived rather than deleted so order history survives
+  // (OrderItem keeps its own copy of the name, price and image).
+  const keepSlugs = new Set(
+    Object.values(PRODUCTS).flat().map((item) => slugify(item.name)),
+  );
+  const stale = await prisma.product.findMany({
+    where: { slug: { notIn: [...keepSlugs] } },
+    select: { id: true, name: true },
+  });
+
+  let archived = 0;
+  let removed = 0;
+  for (const product of stale) {
+    const ordered = await prisma.orderItem.count({ where: { productId: product.id } });
+    if (ordered > 0) {
+      await prisma.product.update({
+        where: { id: product.id },
+        data: { isAvailable: false, isFeatured: false, isPopular: false },
       });
+      archived += 1;
+    } else {
+      await prisma.product.delete({ where: { id: product.id } });
+      removed += 1;
     }
+  }
+
+  const keepCategories = new Set(CATEGORIES.map((c) => c.slug));
+  const emptyCategories = await prisma.category.findMany({
+    where: { slug: { notIn: [...keepCategories] } },
+    select: { id: true, slug: true, _count: { select: { products: true } } },
+  });
+  for (const category of emptyCategories) {
+    if (category._count.products === 0) {
+      await prisma.category.delete({ where: { id: category.id } });
+    } else {
+      // Still holds archived products — hide it instead of breaking the link.
+      await prisma.category.update({ where: { id: category.id }, data: { isActive: false } });
+    }
+  }
+
+  if (stale.length > 0) {
+    console.log(`   Pruned ${removed} off-menu product(s), archived ${archived} with order history.`);
   }
 
   // ── Coupons ───────────────────────────────────────────────────────────────
@@ -256,44 +289,8 @@ async function main() {
     });
   }
 
-  // ── Reviews ───────────────────────────────────────────────────────────────
-  const customerByName = new Map(customers.map((c) => [c.name, c.id]));
-  for (const review of SAMPLE_REVIEWS) {
-    const productId = productIdByName.get(review.productName);
-    const userId = customerByName.get(review.author);
-    if (!productId || !userId) continue;
-    await prisma.review.upsert({
-      where: { productId_userId: { productId, userId } },
-      update: { rating: review.rating, comment: review.comment, status: "APPROVED" },
-      create: {
-        productId,
-        userId,
-        rating: review.rating,
-        comment: review.comment,
-        status: "APPROVED",
-      },
-    });
-  }
-
-  // Recompute rating aggregates from approved reviews.
-  const grouped = await prisma.review.groupBy({
-    by: ["productId"],
-    where: { status: "APPROVED" },
-    _avg: { rating: true },
-    _count: { rating: true },
-  });
-  for (const row of grouped) {
-    await prisma.product.update({
-      where: { id: row.productId },
-      data: {
-        ratingAverage: Math.round((row._avg.rating ?? 0) * 10) / 10,
-        ratingCount: row._count.rating,
-      },
-    });
-  }
-
   // ── Favorites ─────────────────────────────────────────────────────────────
-  for (const name of ["Special Engineer Chai", "Loaded Engineer Paratha", "Kashmiri Chai"]) {
+  for (const name of ["Sada Chai", "Chicken Cheese Paratha", "Kashmiri Chai"]) {
     const productId = productIdByName.get(name);
     if (!productId) continue;
     await prisma.favorite.upsert({
@@ -306,9 +303,9 @@ async function main() {
   // ── A couple of historical orders so the dashboards aren't empty ──────────
   const existingOrders = await prisma.order.count();
   if (existingOrders === 0) {
-    const chai = productIdByName.get("Special Engineer Chai");
-    const paratha = productIdByName.get("Loaded Engineer Paratha");
-    const fries = productIdByName.get("Masala Fries");
+    const chai = productIdByName.get("Sada Chai");
+    const paratha = productIdByName.get("Chicken Cheese Paratha");
+    const anda = productIdByName.get("Half Fry");
 
     const sampleOrders: {
       number: string;
@@ -321,8 +318,8 @@ async function main() {
         status: "DELIVERED",
         daysAgo: 5,
         items: [
-          { id: chai, name: "Special Engineer Chai", slug: "special-engineer-chai", price: 190, qty: 2 },
-          { id: paratha, name: "Loaded Engineer Paratha", slug: "loaded-engineer-paratha", price: 499, qty: 1 },
+          { id: chai, name: "Sada Chai", slug: "sada-chai", price: 90, qty: 2 },
+          { id: paratha, name: "Chicken Cheese Paratha", slug: "chicken-cheese-paratha", price: 350, qty: 1 },
         ],
       },
       {
@@ -330,8 +327,8 @@ async function main() {
         status: "PREPARING",
         daysAgo: 0,
         items: [
-          { id: fries, name: "Masala Fries", slug: "masala-fries", price: 260, qty: 1 },
-          { id: chai, name: "Special Engineer Chai", slug: "special-engineer-chai", price: 190, qty: 1 },
+          { id: anda, name: "Half Fry", slug: "half-fry", price: 80, qty: 2 },
+          { id: chai, name: "Sada Chai", slug: "sada-chai", price: 90, qty: 1 },
         ],
       },
     ];

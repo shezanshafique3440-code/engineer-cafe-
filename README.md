@@ -210,26 +210,45 @@ npm start          # behind nginx/caddy, or under pm2/systemd
 
 ---
 
-## Seeded menu
+## The menu
 
-74 items across 7 categories, at realistic Pakistani prices:
+The seed carries Engineer Cafe's actual printed menu — 35 items, transcribed
+from the menu board with their real prices. Every item stores its Urdu name
+alongside the English one, and both are shown on the menu.
 
-| Category | Items |
-|---|---|
-| Chai | 20 — doodh patti, karak, kashmiri, masala, qehwa, kettles… |
-| Parathas | 20 — aloo, cheese, egg, chicken, qeema, nutella, loaded… |
-| Snacks | 10 — fries, samosas, wings, pakoras, garlic bread |
-| Burgers & Sandwiches | 5 |
-| Cold Drinks | 10 — water, soft drinks, shakes, lassi, doodh soda |
-| Combos | 5 — Student Deal, Engineer Combo, Late Night Debugging Deal… |
-| Desserts | 4 |
+| Category | Items | Price range |
+|---|---|---|
+| Chai (چائے) | 9 — sada, gur wali, kettli, badam, kashmiri, sulemani/sabz/doodh qehwa, coffee | Rs. 80 – 200 |
+| Parathas (پراٹھے) | 16 — lachha, khushk, aloo, desi ghee, cheese, anda pizza, chicken, roll parathay | Rs. 80 – 360 |
+| Anday (انڈے) | 5 — half fry, full fry, omelette, tamatar, cheese | Rs. 80 – 130 |
+| Sides & Extras | 5 — Shakeel Lahori chanay, malai plate, disposable charges | Rs. 10 – 300 |
 
-Add-on groups (sugar level, milk, strength, paratha size, paratha add-ons, dips) each carry
-their own prices and selection rules, all editable from the admin panel.
+Where the board printed two prices on one line (`170/220`, `100/200`,
+`180/300`) the item is seeded as two products so both prices stay editable from
+Admin → Products.
 
-Sample coupons: `ENGINEER10`, `CHAI20`, `STUDENT15`, `FIRSTBREW`, `LATENIGHT`.
+**Not seeded, because the price was unreadable on the menu photo:** Cold Drinks
+(کولڈ ڈرنکس), Sting (سٹنگ ڈرنکس), Mineral Water (منرل واٹر) and Special Lassi
+Glass (اسپیشل لسی گلاس). Add them from Admin → Products once the prices are
+confirmed — no price is ever guessed here.
 
----
+Add-on options (sugar level, strength, paratha and egg style) are all priced at
+zero, because the board does not charge for them. `npm run db:seed` makes the
+database match `prisma/seed-data.ts`: items no longer on the menu are deleted,
+or hidden instead of deleted when they already appear in an order.
+
+Sample coupons `ENGINEER10`, `STUDENT15` and `FIRSTBREW` are starting points,
+not the cafe's policy — edit or switch them off in Admin → Coupons.
+
+## Known issue
+
+A menu URL that does not exist (`/menu/no-such-category`) renders the 404 page
+but responds with HTTP 200 instead of 404 — a soft 404. It comes from
+`notFound()` inside a statically generated route in Next 15.5; forcing dynamic
+rendering and adding a route-group `not-found.tsx` both failed to change the
+status. Those pages already send `robots: noindex`, so they are not indexed,
+but the status code is still wrong. Unmatched routes outside `/menu`
+(`/no-such-page`) return a correct 404.
 
 ## Accessibility & performance
 

@@ -16,7 +16,7 @@ const LINKS = [
   { href: "/menu", label: "Menu" },
   { href: "/menu/chai", label: "Chai" },
   { href: "/menu/parathas", label: "Parathas" },
-  { href: "/menu/combos", label: "Combos" },
+  { href: "/menu/anday", label: "Anday" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];

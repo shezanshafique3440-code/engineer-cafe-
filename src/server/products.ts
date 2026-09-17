@@ -21,9 +21,10 @@ export type ProductQuery = {
   perPage?: number;
 };
 
-const productSelect = {
+export const productSelect = {
   id: true,
   name: true,
+  urduName: true,
   slug: true,
   description: true,
   longDescription: true,
@@ -44,15 +45,18 @@ const productSelect = {
   soldCount: true,
   createdAt: true,
   category: { select: { id: true, name: true, slug: true } },
+  _count: { select: { addonGroups: true } },
 } satisfies Prisma.ProductSelect;
 
 type ProductRow = Prisma.ProductGetPayload<{ select: typeof productSelect }>;
 
 export function toProductDTO(product: ProductRow): ProductDTO {
+  const { _count, ...rest } = product;
   return {
-    ...product,
+    ...rest,
     spiceLevel: product.spiceLevel as SpiceLevel,
     createdAt: product.createdAt.toISOString(),
+    hasOptions: _count.addonGroups > 0,
   };
 }
 

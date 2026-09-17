@@ -14,9 +14,8 @@ const QUICK_LINKS = [
 const CATEGORY_LINKS = [
   { href: "/menu/chai", label: "Chai" },
   { href: "/menu/parathas", label: "Parathas" },
-  { href: "/menu/snacks", label: "Snacks" },
-  { href: "/menu/combos", label: "Combos" },
-  { href: "/menu/cold-drinks", label: "Cold Drinks" },
+  { href: "/menu/anday", label: "Anday" },
+  { href: "/menu/sides-extras", label: "Sides & Extras" },
 ];
 
 export function Footer({ settings }: { settings: PublicSettings }) {

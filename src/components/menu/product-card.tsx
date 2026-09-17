@@ -105,6 +105,11 @@ export function ProductCard({
               <h3 className="truncate text-[15px] font-bold leading-snug text-charcoal-900 transition-colors group-hover:text-chai-700">
                 {product.name}
               </h3>
+              {product.urduName && (
+                <p className="truncate text-[13px] leading-tight text-charcoal-400" dir="rtl">
+                  {product.urduName}
+                </p>
+              )}
             </Link>
             {product.spiceLevel !== "NONE" && (
               <Flame
@@ -142,7 +147,7 @@ export function ProductCard({
             <button
               type="button"
               disabled={!product.isAvailable}
-              onClick={() => (product.category.slug === "chai" || product.category.slug === "parathas" || product.category.slug === "snacks" ? setDialogOpen(true) : quickAdd())}
+              onClick={() => (product.hasOptions ? setDialogOpen(true) : quickAdd())}
               aria-label={`Add ${product.name} to cart`}
               className={cn(
                 "flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all active:scale-95",

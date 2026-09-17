@@ -132,6 +132,8 @@ model Category {
 model Product {
   id              String     @id @default(cuid())
   name            String
+  /// Name as printed on the cafe's Urdu menu board, shown alongside the English name.
+  urduName        String?
   slug            String     @unique
   description     String
   longDescription String?

@@ -28,6 +28,7 @@ export const PUT = handle(async (request: Request, ctx: { params: Promise<{ id: 
       where: { id },
       data: {
         name: data.name,
+        urduName: data.urduName || null,
         slug,
         description: data.description,
         longDescription: data.longDescription || null,

@@ -61,6 +61,7 @@ export const POST = handle(async (request: Request) => {
   const product = await prisma.product.create({
     data: {
       name: data.name,
+      urduName: data.urduName || null,
       slug,
       description: data.description,
       longDescription: data.longDescription || null,

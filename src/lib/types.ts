@@ -37,6 +37,7 @@ export type AddonGroupDTO = {
 export type ProductDTO = {
   id: string;
   name: string;
+  urduName: string | null;
   slug: string;
   description: string;
   longDescription: string | null;
@@ -56,6 +57,9 @@ export type ProductDTO = {
   ratingCount: number;
   soldCount: number;
   createdAt: string;
+  /** True when the product has customisation groups, so the card opens the
+   *  customiser instead of adding straight to the cart. */
+  hasOptions: boolean;
   category: { id: string; name: string; slug: string };
   addonGroups?: AddonGroupDTO[];
   comboItems?: { productName: string; quantity: number }[];

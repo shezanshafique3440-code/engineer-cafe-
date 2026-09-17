@@ -190,6 +190,9 @@ export function ProductDialog({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h2 className="text-xl font-bold leading-tight">{product.name}</h2>
+                      {product.urduName && (
+                        <p className="mt-0.5 text-base text-charcoal-500" dir="rtl">{product.urduName}</p>
+                      )}
                       <Link
                         href={`/menu/${product.category.slug}`}
                         onClick={onClose}

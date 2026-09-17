@@ -169,6 +169,11 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-semibold text-charcoal-900">
                             {product.name}
+                            {product.urduName && (
+                              <span className="ml-2 font-normal text-charcoal-400" dir="rtl">
+                                {product.urduName}
+                              </span>
+                            )}
                           </span>
                           <span className="block truncate text-xs text-charcoal-500">
                             {product.category.name} · {product.description}

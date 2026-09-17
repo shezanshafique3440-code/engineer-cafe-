@@ -123,6 +123,9 @@ export function ProductDetail({
         <div>
           <p className="eyebrow">{product.category.name}</p>
           <h1 className="mt-1.5 text-3xl font-extrabold leading-tight md:text-4xl">{product.name}</h1>
+          {product.urduName && (
+            <p className="mt-1 text-xl text-charcoal-500" dir="rtl">{product.urduName}</p>
+          )}
 
           <div className="mt-3 flex flex-wrap items-center gap-4">
             <Rating value={product.ratingAverage} count={product.ratingCount} size={16} />

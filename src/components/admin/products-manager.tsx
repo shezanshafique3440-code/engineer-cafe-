@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 type AdminProduct = {
   id: string;
   name: string;
+  urduName: string | null;
   slug: string;
   description: string;
   longDescription: string | null;
@@ -41,7 +42,7 @@ type Category = { id: string; name: string; slug: string };
 type AddonGroup = { id: string; name: string; slug: string };
 
 type ProductForm = {
-  name: string; slug: string; description: string; longDescription: string;
+  name: string; urduName: string; slug: string; description: string; longDescription: string;
   categoryId: string; price: string; discountPrice: string; image: string;
   isAvailable: boolean; isFeatured: boolean; isPopular: boolean; isVegetarian: boolean;
   spiceLevel: AdminProduct["spiceLevel"];
@@ -50,7 +51,7 @@ type ProductForm = {
 };
 
 const BLANK: ProductForm = {
-  name: "", slug: "", description: "", longDescription: "", categoryId: "",
+  name: "", urduName: "", slug: "", description: "", longDescription: "", categoryId: "",
   price: "", discountPrice: "", image: "", isAvailable: true, isFeatured: false,
   isPopular: false, isVegetarian: false, spiceLevel: "NONE",
   prepTimeMinutes: "10", ingredients: "", calories: "", stock: "", sortOrder: "0",
@@ -123,6 +124,7 @@ export function ProductsManager() {
   const openEdit = (product: AdminProduct) => {
     setForm({
       name: product.name,
+      urduName: product.urduName ?? "",
       slug: product.slug,
       description: product.description,
       longDescription: product.longDescription ?? "",
@@ -154,6 +156,7 @@ export function ProductsManager() {
 
     const payload = {
       name: form.name,
+      urduName: form.urduName,
       slug: form.slug,
       description: form.description,
       longDescription: form.longDescription,
@@ -211,6 +214,7 @@ export function ProductsManager() {
     try {
       await apiPut(`/api/admin/products/${product.id}`, {
         name: product.name,
+        urduName: product.urduName ?? "",
         slug: product.slug,
         description: product.description,
         longDescription: product.longDescription ?? "",
@@ -318,7 +322,11 @@ export function ProductsManager() {
                     </span>
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-charcoal-900">{product.name}</p>
-                      <p className="truncate font-mono text-[11px] text-charcoal-400">{product.slug}</p>
+                      {product.urduName ? (
+                        <p className="truncate text-[12px] text-charcoal-400" dir="rtl">{product.urduName}</p>
+                      ) : (
+                        <p className="truncate font-mono text-[11px] text-charcoal-400">{product.slug}</p>
+                      )}
                     </div>
                   </div>
                 </td>
@@ -401,6 +409,7 @@ export function ProductsManager() {
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-4">
               <Input label="Name" name="name" value={form.name} onChange={(e) => set("name", e.target.value)} error={errors.name?.[0]} required />
+              <Input label="Urdu name" name="urduName" value={form.urduName} onChange={(e) => set("urduName", e.target.value)} error={errors.urduName?.[0]} dir="rtl" placeholder="چائے" hint="Menu board ka naam — cards par English ke neeche dikhega." />
               <Input label="Slug" name="slug" value={form.slug} onChange={(e) => set("slug", e.target.value)} error={errors.slug?.[0]} hint="Leave blank to generate from the name." />
               <Textarea label="Short description" name="description" rows={2} value={form.description} onChange={(e) => set("description", e.target.value)} error={errors.description?.[0]} required />
               <Select label="Category" name="categoryId" value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)} error={errors.categoryId?.[0]} required>

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { handle, json, parseBody, requireUser } from "@/server/api";
-import { toProductDTO } from "@/server/products";
+import { productSelect, toProductDTO } from "@/server/products";
 
 const schema = z.object({ productId: z.string().min(1) });
 
@@ -10,18 +10,7 @@ export const GET = handle(async () => {
   const favorites = await prisma.favorite.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
-    include: {
-      product: {
-        select: {
-          id: true, name: true, slug: true, description: true, longDescription: true,
-          price: true, discountPrice: true, image: true, isAvailable: true, isFeatured: true,
-          isPopular: true, isVegetarian: true, spiceLevel: true, prepTimeMinutes: true,
-          ingredients: true, calories: true, stock: true, ratingAverage: true,
-          ratingCount: true, soldCount: true, createdAt: true,
-          category: { select: { id: true, name: true, slug: true } },
-        },
-      },
-    },
+    include: { product: { select: productSelect } },
   });
   return json({
     products: favorites.map((f) => toProductDTO(f.product)),
