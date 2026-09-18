@@ -477,7 +477,7 @@ export function ProductsManager() {
             <div className="grid gap-2 sm:grid-cols-2">
               <Checkbox name="isAvailable" label="Available on the menu" checked={form.isAvailable} onChange={(e) => set("isAvailable", e.target.checked)} />
               <Checkbox name="isPopular" label="Popular" description="Shows a badge and ranks higher" checked={form.isPopular} onChange={(e) => set("isPopular", e.target.checked)} />
-              <Checkbox name="isFeatured" label="Featured" description="Eligible for homepage features" checked={form.isFeatured} onChange={(e) => set("isFeatured", e.target.checked)} />
+              <Checkbox name="isFeatured" label="Featured" description="Rotates in the homepage hero" checked={form.isFeatured} onChange={(e) => set("isFeatured", e.target.checked)} />
               <Checkbox name="isVegetarian" label="Vegetarian" checked={form.isVegetarian} onChange={(e) => set("isVegetarian", e.target.checked)} />
             </div>
           </fieldset>

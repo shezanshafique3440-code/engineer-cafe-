@@ -147,6 +147,25 @@ by `UPLOAD_PROVIDER`:
 Adding another provider means implementing one `StorageAdapter` in `src/server/storage.ts`.
 Uploaded images are never committed into the frontend source.
 
+## The homepage hero
+
+The hero image rotates through every product marked **Featured** in
+Admin → Products, best seller first, capped at `HERO_HIGHLIGHT_LIMIT` (6) so a
+cafe that features half the menu does not push a dozen photographs into the
+first paint.
+
+- **No featured products** → falls back to the genuine best seller.
+- **One** → a still image, exactly as before; no dots, no rotation.
+- **Two or more** → crossfades every 5s with dots to jump between them.
+
+Rotation pauses on hover, on keyboard focus, and while the tab is in the
+background. A visitor with `prefers-reduced-motion` gets no auto-advance at all,
+but keeps the dots so the other dishes stay reachable. Every featured image
+stays mounted and crossfades on opacity, so a rotation never shows an empty
+frame while the next photo downloads.
+
+---
+
 ## Order notifications
 
 The cafe has no SMS gateway and no WhatsApp Business API subscription, so notifications are

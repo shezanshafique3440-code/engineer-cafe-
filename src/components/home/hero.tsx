@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Clock, Star, Truck } from "lucide-react";
 import { useSettings, useMoney } from "@/context/settings-context";
+import { cn } from "@/lib/utils";
 
 const FLOATING = [
   { symbol: "∑", top: "12%", left: "6%", delay: 0 },
@@ -14,28 +16,77 @@ const FLOATING = [
   { symbol: "∫", top: "44%", left: "3%", delay: 2.1 },
 ];
 
+/** How long each featured dish holds the hero before the next one takes over. */
+const ROTATE_MS = 5000;
+
+export type HeroHighlight = {
+  name: string;
+  urduName: string | null;
+  slug: string;
+  image: string | null;
+  price: number;
+  discountPrice: number | null;
+  isFeatured: boolean;
+  category: { slug: string };
+};
+
 export type HeroStats = {
   avgPrepMinutes: number;
   menuItems: number;
   /** Average rating across approved reviews, or null while there are none. */
   rating: number | null;
-  /** Genuinely the best seller; null before anything has been ordered. */
-  highlight: {
-    name: string;
-    urduName: string | null;
-    slug: string;
-    image: string | null;
-    price: number;
-    discountPrice: number | null;
-    isFeatured: boolean;
-    category: { slug: string };
-  } | null;
+  /**
+   * Everything the cafe has marked Featured, best seller first. Falls back to
+   * the genuine best seller when nothing is featured, and is empty only on a
+   * menu with no available products. One entry behaves exactly as the old
+   * single highlight did — the carousel only appears from two upwards.
+   */
+  highlights: HeroHighlight[];
 };
+
+/**
+ * Cycles the featured dishes in the hero image. Pauses on hover, on keyboard
+ * focus and while the tab is in the background, and does not auto-advance at
+ * all for a visitor who asked for reduced motion — they still get the dots.
+ */
+function useHighlightRotation(count: number, enabled: boolean) {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  // A shorter menu must never leave the index pointing past the end.
+  useEffect(() => setIndex((current) => (current < count ? current : 0)), [count]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const sync = () => setPaused(document.hidden);
+    document.addEventListener("visibilitychange", sync);
+    return () => document.removeEventListener("visibilitychange", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || paused || count < 2) return;
+    const timer = window.setInterval(
+      () => setIndex((current) => (current + 1) % count),
+      ROTATE_MS,
+    );
+    return () => window.clearInterval(timer);
+  }, [enabled, paused, count]);
+
+  return { index, setIndex, setPaused };
+}
 
 export function Hero({ stats }: { stats: HeroStats }) {
   const reduceMotion = useReducedMotion();
   const settings = useSettings();
   const money = useMoney();
+
+  const highlights = stats.highlights;
+  const { index, setIndex, setPaused } = useHighlightRotation(
+    highlights.length,
+    !reduceMotion,
+  );
+  const active = highlights[index] ?? null;
+  const isCarousel = highlights.length > 1;
 
   return (
     <section className="relative overflow-hidden border-b border-cream-200 bg-cream-100">
@@ -45,19 +96,21 @@ export function Hero({ stats }: { stats: HeroStats }) {
         aria-hidden
       />
 
-      {!reduceMotion &&
-        FLOATING.map((item) => (
-          <motion.span
-            key={item.symbol}
-            className="pointer-events-none absolute hidden select-none font-display text-3xl text-chai-400/35 lg:block"
-            style={{ top: item.top, left: item.left, right: item.right }}
-            animate={{ y: [0, -14, 0], opacity: [0.3, 0.55, 0.3] }}
-            transition={{ duration: 6, repeat: Infinity, delay: item.delay, ease: "easeInOut" }}
-            aria-hidden
-          >
-            {item.symbol}
-          </motion.span>
-        ))}
+      {/* Always rendered, hidden from reduced-motion visitors in CSS. Gating the
+          markup on useReducedMotion() instead would mismatch hydration — the
+          hook resolves only after mount — and force React to rebuild the hero. */}
+      {FLOATING.map((item) => (
+        <motion.span
+          key={item.symbol}
+          className="pointer-events-none absolute hidden select-none font-display text-3xl text-chai-400/35 motion-reduce:hidden lg:block"
+          style={{ top: item.top, left: item.left, right: item.right }}
+          animate={reduceMotion ? undefined : { y: [0, -14, 0], opacity: [0.3, 0.55, 0.3] }}
+          transition={{ duration: 6, repeat: Infinity, delay: item.delay, ease: "easeInOut" }}
+          aria-hidden
+        >
+          {item.symbol}
+        </motion.span>
+      ))}
 
       <div className="container relative grid items-center gap-10 py-14 md:py-20 lg:grid-cols-2 lg:gap-14 lg:py-24">
         <motion.div
@@ -132,58 +185,127 @@ export function Hero({ stats }: { stats: HeroStats }) {
           transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
           className="relative"
         >
-          <div className="relative aspect-[4/3.4] overflow-hidden rounded-[1.75rem] border border-cream-300 bg-cream-200 shadow-lift sm:aspect-[4/3]">
-            <Image
-              src={stats.highlight?.image ?? "/menu/chai-doodh.svg"}
-              alt={
-                stats.highlight
-                  ? `${stats.highlight.name} at ${settings.cafeName}`
-                  : `Chai at ${settings.cafeName}`
-              }
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              className="object-cover"
-            />
+          <div
+            className="relative aspect-[4/3.4] overflow-hidden rounded-[1.75rem] border border-cream-300 bg-cream-200 shadow-lift sm:aspect-[4/3]"
+            onMouseEnter={() => isCarousel && setPaused(true)}
+            onMouseLeave={() => isCarousel && setPaused(false)}
+            onFocusCapture={() => isCarousel && setPaused(true)}
+            onBlurCapture={() => isCarousel && setPaused(false)}
+            {...(isCarousel
+              ? {
+                  role: "group",
+                  "aria-roledescription": "carousel",
+                  "aria-label": "Featured dishes",
+                }
+              : {})}
+          >
+            {highlights.length === 0 ? (
+              <Image
+                src="/menu/chai-doodh.svg"
+                alt={`Chai at ${settings.cafeName}`}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover"
+              />
+            ) : (
+              // Every featured dish stays mounted and crossfades, so a rotation
+              // never shows an empty frame while the next photo downloads.
+              highlights.map((item, position) => (
+                <Image
+                  key={item.slug}
+                  src={item.image ?? "/menu/chai-doodh.svg"}
+                  alt={
+                    position === index ? `${item.name} at ${settings.cafeName}` : ""
+                  }
+                  aria-hidden={position === index ? undefined : true}
+                  fill
+                  priority={position === 0}
+                  loading={position === 0 ? undefined : "eager"}
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className={cn(
+                    "object-cover transition-opacity duration-700 ease-out motion-reduce:transition-none",
+                    position === index ? "opacity-100" : "opacity-0",
+                  )}
+                />
+              ))
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-charcoal-900/45 via-transparent to-transparent" aria-hidden />
 
-            {/* Steam rising from the chai */}
-            {!reduceMotion && (
-              <div className="pointer-events-none absolute left-[26%] top-[14%] flex gap-2.5" aria-hidden>
-                {[0, 0.9, 1.8].map((delay) => (
-                  <span
-                    key={delay}
-                    className="h-10 w-[3px] animate-steam rounded-full bg-white/60 blur-[2px]"
-                    style={{ animationDelay: `${delay}s` }}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Steam rising from the chai — hidden, not unmounted, for the same
+                hydration reason as the floating glyphs above. */}
+            <div
+              className="pointer-events-none absolute left-[26%] top-[14%] flex gap-2.5 motion-reduce:hidden"
+              aria-hidden
+            >
+              {[0, 0.9, 1.8].map((delay) => (
+                <span
+                  key={delay}
+                  className="h-10 w-[3px] animate-steam rounded-full bg-white/60 blur-[2px]"
+                  style={{ animationDelay: `${delay}s` }}
+                />
+              ))}
+            </div>
 
-            {stats.highlight && (
+            {active && (
               <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
-                <Link
-                  href={`/menu/${stats.highlight.category.slug}/${stats.highlight.slug}`}
-                  className="rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur transition hover:bg-white"
+                <motion.div
+                  // Re-keying on the dish gives each one its own entrance
+                  // rather than the text swapping underneath the reader.
+                  key={active.slug}
+                  // The initial state stays unconditional so server and client
+                  // render the same style attribute; reduced motion snaps
+                  // straight to the end instead of skipping the initial.
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: reduceMotion ? 0 : 0.45, ease: [0.22, 1, 0.36, 1] }}
+                  className="min-w-0"
                 >
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-chai-600">
-                    {stats.highlight.isFeatured ? "Featured" : "Most ordered"}
-                  </p>
-                  <p className="mt-0.5 text-sm font-bold text-charcoal-900">
-                    {stats.highlight.name}
-                  </p>
-                  {stats.highlight.urduName && (
-                    <p className="text-xs text-charcoal-500" dir="rtl">{stats.highlight.urduName}</p>
-                  )}
-                  <p className="text-xs text-charcoal-500">
-                    <span className="font-bold text-chai-700">
-                      {money(stats.highlight.discountPrice ?? stats.highlight.price)}
-                    </span>
-                    {stats.highlight.discountPrice && (
-                      <span className="ml-1.5 line-through">{money(stats.highlight.price)}</span>
+                  <Link
+                    href={`/menu/${active.category.slug}/${active.slug}`}
+                    className="block rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur transition hover:bg-white"
+                  >
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-chai-600">
+                      {active.isFeatured ? "Featured" : "Most ordered"}
+                    </p>
+                    <p className="mt-0.5 truncate text-sm font-bold text-charcoal-900">
+                      {active.name}
+                    </p>
+                    {active.urduName && (
+                      <p className="truncate text-xs text-charcoal-500" dir="rtl">
+                        {active.urduName}
+                      </p>
                     )}
-                  </p>
-                </Link>
+                    <p className="text-xs text-charcoal-500">
+                      <span className="font-bold text-chai-700">
+                        {money(active.discountPrice ?? active.price)}
+                      </span>
+                      {active.discountPrice && (
+                        <span className="ml-1.5 line-through">{money(active.price)}</span>
+                      )}
+                    </p>
+                  </Link>
+                </motion.div>
+
+                {isCarousel && (
+                  <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-charcoal-900/45 px-2.5 py-2 backdrop-blur">
+                    {highlights.map((item, position) => (
+                      <button
+                        key={item.slug}
+                        type="button"
+                        onClick={() => setIndex(position)}
+                        aria-label={`Show ${item.name}`}
+                        aria-current={position === index ? "true" : undefined}
+                        className={cn(
+                          "h-1.5 rounded-full transition-all duration-300",
+                          position === index
+                            ? "w-5 bg-cream-50"
+                            : "w-1.5 bg-cream-50/50 hover:bg-cream-50/80",
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

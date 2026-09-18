@@ -18,8 +18,12 @@ export const metadata: Metadata = buildMetadata({
 // The homepage is fully database-driven; revalidate so menu edits appear fast.
 export const revalidate = 60;
 
+/** Most featured dishes the hero will rotate through. */
+const HERO_HIGHLIGHT_LIMIT = 6;
+
 export default async function HomePage() {
-  const [categories, chai, parathas, deals, reviews, settings, heroAgg, bestSeller] = await Promise.all([
+  const [categories, chai, parathas, deals, reviews, settings, heroAgg, featured, bestSeller] =
+    await Promise.all([
     listCategories(),
     listProducts({ category: "chai", popular: true, perPage: 4, sort: "popular" }),
     listProducts({ category: "parathas", popular: true, perPage: 4, sort: "popular" }),
@@ -43,12 +47,23 @@ export default async function HomePage() {
       _count: true,
       _sum: { ratingCount: true },
     }),
-    // Whatever the cafe marks Featured in admin leads the hero; failing that,
-    // the genuine best seller. Either way it is a dish that is actually on the
-    // menu, with its own photograph.
+    // Everything the cafe marks Featured in admin takes a turn in the hero,
+    // best seller first. Capped so a cafe that features half the menu does not
+    // push a dozen photographs into the first paint.
+    prisma.product.findMany({
+      where: { isAvailable: true, isFeatured: true },
+      orderBy: [{ soldCount: "desc" }, { ratingAverage: "desc" }],
+      take: HERO_HIGHLIGHT_LIMIT,
+      select: {
+        name: true, urduName: true, slug: true, image: true,
+        price: true, discountPrice: true, isFeatured: true,
+        category: { select: { slug: true } },
+      },
+    }),
+    // Fallback for a menu with nothing featured: the genuine best seller.
     prisma.product.findFirst({
       where: { isAvailable: true },
-      orderBy: [{ isFeatured: "desc" }, { soldCount: "desc" }, { ratingAverage: "desc" }],
+      orderBy: [{ soldCount: "desc" }, { ratingAverage: "desc" }],
       select: {
         name: true, urduName: true, slug: true, image: true,
         price: true, discountPrice: true, isFeatured: true,
@@ -62,7 +77,7 @@ export default async function HomePage() {
     avgPrepMinutes: Math.max(1, Math.round(heroAgg._avg.prepTimeMinutes ?? 10)),
     menuItems: heroAgg._count,
     rating: ratedCount > 0 ? Number((heroAgg._avg.ratingAverage ?? 0).toFixed(1)) : null,
-    highlight: bestSeller,
+    highlights: featured.length > 0 ? featured : bestSeller ? [bestSeller] : [],
   };
 
   const jsonLd = restaurantJsonLd(settings);
