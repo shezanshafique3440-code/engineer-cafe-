@@ -134,7 +134,7 @@ export default async function ProductPage({
       <ProductDetail product={product} reviews={reviews} />
 
       {relatedProducts.length > 0 && (
-        <section className="bg-white py-12 md:py-16">
+        <section className="bg-surface py-12 md:py-16">
           <div className="container">
             <SectionHeading
               eyebrow="// goes well with"

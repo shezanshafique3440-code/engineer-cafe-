@@ -85,7 +85,7 @@ export function OrderHistory({ orders }: { orders: OrderDTO[] }) {
               "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition",
               filter === option.value
                 ? "border-chai-500 bg-chai-50 text-chai-700"
-                : "border-cream-300 bg-white text-charcoal-600 hover:border-chai-300",
+                : "border-cream-300 bg-surface text-charcoal-600 hover:border-chai-300",
             )}
           >
             {option.label}

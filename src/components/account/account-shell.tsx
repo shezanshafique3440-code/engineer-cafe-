@@ -46,7 +46,7 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
                     "flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium transition",
                     active
                       ? "bg-chai-600 text-cream-50"
-                      : "bg-white text-charcoal-600 hover:bg-cream-100 lg:bg-transparent",
+                      : "bg-surface text-charcoal-600 hover:bg-cream-100 lg:bg-transparent",
                   )}
                 >
                   <item.icon className="h-4 w-4 shrink-0" aria-hidden />

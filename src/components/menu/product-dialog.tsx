@@ -144,12 +144,12 @@ export function ProductDialog({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0.6 }}
             transition={{ type: "spring", damping: 32, stiffness: 320 }}
-            className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-lift sm:max-h-[88vh] sm:rounded-3xl"
+            className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface shadow-lift sm:max-h-[88vh] sm:rounded-3xl"
           >
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-3 top-3 z-10 rounded-full bg-white/95 p-2 text-charcoal-700 shadow-soft backdrop-blur transition hover:bg-white"
+              className="absolute right-3 top-3 z-10 rounded-full bg-surface/95 p-2 text-charcoal-700 shadow-soft backdrop-blur transition hover:bg-surface"
               aria-label="Close"
             >
               <X className="h-4 w-4" />
@@ -290,7 +290,7 @@ export function ProductDialog({
                                   "flex cursor-pointer items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm transition",
                                   active
                                     ? "border-chai-500 bg-chai-50 text-chai-800"
-                                    : "border-cream-200 bg-white text-charcoal-700 hover:border-chai-300",
+                                    : "border-cream-200 bg-surface text-charcoal-700 hover:border-chai-300",
                                 )}
                               >
                                 <span className="flex min-w-0 items-center gap-2.5">
@@ -337,7 +337,7 @@ export function ProductDialog({
                     </p>
                   )}
                   <div className="flex items-center gap-3">
-                    <div className="flex shrink-0 items-center gap-1 rounded-xl border border-cream-300 bg-white p-1">
+                    <div className="flex shrink-0 items-center gap-1 rounded-xl border border-cream-300 bg-surface p-1">
                       <button
                         type="button"
                         onClick={() => setQuantity((q) => Math.max(1, q - 1))}

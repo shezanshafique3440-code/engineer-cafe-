@@ -11,6 +11,7 @@ import { useSession } from "@/context/session-context";
 import { useSettings } from "@/context/settings-context";
 import { cn } from "@/lib/utils";
 import { SearchDialog } from "@/components/menu/search-dialog";
+import { AppearanceToggle } from "@/components/layout/appearance-toggle";
 
 const LINKS = [
   { href: "/", label: "Home" },
@@ -111,6 +112,8 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
+            <AppearanceToggle className="hidden sm:inline-flex" />
+
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
@@ -141,7 +144,7 @@ export function Navbar() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.97 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-2xl border border-cream-200 bg-white p-1.5 shadow-lift"
+                      className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-2xl border border-cream-200 bg-surface p-1.5 shadow-lift"
                     >
                       {user ? (
                         <>

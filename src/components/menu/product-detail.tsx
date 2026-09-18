@@ -111,7 +111,7 @@ export function ProductDetail({
               { label: "Spice", value: SPICE_LABEL[product.spiceLevel], icon: Flame },
               { label: "Sold", value: `${product.soldCount}+`, icon: Star },
             ].map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-cream-200 bg-white p-3 text-center">
+              <div key={stat.label} className="rounded-xl border border-cream-200 bg-surface p-3 text-center">
                 <stat.icon className="mx-auto mb-1 h-4 w-4 text-chai-500" aria-hidden />
                 <dt className="text-[10px] uppercase tracking-wide text-charcoal-400">{stat.label}</dt>
                 <dd className="text-sm font-bold text-charcoal-900">{stat.value}</dd>
@@ -182,7 +182,7 @@ export function ProductDetail({
                         "flex cursor-pointer items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm transition",
                         active
                           ? "border-chai-500 bg-chai-50 text-chai-800"
-                          : "border-cream-200 bg-white text-charcoal-700 hover:border-chai-300",
+                          : "border-cream-200 bg-surface text-charcoal-700 hover:border-chai-300",
                       )}
                     >
                       <span className="flex min-w-0 items-center gap-2.5">
@@ -223,7 +223,7 @@ export function ProductDetail({
           )}
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1 rounded-xl border border-cream-300 bg-white p-1">
+            <div className="flex items-center gap-1 rounded-xl border border-cream-300 bg-surface p-1">
               <button
                 type="button"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -262,7 +262,7 @@ export function ProductDetail({
               onClick={() => void toggle(product.id, product.name)}
               aria-label={isFavorite(product.id) ? "Remove from favorites" : "Save to favorites"}
               aria-pressed={isFavorite(product.id)}
-              className="rounded-xl border border-cream-300 bg-white p-3.5 transition hover:border-chilli-300"
+              className="rounded-xl border border-cream-300 bg-surface p-3.5 transition hover:border-chilli-300"
             >
               <Heart className={cn("h-5 w-5", isFavorite(product.id) ? "fill-chilli-500 text-chilli-500" : "text-charcoal-400")} />
             </button>
@@ -335,7 +335,7 @@ function ReviewsSection({ product, reviews }: { product: ProductDTO; reviews: Re
           ) : (
             <ul className="space-y-4">
               {reviews.map((review) => (
-                <li key={review.id} className="rounded-2xl border border-cream-200 bg-white p-5">
+                <li key={review.id} className="rounded-2xl border border-cream-200 bg-surface p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-bold text-charcoal-900">{review.author}</p>

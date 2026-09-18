@@ -147,6 +147,50 @@ by `UPLOAD_PROVIDER`:
 Adding another provider means implementing one `StorageAdapter` in `src/server/storage.ts`.
 Uploaded images are never committed into the frontend source.
 
+## Theming
+
+The cafe picks its palette in **Admin → Settings → Theme**. Six ship today:
+Chai (default), Midnight (dark), Matcha, Saffron, Gulabi and Graphite.
+
+Every colour in `tailwind.config.ts` resolves through a CSS variable
+(`rgb(var(--c-chai-500) / <alpha-value>)`), and a theme is just a block of RGB
+triplets in `globals.css` under `[data-theme="…"]`. That is the whole mechanism:
+adding a seventh theme means adding one block there and one entry in
+`src/lib/themes.ts` — no component changes, no rebuild of anything else.
+
+Scale semantics every theme must honour:
+
+| Scale | Role |
+|---|---|
+| `cream` 50 → 400 | page background, panels, borders (light → heavier) |
+| `charcoal` 50 → 900 | text, faint → strongest; 900 is the headline colour |
+| `chai` 50 → 900 | the brand accent |
+| `surface` | cards and inputs, sitting on top of `cream` |
+
+The dark themes invert the `cream` and `charcoal` scales rather than renaming
+them, which is what lets the same utility classes work in both. Cards use
+`bg-surface`, not `bg-white`; plain `text-white` is left alone because it only
+ever sits on a saturated accent, where light text is right in every theme.
+
+**No flash.** The root layout renders `data-theme` on `<html>` from the database,
+so the first paint is already correct — there is no client-side theme swap to
+see. Saving settings calls `revalidatePath("/", "layout")` so the storefront
+picks up a new palette immediately rather than waiting out the 60s window.
+
+**Live preview.** Clicking a theme in admin repaints the panel straight away
+without saving; navigating away restores the stored one.
+
+### Visitor appearance
+
+Separately from the cafe's palette, a visitor can choose Light / System / Dark
+from the navbar. "Light" is whatever the cafe chose, "Dark" is Midnight, and
+"System" follows the device. The choice is stored in `localStorage` and applied
+by a blocking inline script in `<head>` before first paint, so a returning
+visitor never sees a flash of the light palette. The control hides itself when
+the cafe's own theme is already dark — there is nothing to switch between.
+
+---
+
 ## The homepage hero
 
 The hero image rotates through every product marked **Featured** in

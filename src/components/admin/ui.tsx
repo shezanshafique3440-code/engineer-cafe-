@@ -105,7 +105,7 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "relative my-4 w-full rounded-2xl bg-white shadow-lift",
+          "relative my-4 w-full rounded-2xl bg-surface shadow-lift",
           size === "lg" ? "max-w-3xl" : "max-w-xl",
         )}
       >

@@ -6,12 +6,14 @@ import { Save } from "lucide-react";
 import { apiGet, apiPut, ApiError } from "@/lib/api-client";
 import { PageHeader } from "./ui";
 import { ImageUpload } from "./image-upload";
+import { ThemePicker } from "./theme-picker";
+import { DEFAULT_THEME } from "@/lib/themes";
 import { Button, Input, Textarea, Checkbox, ErrorState } from "@/components/ui";
 
 type Settings = {
   cafeName: string; tagline: string; logoUrl: string | null; phone: string;
   whatsapp: string; email: string; address: string; city: string; mapsQuery: string;
-  openingHours: string; deliveryFee: number; freeDeliveryOver: number | null;
+  openingHours: string; theme: string; deliveryFee: number; freeDeliveryOver: number | null;
   minOrderAmount: number; taxPercent: number; currency: string; currencySymbol: string;
   instagramUrl: string | null; facebookUrl: string | null; tiktokUrl: string | null;
   codEnabled: boolean; cashAtCounterEnabled: boolean; onlinePaymentEnabled: boolean;
@@ -32,6 +34,7 @@ function toForm(settings: Settings): Form {
     city: settings.city,
     mapsQuery: settings.mapsQuery,
     openingHours: settings.openingHours,
+    theme: settings.theme,
     deliveryFee: String(settings.deliveryFee),
     freeDeliveryOver: settings.freeDeliveryOver !== null ? String(settings.freeDeliveryOver) : "",
     minOrderAmount: String(settings.minOrderAmount),
@@ -54,6 +57,9 @@ export function SettingsManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
+  // What the server currently holds, so the theme preview can be rolled back
+  // if the admin walks away from the form without saving.
+  const [savedTheme, setSavedTheme] = useState(DEFAULT_THEME as string);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,6 +67,7 @@ export function SettingsManager() {
     try {
       const data = await apiGet<{ settings: Settings }>("/api/admin/settings");
       setForm(toForm(data.settings));
+      setSavedTheme(data.settings.theme);
     } catch {
       setError(true);
     } finally {
@@ -91,6 +98,7 @@ export function SettingsManager() {
         minOrderAmount: Number(form.minOrderAmount),
         taxPercent: Number(form.taxPercent),
       });
+      setSavedTheme(String(form.theme));
       toast.success("Settings saved — the storefront is updated.");
     } catch (err) {
       if (err instanceof ApiError) {
@@ -160,6 +168,19 @@ export function SettingsManager() {
             </div>
             <Input label="Google Maps search query" name="mapsQuery" value={str("mapsQuery")} onChange={(e) => set("mapsQuery", e.target.value)} error={errors.mapsQuery?.[0]} hint="Used for the embedded map" />
           </div>
+        </section>
+
+        <section className="surface p-5 lg:col-span-2" aria-labelledby="theme-heading">
+          <h2 id="theme-heading" className="text-lg font-bold">Theme</h2>
+          <p className="mb-4 mt-0.5 text-sm text-charcoal-500">
+            Repaints the whole site — storefront and this panel. Click one to preview it
+            straight away; it is only kept once you save.
+          </p>
+          <ThemePicker
+            value={str("theme")}
+            saved={savedTheme}
+            onChange={(id) => set("theme", id)}
+          />
         </section>
 
         <section className="surface p-5" aria-labelledby="ordering-heading">

@@ -155,7 +155,7 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      <section className="section bg-white">
+      <section className="section bg-surface">
         <div className="container">
           <div className="mx-auto max-w-3xl text-center">
             <p className="eyebrow justify-center">{"// where it stands today"}</p>

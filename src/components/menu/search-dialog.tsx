@@ -93,7 +93,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -16, scale: 0.98 }}
             transition={{ duration: 0.18 }}
-            className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-cream-200 bg-white shadow-lift"
+            className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-cream-200 bg-surface shadow-lift"
           >
             <div className="flex items-center gap-3 border-b border-cream-200 px-4 py-3.5">
               <Search className="h-5 w-5 shrink-0 text-charcoal-300" aria-hidden />

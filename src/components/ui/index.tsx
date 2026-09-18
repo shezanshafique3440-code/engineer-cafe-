@@ -147,7 +147,7 @@ export function Checkbox({
     <label
       htmlFor={id}
       className={cn(
-        "flex cursor-pointer items-start gap-3 rounded-xl border border-cream-200 bg-white p-3 transition hover:border-chai-300",
+        "flex cursor-pointer items-start gap-3 rounded-xl border border-cream-200 bg-surface p-3 transition hover:border-chai-300",
         className,
       )}
     >

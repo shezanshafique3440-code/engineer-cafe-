@@ -10,45 +10,57 @@ const config: Config = {
       screens: { "2xl": "1360px" },
     },
     extend: {
+      /**
+       * Every palette entry resolves through a CSS variable so the whole site
+       * can be re-skinned from one `data-theme` attribute on <html> — no
+       * rebuild, no per-component change. The triplets live in globals.css.
+       */
       colors: {
         cream: {
-          50: "#FDFBF7",
-          100: "#F8F3EA",
-          200: "#F0E6D6",
-          300: "#E4D4BC",
-          400: "#D4BC9A",
+          50: "rgb(var(--c-cream-50) / <alpha-value>)",
+          100: "rgb(var(--c-cream-100) / <alpha-value>)",
+          200: "rgb(var(--c-cream-200) / <alpha-value>)",
+          300: "rgb(var(--c-cream-300) / <alpha-value>)",
+          400: "rgb(var(--c-cream-400) / <alpha-value>)",
         },
         chai: {
-          50: "#FBF3EA",
-          100: "#F4E1C9",
-          200: "#E8C296",
-          300: "#DBA363",
-          400: "#CE8A3C",
-          500: "#B9722A",
-          600: "#985A21",
-          700: "#77461C",
-          800: "#57341A",
-          900: "#3B2413",
+          50: "rgb(var(--c-chai-50) / <alpha-value>)",
+          100: "rgb(var(--c-chai-100) / <alpha-value>)",
+          200: "rgb(var(--c-chai-200) / <alpha-value>)",
+          300: "rgb(var(--c-chai-300) / <alpha-value>)",
+          400: "rgb(var(--c-chai-400) / <alpha-value>)",
+          500: "rgb(var(--c-chai-500) / <alpha-value>)",
+          600: "rgb(var(--c-chai-600) / <alpha-value>)",
+          700: "rgb(var(--c-chai-700) / <alpha-value>)",
+          800: "rgb(var(--c-chai-800) / <alpha-value>)",
+          900: "rgb(var(--c-chai-900) / <alpha-value>)",
         },
         charcoal: {
-          50: "#F5F5F4",
-          100: "#E7E5E4",
-          300: "#A8A29E",
-          500: "#57534E",
-          700: "#332F2C",
-          800: "#232020",
-          900: "#171414",
+          50: "rgb(var(--c-charcoal-50) / <alpha-value>)",
+          100: "rgb(var(--c-charcoal-100) / <alpha-value>)",
+          300: "rgb(var(--c-charcoal-300) / <alpha-value>)",
+          500: "rgb(var(--c-charcoal-500) / <alpha-value>)",
+          700: "rgb(var(--c-charcoal-700) / <alpha-value>)",
+          800: "rgb(var(--c-charcoal-800) / <alpha-value>)",
+          900: "rgb(var(--c-charcoal-900) / <alpha-value>)",
         },
         circuit: {
-          400: "#3DBE8B",
-          500: "#20A06E",
-          600: "#158055",
+          400: "rgb(var(--c-circuit-400) / <alpha-value>)",
+          500: "rgb(var(--c-circuit-500) / <alpha-value>)",
+          600: "rgb(var(--c-circuit-600) / <alpha-value>)",
         },
         chilli: {
-          400: "#E86A5A",
-          500: "#D6412D",
-          600: "#B02F1E",
+          400: "rgb(var(--c-chilli-400) / <alpha-value>)",
+          500: "rgb(var(--c-chilli-500) / <alpha-value>)",
+          600: "rgb(var(--c-chilli-600) / <alpha-value>)",
         },
+        /**
+         * Cards and inputs. Pure white on the light themes, a raised dark
+         * panel on the dark ones — which is why it is a token and not
+         * `bg-white`. Plain `text-white` stays real white: it only ever sits
+         * on a saturated accent, where light text is right in every theme.
+         */
+        surface: "rgb(var(--c-surface) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
@@ -56,12 +68,12 @@ const config: Config = {
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(35,32,32,.04), 0 8px 24px -12px rgba(35,32,32,.14)",
-        lift: "0 2px 4px rgba(35,32,32,.05), 0 18px 40px -18px rgba(35,32,32,.28)",
+        soft: "0 1px 2px rgb(var(--c-shadow) / .04), 0 8px 24px -12px rgb(var(--c-shadow) / .14)",
+        lift: "0 2px 4px rgb(var(--c-shadow) / .05), 0 18px 40px -18px rgb(var(--c-shadow) / .28)",
       },
       backgroundImage: {
         blueprint:
-          "linear-gradient(rgba(185,114,42,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(185,114,42,.07) 1px, transparent 1px)",
+          "linear-gradient(rgb(var(--c-blueprint) / var(--c-blueprint-alpha)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--c-blueprint) / var(--c-blueprint-alpha)) 1px, transparent 1px)",
       },
       backgroundSize: { blueprint: "28px 28px" },
       keyframes: {

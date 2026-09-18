@@ -118,7 +118,7 @@ export function Hero({ stats }: { stats: HeroStats }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-chai-300 bg-white/70 px-3.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-chai-700 backdrop-blur">
+          <span className="inline-flex items-center gap-2 rounded-full border border-chai-300 bg-surface/70 px-3.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-chai-700 backdrop-blur">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-circuit-500 opacity-75" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-circuit-500" />
@@ -241,6 +241,7 @@ export function Hero({ stats }: { stats: HeroStats }) {
               {[0, 0.9, 1.8].map((delay) => (
                 <span
                   key={delay}
+                  // Steam sits over a photograph, so it stays light in every theme.
                   className="h-10 w-[3px] animate-steam rounded-full bg-white/60 blur-[2px]"
                   style={{ animationDelay: `${delay}s` }}
                 />
@@ -263,7 +264,7 @@ export function Hero({ stats }: { stats: HeroStats }) {
                 >
                   <Link
                     href={`/menu/${active.category.slug}/${active.slug}`}
-                    className="block rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur transition hover:bg-white"
+                    className="block rounded-2xl bg-surface/95 px-4 py-3 shadow-soft backdrop-blur transition hover:bg-surface"
                   >
                     <p className="font-mono text-[10px] uppercase tracking-wider text-chai-600">
                       {active.isFeatured ? "Featured" : "Most ordered"}
@@ -314,7 +315,7 @@ export function Hero({ stats }: { stats: HeroStats }) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className="absolute -left-2 top-6 hidden rounded-2xl border border-cream-200 bg-white px-4 py-3 shadow-lift sm:block lg:-left-6"
+            className="absolute -left-2 top-6 hidden rounded-2xl border border-cream-200 bg-surface px-4 py-3 shadow-lift sm:block lg:-left-6"
           >
             <p className="font-mono text-[10px] uppercase tracking-wider text-charcoal-400">
               status

@@ -46,7 +46,7 @@ export default async function MenuPage() {
               <Link
                 key={category.id}
                 href={`/menu/${category.slug}`}
-                className="shrink-0 rounded-full border border-cream-300 bg-white px-4 py-2 text-sm font-medium text-charcoal-700 transition hover:border-chai-400 hover:text-chai-700"
+                className="shrink-0 rounded-full border border-cream-300 bg-surface px-4 py-2 text-sm font-medium text-charcoal-700 transition hover:border-chai-400 hover:text-chai-700"
               >
                 <span aria-hidden>{category.icon}</span> {category.name}
               </Link>

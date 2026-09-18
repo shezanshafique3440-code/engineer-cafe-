@@ -191,7 +191,7 @@ export function MenuBrowser({
         </div>
 
         {showFilters && (
-          <div className="mt-3 rounded-2xl border border-cream-200 bg-white p-4">
+          <div className="mt-3 rounded-2xl border border-cream-200 bg-surface p-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {!lockedCategory && (
                 <Select

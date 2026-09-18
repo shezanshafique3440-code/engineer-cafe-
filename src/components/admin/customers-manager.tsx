@@ -138,7 +138,7 @@ export function CustomersManager() {
                     value={customer.role}
                     disabled={updating === customer.id}
                     onChange={(e) => void update(customer, { role: e.target.value as Customer["role"] })}
-                    className="rounded-lg border border-cream-300 bg-white px-2 py-1.5 text-xs font-medium text-charcoal-700"
+                    className="rounded-lg border border-cream-300 bg-surface px-2 py-1.5 text-xs font-medium text-charcoal-700"
                   >
                     <option value="CUSTOMER">Customer</option>
                     <option value="STAFF">Staff</option>

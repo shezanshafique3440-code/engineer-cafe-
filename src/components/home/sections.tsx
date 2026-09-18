@@ -41,7 +41,7 @@ export function PopularCategories({ categories }: { categories: CategoryDTO[] })
             >
               <Link
                 href={`/menu/${category.slug}`}
-                className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-cream-200 bg-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-lift"
+                className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-cream-200 bg-surface shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-lift"
               >
                 <div className="relative aspect-square overflow-hidden bg-cream-200">
                   {category.image && (
@@ -93,7 +93,7 @@ export function ProductRail({
   if (products.length === 0) return null;
 
   return (
-    <section className={tone === "white" ? "section bg-white" : "section"}>
+    <section className={tone === "white" ? "section bg-surface" : "section"}>
       <div className="container">
         <SectionHeading
           eyebrow={eyebrow}
@@ -228,7 +228,7 @@ const WHY = [
 
 export function WhyEngineerCafe() {
   return (
-    <section className="section bg-white">
+    <section className="section bg-surface">
       <div className="container">
         <SectionHeading
           eyebrow="// why engineer cafe"
@@ -283,7 +283,7 @@ export function CustomerReviews({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.35, delay: Math.min(index * 0.06, 0.3) }}
-              className="flex flex-col rounded-2xl border border-cream-200 bg-white p-5 shadow-soft"
+              className="flex flex-col rounded-2xl border border-cream-200 bg-surface p-5 shadow-soft"
             >
               <Quote className="h-5 w-5 text-chai-300" aria-hidden />
               <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-charcoal-700">
@@ -374,7 +374,7 @@ export function SocialSection() {
   ];
 
   return (
-    <section className="section bg-white">
+    <section className="section bg-surface">
       <div className="container">
         <SectionHeading
           eyebrow="// @engineercafe.pk"
@@ -488,7 +488,7 @@ export function FinalCta() {
           Delivery across {settings.city} in about 30 minutes, or pick up at the counter in 15.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/menu" className="btn bg-cream-50 px-6 py-3.5 text-base text-charcoal-900 hover:bg-white">
+          <Link href="/menu" className="btn bg-cream-50 px-6 py-3.5 text-base text-charcoal-900 hover:bg-surface">
             Order Now
           </Link>
           <Link href="/menu/combos" className="btn border border-cream-50/40 px-6 py-3.5 text-base text-cream-50 hover:bg-cream-50/10">

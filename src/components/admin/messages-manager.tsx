@@ -89,7 +89,7 @@ export function MessagesManager() {
               "rounded-full border px-3.5 py-1.5 text-xs font-semibold transition",
               filter === option
                 ? "border-chai-500 bg-chai-50 text-chai-700"
-                : "border-cream-300 bg-white text-charcoal-600 hover:border-chai-300",
+                : "border-cream-300 bg-surface text-charcoal-600 hover:border-chai-300",
             )}
           >
             {option === "ALL" ? "All" : option.charAt(0) + option.slice(1).toLowerCase()}

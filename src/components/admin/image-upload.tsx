@@ -51,7 +51,7 @@ export function ImageUpload({
             type="button"
             onClick={() => onChange("")}
             aria-label="Remove image"
-            className="absolute right-2 top-2 rounded-full bg-white/95 p-2 text-charcoal-700 shadow-soft transition hover:bg-white"
+            className="absolute right-2 top-2 rounded-full bg-surface/95 p-2 text-charcoal-700 shadow-soft transition hover:bg-surface"
           >
             <X className="h-4 w-4" />
           </button>

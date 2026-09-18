@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { THEME_IDS } from "./themes";
 
 const phoneRegex = /^(\+?92|0)?3\d{9}$/;
 
@@ -183,6 +184,8 @@ export const settingsSchema = z.object({
   city: z.string().trim().min(2).max(60),
   mapsQuery: z.string().trim().max(200),
   openingHours: z.string().trim().max(120),
+  // Closed set: an unknown id would reach <html data-theme> and match no CSS.
+  theme: z.enum(THEME_IDS as [string, ...string[]]),
   deliveryFee: z.coerce.number().int().min(0).max(10000),
   freeDeliveryOver: z.coerce.number().int().min(0).max(1000000).nullable().optional(),
   minOrderAmount: z.coerce.number().int().min(0).max(1000000),

@@ -198,7 +198,7 @@ export function CheckoutView() {
                     "flex items-start gap-3 rounded-xl border p-4 text-left transition",
                     orderType === value
                       ? "border-chai-500 bg-chai-50"
-                      : "border-cream-200 bg-white hover:border-chai-300",
+                      : "border-cream-200 bg-surface hover:border-chai-300",
                   )}
                 >
                   <Icon className={cn("mt-0.5 h-5 w-5 shrink-0", orderType === value ? "text-chai-600" : "text-charcoal-400")} aria-hidden />
@@ -363,7 +363,7 @@ export function CheckoutView() {
                     "flex w-full items-start gap-3 rounded-xl border p-4 text-left transition",
                     paymentMethod === option.value
                       ? "border-chai-500 bg-chai-50"
-                      : "border-cream-200 bg-white hover:border-chai-300",
+                      : "border-cream-200 bg-surface hover:border-chai-300",
                   )}
                 >
                   <option.icon

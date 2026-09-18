@@ -48,7 +48,7 @@ export function ProductCard({
         viewport={{ once: true, margin: "-40px" }}
         transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.24), ease: [0.22, 1, 0.36, 1] }}
         className={cn(
-          "group relative flex flex-col overflow-hidden rounded-2xl border border-cream-200 bg-white shadow-soft transition-shadow duration-300 hover:shadow-lift",
+          "group relative flex flex-col overflow-hidden rounded-2xl border border-cream-200 bg-surface shadow-soft transition-shadow duration-300 hover:shadow-lift",
           !product.isAvailable && "opacity-70",
         )}
       >
@@ -93,7 +93,7 @@ export function ProductCard({
             onClick={() => void toggle(product.id, product.name)}
             aria-label={favorited ? `Remove ${product.name} from favorites` : `Save ${product.name} to favorites`}
             aria-pressed={favorited}
-            className="absolute -bottom-4 right-3 z-10 rounded-full bg-white p-2.5 shadow-lift transition hover:scale-110 active:scale-95"
+            className="absolute -bottom-4 right-3 z-10 rounded-full bg-surface p-2.5 shadow-lift transition hover:scale-110 active:scale-95"
           >
             <Heart className={cn("h-4 w-4", favorited ? "fill-chilli-500 text-chilli-500" : "text-charcoal-400")} />
           </button>
@@ -173,7 +173,7 @@ export function ProductCard({
 
 export function ProductCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-cream-200 bg-white">
+    <div className="overflow-hidden rounded-2xl border border-cream-200 bg-surface">
       <div className="skeleton aspect-[4/3] rounded-none" />
       <div className="space-y-2.5 p-4">
         <div className="skeleton h-4 w-3/4" />

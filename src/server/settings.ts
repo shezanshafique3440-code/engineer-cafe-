@@ -2,6 +2,7 @@ import "server-only";
 import type { CafeSetting } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
+import { resolveTheme, type ThemeId } from "@/lib/themes";
 
 /**
  * Cafe settings live in a single row so the admin can change delivery fees,
@@ -29,6 +30,7 @@ export function publicSettings(settings: CafeSetting) {
     city: settings.city,
     mapsQuery: settings.mapsQuery,
     openingHours: settings.openingHours,
+    theme: resolveTheme(settings.theme) as ThemeId,
     deliveryFee: settings.deliveryFee,
     freeDeliveryOver: settings.freeDeliveryOver,
     minOrderAmount: settings.minOrderAmount,

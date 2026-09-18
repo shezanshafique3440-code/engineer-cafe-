@@ -227,7 +227,7 @@ function OrdersManagerInner() {
               "rounded-full border px-3.5 py-1.5 text-xs font-semibold transition",
               filters.status === status
                 ? "border-chai-500 bg-chai-50 text-chai-700"
-                : "border-cream-300 bg-white text-charcoal-600 hover:border-chai-300",
+                : "border-cream-300 bg-surface text-charcoal-600 hover:border-chai-300",
             )}
           >
             {status === "ALL" ? "All" : ORDER_STATUS_LABEL[status]}
@@ -341,7 +341,7 @@ function OrdersManagerInner() {
                           onChange={(e) => {
                             if (e.target.value) void updateStatus(order, e.target.value as OrderStatus);
                           }}
-                          className="rounded-lg border border-cream-300 bg-white px-2 py-1.5 text-xs font-medium text-charcoal-700"
+                          className="rounded-lg border border-cream-300 bg-surface px-2 py-1.5 text-xs font-medium text-charcoal-700"
                         >
                           <option value="">Change…</option>
                           {options.map((status) => (

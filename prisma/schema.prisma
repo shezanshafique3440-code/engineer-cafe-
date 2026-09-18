@@ -403,6 +403,9 @@ model CafeSetting {
   mapsQuery    String  @default("Hostel City, Chatta Bakhtawar, Islamabad, Pakistan")
   openingHours String  @default("Mon–Sun · 8:00 AM – 2:00 AM")
 
+  /// Storefront and admin palette. One of the presets in globals.css.
+  theme        String  @default("chai")
+
   deliveryFee      Int    @default(80)
   freeDeliveryOver Int?   @default(1500)
   minOrderAmount   Int    @default(300)

@@ -128,7 +128,7 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
             type="button"
             onClick={() => void refresh()}
             aria-label="Refresh order status"
-            className="rounded-xl border border-cream-300 bg-white p-2.5 text-charcoal-600 transition hover:border-chai-400"
+            className="rounded-xl border border-cream-300 bg-surface p-2.5 text-charcoal-600 transition hover:border-chai-400"
           >
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </button>
@@ -181,7 +181,7 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
                           "relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition",
                           done
                             ? "border-circuit-500 bg-circuit-500 text-white"
-                            : "border-cream-300 bg-white text-charcoal-300",
+                            : "border-cream-300 bg-surface text-charcoal-300",
                           active && "ring-4 ring-circuit-500/20",
                         )}
                       >
@@ -337,7 +337,7 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
             )}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="block rounded-xl border border-cream-200 bg-white p-4 text-center text-sm font-semibold text-charcoal-700 transition hover:border-circuit-400 hover:text-circuit-600"
+            className="block rounded-xl border border-cream-200 bg-surface p-4 text-center text-sm font-semibold text-charcoal-700 transition hover:border-circuit-400 hover:text-circuit-600"
           >
             Need help with this order? Message us
           </a>

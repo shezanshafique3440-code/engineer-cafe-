@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { settingsSchema } from "@/lib/validation";
 import { handle, json, parseBody, requireAdmin } from "@/server/api";
@@ -25,5 +26,11 @@ export const PUT = handle(async (request: Request) => {
       freeDeliveryOver: data.freeDeliveryOver || null,
     },
   });
+
+  // Settings feed the root layout (theme, browser chrome) and every cached
+  // page, so drop the whole tree rather than making the cafe wait out the
+  // 60s revalidate window to see its own change.
+  revalidatePath("/", "layout");
+
   return json({ settings });
 });

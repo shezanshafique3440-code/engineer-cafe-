@@ -2,6 +2,280 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+ * Themes
+ *
+ * Every colour in tailwind.config.ts resolves through one of these variables,
+ * so a theme is only a block of RGB triplets — no rebuild, no component change.
+ * `data-theme` is written onto <html> by the root layout from the value the
+ * cafe picked in admin, so the first paint is already correct and the page
+ * never flashes the default palette.
+ *
+ * Scale semantics, which every theme must honour:
+ *   cream 50 → 400     page background, panels, borders (light → heavier)
+ *   charcoal 50 → 900  text, faint → strongest. 900 is the headline colour.
+ *   chai 50 → 900      the brand accent
+ *   surface            cards and inputs, sitting on top of cream
+ * On the dark themes the cream and charcoal scales are inverted rather than
+ * renamed, which is what lets the same utility classes work in both.
+ * ------------------------------------------------------------------------ */
+
+@layer base {
+  /* Chai — the house palette. Values identical to the pre-theme site. */
+  :root,
+  [data-theme="chai"] {
+    --c-cream-50: 253 251 247;
+    --c-cream-100: 248 243 234;
+    --c-cream-200: 240 230 214;
+    --c-cream-300: 228 212 188;
+    --c-cream-400: 212 188 154;
+
+    --c-chai-50: 251 243 234;
+    --c-chai-100: 244 225 201;
+    --c-chai-200: 232 194 150;
+    --c-chai-300: 219 163 99;
+    --c-chai-400: 206 138 60;
+    --c-chai-500: 185 114 42;
+    --c-chai-600: 152 90 33;
+    --c-chai-700: 119 70 28;
+    --c-chai-800: 87 52 26;
+    --c-chai-900: 59 36 19;
+
+    --c-charcoal-50: 245 245 244;
+    --c-charcoal-100: 231 229 228;
+    --c-charcoal-300: 168 162 158;
+    --c-charcoal-500: 87 83 78;
+    --c-charcoal-700: 51 47 44;
+    --c-charcoal-800: 35 32 32;
+    --c-charcoal-900: 23 20 20;
+
+    --c-circuit-400: 61 190 139;
+    --c-circuit-500: 32 160 110;
+    --c-circuit-600: 21 128 85;
+
+    --c-chilli-400: 232 106 90;
+    --c-chilli-500: 214 65 45;
+    --c-chilli-600: 176 47 30;
+
+    --c-surface: 255 255 255;
+    --c-shadow: 35 32 32;
+    --c-blueprint: 185 114 42;
+    --c-blueprint-alpha: 0.07;
+    --c-theme-color: #b9722a;
+  }
+
+  /* Midnight — dark mode. Warm amber on near-black, easy at 2 AM. */
+  [data-theme="midnight"] {
+    --c-cream-50: 18 16 15;
+    --c-cream-100: 26 23 21;
+    --c-cream-200: 43 38 35;
+    --c-cream-300: 58 52 47;
+    --c-cream-400: 78 70 63;
+
+    --c-chai-50: 44 32 20;
+    --c-chai-100: 64 46 28;
+    --c-chai-200: 99 70 40;
+    --c-chai-300: 150 105 56;
+    --c-chai-400: 197 141 78;
+    --c-chai-500: 224 165 96;
+    --c-chai-600: 236 183 120;
+    --c-chai-700: 244 203 152;
+    --c-chai-800: 249 222 188;
+    --c-chai-900: 252 238 219;
+
+    --c-charcoal-50: 38 34 32;
+    --c-charcoal-100: 52 47 44;
+    --c-charcoal-300: 124 117 110;
+    --c-charcoal-500: 168 161 153;
+    --c-charcoal-700: 214 209 203;
+    --c-charcoal-800: 232 228 223;
+    --c-charcoal-900: 247 245 243;
+
+    --c-circuit-400: 74 214 156;
+    --c-circuit-500: 52 190 132;
+    --c-circuit-600: 40 166 113;
+
+    --c-chilli-400: 247 138 122;
+    --c-chilli-500: 235 106 88;
+    --c-chilli-600: 214 82 64;
+
+    --c-surface: 31 28 26;
+    --c-shadow: 0 0 0;
+    --c-blueprint: 224 165 96;
+    --c-blueprint-alpha: 0.06;
+    --c-theme-color: #1f1c1a;
+  }
+
+  /* Matcha — cool green, lighter and fresher than the house palette. */
+  [data-theme="matcha"] {
+    --c-cream-50: 249 251 248;
+    --c-cream-100: 240 246 238;
+    --c-cream-200: 224 236 220;
+    --c-cream-300: 203 222 197;
+    --c-cream-400: 173 202 165;
+
+    --c-chai-50: 239 248 236;
+    --c-chai-100: 216 238 209;
+    --c-chai-200: 176 218 165;
+    --c-chai-300: 132 194 118;
+    --c-chai-400: 99 172 83;
+    --c-chai-500: 74 148 60;
+    --c-chai-600: 57 119 47;
+    --c-chai-700: 45 93 38;
+    --c-chai-800: 34 68 29;
+    --c-chai-900: 23 45 20;
+
+    --c-charcoal-50: 244 246 243;
+    --c-charcoal-100: 228 232 226;
+    --c-charcoal-300: 158 166 155;
+    --c-charcoal-500: 82 89 80;
+    --c-charcoal-700: 47 53 46;
+    --c-charcoal-800: 32 37 31;
+    --c-charcoal-900: 21 25 20;
+
+    --c-circuit-400: 61 190 139;
+    --c-circuit-500: 32 160 110;
+    --c-circuit-600: 21 128 85;
+
+    --c-chilli-400: 232 106 90;
+    --c-chilli-500: 214 65 45;
+    --c-chilli-600: 176 47 30;
+
+    --c-surface: 255 255 255;
+    --c-shadow: 32 37 31;
+    --c-blueprint: 74 148 60;
+    --c-blueprint-alpha: 0.07;
+    --c-theme-color: #4a943c;
+  }
+
+  /* Saffron — brighter gold. Reads well in photographs of food. */
+  [data-theme="saffron"] {
+    --c-cream-50: 255 252 245;
+    --c-cream-100: 254 246 230;
+    --c-cream-200: 250 235 203;
+    --c-cream-300: 243 219 168;
+    --c-cream-400: 231 195 123;
+
+    --c-chai-50: 255 248 230;
+    --c-chai-100: 254 238 197;
+    --c-chai-200: 251 217 137;
+    --c-chai-300: 245 191 77;
+    --c-chai-400: 236 168 33;
+    --c-chai-500: 212 145 14;
+    --c-chai-600: 176 117 10;
+    --c-chai-700: 138 91 11;
+    --c-chai-800: 101 67 12;
+    --c-chai-900: 68 45 10;
+
+    --c-charcoal-50: 247 245 241;
+    --c-charcoal-100: 233 229 222;
+    --c-charcoal-300: 171 164 152;
+    --c-charcoal-500: 90 84 74;
+    --c-charcoal-700: 53 48 41;
+    --c-charcoal-800: 36 32 27;
+    --c-charcoal-900: 24 21 17;
+
+    --c-circuit-400: 61 190 139;
+    --c-circuit-500: 32 160 110;
+    --c-circuit-600: 21 128 85;
+
+    --c-chilli-400: 232 106 90;
+    --c-chilli-500: 214 65 45;
+    --c-chilli-600: 176 47 30;
+
+    --c-surface: 255 255 255;
+    --c-shadow: 36 32 27;
+    --c-blueprint: 212 145 14;
+    --c-blueprint-alpha: 0.08;
+    --c-theme-color: #d4910e;
+  }
+
+  /* Gulabi — Kashmiri chai pink. The softest of the light themes. */
+  [data-theme="gulabi"] {
+    --c-cream-50: 255 250 251;
+    --c-cream-100: 253 242 245;
+    --c-cream-200: 248 227 233;
+    --c-cream-300: 240 206 216;
+    --c-cream-400: 226 173 190;
+
+    --c-chai-50: 253 241 245;
+    --c-chai-100: 250 222 231;
+    --c-chai-200: 243 188 206;
+    --c-chai-300: 232 145 173;
+    --c-chai-400: 219 108 146;
+    --c-chai-500: 199 78 120;
+    --c-chai-600: 168 58 97;
+    --c-chai-700: 134 45 77;
+    --c-chai-800: 99 34 57;
+    --c-chai-900: 67 23 39;
+
+    --c-charcoal-50: 248 245 246;
+    --c-charcoal-100: 234 229 231;
+    --c-charcoal-300: 172 162 166;
+    --c-charcoal-500: 91 82 86;
+    --c-charcoal-700: 54 47 50;
+    --c-charcoal-800: 37 31 34;
+    --c-charcoal-900: 25 20 22;
+
+    --c-circuit-400: 61 190 139;
+    --c-circuit-500: 32 160 110;
+    --c-circuit-600: 21 128 85;
+
+    --c-chilli-400: 232 106 90;
+    --c-chilli-500: 214 65 45;
+    --c-chilli-600: 176 47 30;
+
+    --c-surface: 255 255 255;
+    --c-shadow: 37 31 34;
+    --c-blueprint: 199 78 120;
+    --c-blueprint-alpha: 0.07;
+    --c-theme-color: #c74e78;
+  }
+
+  /* Graphite — near-monochrome. For a cafe that wants the food to be the
+     only colour on the page. */
+  [data-theme="graphite"] {
+    --c-cream-50: 250 250 249;
+    --c-cream-100: 244 244 242;
+    --c-cream-200: 231 231 228;
+    --c-cream-300: 213 213 209;
+    --c-cream-400: 183 183 178;
+
+    --c-chai-50: 244 244 242;
+    --c-chai-100: 228 228 225;
+    --c-chai-200: 199 199 195;
+    --c-chai-300: 155 155 150;
+    --c-chai-400: 113 113 108;
+    --c-chai-500: 82 82 77;
+    --c-chai-600: 63 63 59;
+    --c-chai-700: 48 48 45;
+    --c-chai-800: 36 36 34;
+    --c-chai-900: 25 25 23;
+
+    --c-charcoal-50: 246 246 245;
+    --c-charcoal-100: 231 231 229;
+    --c-charcoal-300: 166 166 162;
+    --c-charcoal-500: 86 86 82;
+    --c-charcoal-700: 51 51 48;
+    --c-charcoal-800: 34 34 32;
+    --c-charcoal-900: 22 22 21;
+
+    --c-circuit-400: 61 190 139;
+    --c-circuit-500: 32 160 110;
+    --c-circuit-600: 21 128 85;
+
+    --c-chilli-400: 232 106 90;
+    --c-chilli-500: 214 65 45;
+    --c-chilli-600: 176 47 30;
+
+    --c-surface: 255 255 255;
+    --c-shadow: 34 34 32;
+    --c-blueprint: 82 82 77;
+    --c-blueprint-alpha: 0.07;
+    --c-theme-color: #52524d;
+  }
+}
+
 @layer base {
   :root {
     --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -54,7 +328,7 @@
 
 @layer components {
   .surface {
-    @apply rounded-2xl border border-cream-200 bg-white shadow-soft;
+    @apply rounded-2xl border border-cream-200 bg-surface shadow-soft;
   }
 
   .btn {
@@ -68,7 +342,7 @@
   }
 
   .btn-secondary {
-    @apply btn border border-charcoal-900/10 bg-white text-charcoal-800 hover:border-chai-400 hover:text-chai-700 active:scale-[.98];
+    @apply btn border border-charcoal-900/10 bg-surface text-charcoal-800 hover:border-chai-400 hover:text-chai-700 active:scale-[.98];
   }
 
   .btn-ghost {
@@ -80,7 +354,7 @@
   }
 
   .field {
-    @apply w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-charcoal-800
+    @apply w-full rounded-xl border border-cream-300 bg-surface px-4 py-2.5 text-sm text-charcoal-800
            placeholder:text-charcoal-300 transition
            focus:border-chai-400 focus:outline-none focus:ring-2 focus:ring-chai-500/20;
   }
@@ -104,7 +378,7 @@
   .skeleton::after {
     content: "";
     @apply absolute inset-0 -translate-x-full animate-shimmer
-           bg-gradient-to-r from-transparent via-white/60 to-transparent;
+           bg-gradient-to-r from-transparent via-surface/60 to-transparent;
   }
 
   /* Faint engineering grid used behind hero and section breaks. */

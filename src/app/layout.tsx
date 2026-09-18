@@ -4,6 +4,8 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import { env } from "@/lib/env";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
+import { getSettings } from "@/server/settings";
+import { resolveTheme, THEME_COLOR, isDarkTheme, APPEARANCE_SCRIPT } from "@/lib/themes";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -45,16 +47,41 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export const viewport: Viewport = {
-  themeColor: "#B9722A",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-};
+export async function generateViewport(): Promise<Viewport> {
+  // The browser chrome should match whichever palette the cafe picked.
+  const settings = await getSettings();
+  return {
+    themeColor: THEME_COLOR[resolveTheme(settings.theme)],
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+  };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Rendering the theme onto <html> on the server means the very first paint
+  // is already in the right palette — no flash of the default one, and no
+  // blocking inline script to prevent it.
+  const settings = await getSettings();
+  const theme = resolveTheme(settings.theme);
+  const siteIsDark = isDarkTheme(theme);
+
   return (
-    <html lang="en" className={`${inter.variable} ${display.variable} ${mono.variable}`}>
+    <html
+      lang="en"
+      // The inline script below rewrites data-theme before React loads, which
+      // is the whole point — so React must not treat that as a mismatch.
+      suppressHydrationWarning
+      data-theme={theme}
+      // The cafe's own choice, kept so the script can restore it when the
+      // visitor switches back to light.
+      data-site-theme={theme}
+      data-site-dark={siteIsDark ? "1" : "0"}
+      className={`${inter.variable} ${display.variable} ${mono.variable}`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: APPEARANCE_SCRIPT }} />
+      </head>
       <body>
         {children}
         <Toaster
