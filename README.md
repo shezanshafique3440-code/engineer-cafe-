@@ -210,6 +210,34 @@ frame while the next photo downloads.
 
 ---
 
+## The order slip
+
+`src/lib/receipt.ts` builds the printed slip. It is sized for an 80mm thermal
+roll — what a cafe counter actually has — but prints cleanly to A4 or
+"Save as PDF" too.
+
+It carries the cafe's logo, the order number set large enough to read across a
+counter, order-type and status badges, the customer and address, per-item
+add-ons and notes, the full price breakdown, a payment line stamped PAID or DUE,
+and a QR code the customer scans to open the live tracking page.
+
+Deliberately monochrome: thermal heads are single-colour, and on an inkjet a
+coloured slip only costs the cafe money. Weight, rules and spacing carry the
+hierarchy instead.
+
+Two details worth knowing before editing it:
+
+- The slip is written into a blank popup, which has **no base URL of its own**,
+  so a relative `logoUrl` is made absolute against the origin first — otherwise
+  the logo silently fails to load.
+- The tagline is not uppercased or letter-spaced, because it is often Urdu and
+  both mangle it.
+
+The module is loaded with a dynamic `import()` on the first print, keeping the
+QR encoder off the orders page's first load (6.8 kB instead of 17.9 kB).
+
+---
+
 ## Order notifications
 
 The cafe has no SMS gateway and no WhatsApp Business API subscription, so notifications are

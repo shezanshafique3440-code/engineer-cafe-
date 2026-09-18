@@ -149,58 +149,35 @@ function OrdersManagerInner() {
     }
   };
 
-  const printOrder = (order: OrderDTO) => {
-    const win = window.open("", "_blank", "width=420,height=640");
+  const printOrder = async (order: OrderDTO) => {
+    const win = window.open("", "_blank", "width=420,height=720");
     if (!win) {
       toast.error("Allow pop-ups to print the order slip.");
       return;
     }
-    const rows = order.items
-      .map(
-        (item) => `<tr>
-          <td>${item.quantity} × ${escapeHtml(item.productName)}${
-            item.addons.length
-              ? `<br><small>${escapeHtml(item.addons.map((a) => a.addonName).join(", "))}</small>`
-              : ""
-          }</td>
-          <td style="text-align:right">${money(item.lineTotal)}</td>
-        </tr>`,
-      )
-      .join("");
+    // The slip builder pulls in a QR encoder, which is dead weight on a page
+    // whose main job is the orders table — so it loads on the first print.
+    const { buildReceiptHtml } = await import("@/lib/receipt");
 
-    win.document.write(`<!doctype html><html><head><title>Order ${order.orderNumber}</title>
-      <style>
-        body{font-family:ui-monospace,monospace;font-size:12px;padding:16px;color:#171414}
-        h1{font-size:16px;margin:0 0 2px}
-        table{width:100%;border-collapse:collapse;margin:12px 0}
-        td{padding:4px 0;vertical-align:top}
-        hr{border:none;border-top:1px dashed #999;margin:10px 0}
-        .row{display:flex;justify-content:space-between}
-        .total{font-weight:700;font-size:14px}
-        small{color:#666}
-      </style></head><body>
-      <h1>${escapeHtml(settings.cafeName)}</h1>
-      <small>${escapeHtml(settings.address)}<br>${escapeHtml(settings.phone)}</small>
-      <hr>
-      <div class="row"><strong>#${order.orderNumber}</strong><span>${ORDER_TYPE_LABEL[order.orderType]}</span></div>
-      <small>${formatDate(order.placedAt, true)}</small>
-      <hr>
-      <div>${escapeHtml(order.customerName)} · ${escapeHtml(order.customerPhone)}</div>
-      ${order.addressLine ? `<small>${escapeHtml(order.addressLine)}, ${escapeHtml(order.area ?? "")} ${escapeHtml(order.city ?? "")}</small>` : ""}
-      ${order.instructions ? `<div><small><em>Note: ${escapeHtml(order.instructions)}</em></small></div>` : ""}
-      <table>${rows}</table>
-      <hr>
-      <div class="row"><span>Subtotal</span><span>${money(order.subtotal)}</span></div>
-      ${order.discount ? `<div class="row"><span>Discount ${escapeHtml(order.couponCode ?? "")}</span><span>-${money(order.discount)}</span></div>` : ""}
-      ${order.deliveryFee ? `<div class="row"><span>Delivery</span><span>${money(order.deliveryFee)}</span></div>` : ""}
-      ${order.tax ? `<div class="row"><span>Tax</span><span>${money(order.tax)}</span></div>` : ""}
-      <div class="row total"><span>TOTAL</span><span>${money(order.total)}</span></div>
-      <hr>
-      <div>${PAYMENT_METHOD_LABEL[order.paymentMethod]}</div>
-      <p style="text-align:center;margin-top:16px">Chai. Paratha. Engineering wali vibes.</p>
-      </body></html>`);
+    // Written into an opened window rather than printed from this document so
+    // the admin layout, fonts and theme never leak onto the slip.
+    win.document.write(
+      await buildReceiptHtml(order, {
+        settings,
+        money,
+        origin: window.location.origin,
+      }),
+    );
     win.document.close();
     win.focus();
+    // The logo and the QR are <img>s; printing before they decode gives a slip
+    // with two holes in it.
+    if (win.document.readyState !== "complete") {
+      await new Promise<void>((resolve) => {
+        win.addEventListener("load", () => resolve(), { once: true });
+        window.setTimeout(resolve, 2000);
+      });
+    }
     win.print();
   };
 
@@ -371,7 +348,7 @@ function OrdersManagerInner() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => printOrder(order)}
+                        onClick={() => void printOrder(order)}
                         aria-label={`Print order ${order.orderNumber}`}
                         className="rounded-lg p-1.5 text-charcoal-400 transition hover:bg-cream-100 hover:text-chai-600"
                       >
@@ -525,7 +502,7 @@ function OrdersManagerInner() {
               >
                 <MessageCircle className="h-3.5 w-3.5" aria-hidden /> WhatsApp: {NOTIFY_LABEL[viewing.status]}
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => printOrder(viewing)}>
+              <Button size="sm" variant="secondary" onClick={() => void printOrder(viewing)}>
                 <Printer className="h-3.5 w-3.5" aria-hidden /> Print
               </Button>
             </div>
@@ -534,12 +511,4 @@ function OrdersManagerInner() {
       </Modal>
     </div>
   );
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
