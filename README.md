@@ -249,6 +249,26 @@ window. The button used to call `window.print()`, which put the navbar, the
 footer and the page's own buttons on the paper — worth remembering if anyone
 is tempted to add another print control.
 
+
+### Counter sales complete themselves
+
+A pickup order paid with Cash at Counter is created **already Delivered and
+Paid**, with both events in its log. The customer is standing there, pays, and
+walks away with the food — stepping it through Confirmed → Preparing → Ready
+afterwards is busywork, and leaving it Pending makes the admin list look like
+there is outstanding work when there is none.
+
+Checkout already refuses any other payment method for pickup ("Choose Cash at
+Counter for pickup orders"), so in practice this is **every pickup order**,
+including one placed online to collect later. Both halves of the condition are
+still written out in `src/app/api/orders/route.ts`, because the pairing is a
+checkout rule that could be relaxed and this must not start completing unpaid
+orders if it is. A delivery paid at the counter stays Pending.
+
+The admin status dropdown offers **every** status rather than only the next
+step forward (`allStatuses`), so a mistake can be corrected backwards and a
+Delivered order still has a dropdown at all — it used to disappear.
+
 ---
 
 ## Order notifications

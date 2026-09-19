@@ -40,7 +40,27 @@ export const ORDER_TYPE_LABEL: Record<OrderType, string> = {
   PICKUP: "Pickup",
 };
 
-/** Statuses an order can move to next, used by the admin order manager. */
+/**
+ * Every status an order could be set to, minus the one it is already on.
+ *
+ * The admin table offers all of them rather than only the next step forward:
+ * a counter order is often already made and handed over by the time anyone
+ * opens the panel, and stepping it through Confirmed, Preparing and Ready one
+ * save at a time is busywork. Correcting a mistake backwards matters too.
+ */
+export function allStatuses(current: OrderStatus, orderType: OrderType): OrderStatus[] {
+  return [...ORDER_STATUS_FLOW, "CANCELLED" as OrderStatus].filter(
+    (status) =>
+      status !== current &&
+      // A pickup order never goes out for delivery.
+      !(orderType === "PICKUP" && status === "OUT_FOR_DELIVERY"),
+  );
+}
+
+/**
+ * Just the next step forward, plus cancelling — the one-tap path used by the
+ * buttons in the order detail modal.
+ */
 export function nextStatuses(current: OrderStatus, orderType: OrderType): OrderStatus[] {
   if (current === "DELIVERED" || current === "CANCELLED") return [];
   const flow = ORDER_STATUS_FLOW.filter((s) =>

@@ -10,7 +10,7 @@ import { Button, Select, ErrorState, Badge } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
 import {
   ORDER_STATUS_LABEL, ORDER_STATUS_TONE, ORDER_TYPE_LABEL,
-  PAYMENT_METHOD_LABEL, nextStatuses,
+  PAYMENT_METHOD_LABEL, nextStatuses, allStatuses,
 } from "@/lib/constants";
 import { whatsappOrderHref, toWhatsAppNumber, NOTIFY_LABEL } from "@/lib/notifications";
 import type { OrderDTO } from "@/server/orders";
@@ -270,7 +270,8 @@ function OrdersManagerInner() {
             empty={orders.length === 0}
           >
             {orders.map((order) => {
-              const options = nextStatuses(order.status, order.orderType);
+              // Every status, not just the next one — see allStatuses.
+              const options = allStatuses(order.status, order.orderType);
               return (
                 <tr key={order.id} className="transition hover:bg-cream-50">
                   <td className="whitespace-nowrap px-4 py-3">
