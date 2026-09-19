@@ -236,6 +236,19 @@ Two details worth knowing before editing it:
 The module is loaded with a dynamic `import()` on the first print, keeping the
 QR encoder off the orders page's first load (6.8 kB instead of 17.9 kB).
 
+
+### Printing at the counter
+
+The confirmation screen a customer lands on after placing an order carries a
+**Print receipt** button, so a walk-in can be handed a slip before they leave
+the counter. The same button sits in the sidebar of the order page for any
+later visit.
+
+Both print the real 80mm slip through `buildReceiptHtml`, opened in a blank
+window. The button used to call `window.print()`, which put the navbar, the
+footer and the page's own buttons on the paper — worth remembering if anyone
+is tempted to add another print control.
+
 ---
 
 ## Order notifications

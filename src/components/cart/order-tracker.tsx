@@ -25,6 +25,52 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
   const settings = useSettings();
   const { addItem } = useCart();
 
+  const [printing, setPrinting] = useState(false);
+
+  /**
+   * Prints the proper receipt — the 80mm slip with the logo, the totals and
+   * the QR code — rather than the page around it. `window.print()` here would
+   * put the navbar, the footer and these buttons on the paper.
+   *
+   * Opened in a blank window so none of this document's styling reaches it.
+   */
+  const printReceipt = async () => {
+    const win = window.open("", "_blank", "width=420,height=720");
+    if (!win) {
+      toast.error("Allow pop-ups to print the receipt.");
+      return;
+    }
+    setPrinting(true);
+    try {
+      // Pulls in a QR encoder, so it loads on the first print rather than on
+      // every visit to this page.
+      const { buildReceiptHtml } = await import("@/lib/receipt");
+      win.document.write(
+        await buildReceiptHtml(order, {
+          settings,
+          money,
+          origin: window.location.origin,
+        }),
+      );
+      win.document.close();
+      win.focus();
+      // The logo and the QR are images; printing before they decode leaves two
+      // holes in the slip.
+      if (win.document.readyState !== "complete") {
+        await new Promise<void>((resolve) => {
+          win.addEventListener("load", () => resolve(), { once: true });
+          window.setTimeout(resolve, 2000);
+        });
+      }
+      win.print();
+    } catch {
+      win.close();
+      toast.error("Couldn't build the receipt.");
+    } finally {
+      setPrinting(false);
+    }
+  };
+
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -107,6 +153,18 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
             Thanks {order.customerName.split(" ")[0]} — the kitchen has your order.
           </p>
           <p className="mt-3 font-mono text-lg font-bold text-chai-700">#{order.orderNumber}</p>
+
+          {/* The counter case: hand the customer a slip before they walk away. */}
+          <Button
+            className="mx-auto mt-5"
+            loading={printing}
+            onClick={() => void printReceipt()}
+          >
+            <Printer className="h-4 w-4" aria-hidden /> Print receipt
+          </Button>
+          <p className="mt-2 text-xs text-charcoal-500">
+            80mm slip with a QR code the customer can scan to track this order.
+          </p>
         </motion.div>
       )}
 
@@ -320,7 +378,12 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
             <Button variant="secondary" className="w-full" onClick={reorder}>
               <ShoppingBag className="h-4 w-4" aria-hidden /> Order Again
             </Button>
-            <Button variant="ghost" className="w-full" onClick={() => window.print()}>
+            <Button
+              variant="ghost"
+              className="w-full"
+              loading={printing}
+              onClick={() => void printReceipt()}
+            >
               <Printer className="h-4 w-4" aria-hidden /> Print receipt
             </Button>
             {canCancel && (
