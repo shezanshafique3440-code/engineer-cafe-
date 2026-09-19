@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Minus, Plus, Clock, Leaf, Flame, Heart, Loader2 } from "lucide-react";
+import { X, Minus, Plus, Clock, Leaf, Flame, Heart, Loader2, Zap } from "lucide-react";
 import { apiGet } from "@/lib/api-client";
 import { useCart } from "@/context/cart-context";
 import { useFavorites } from "@/context/favorites-context";
@@ -46,6 +47,7 @@ export function ProductDialog({
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState("");
 
+  const router = useRouter();
   const { addItem } = useCart();
   const { isFavorite, toggle } = useFavorites();
   const money = useMoney();
@@ -123,6 +125,18 @@ export function ProductDialog({
     if (!product || missingRequired.length > 0) return;
     addItem(product, { addons: chosenAddons, quantity, notes: notes || undefined });
     onClose();
+  };
+
+  /**
+   * Adds exactly as the button beside it does, then goes to checkout. It goes
+   * through the cart rather than taking a shortcut, so the server still prices
+   * the order and whatever was already in the cart comes along.
+   */
+  const handleBuyNow = () => {
+    if (!product || missingRequired.length > 0) return;
+    addItem(product, { addons: chosenAddons, quantity, notes: notes || undefined });
+    onClose();
+    router.push("/checkout");
   };
 
   return (
@@ -370,6 +384,16 @@ export function ProductDialog({
                       <span>{money(lineTotal)}</span>
                     </Button>
                   </div>
+
+                  <Button
+                    onClick={handleBuyNow}
+                    disabled={!product.isAvailable || missingRequired.length > 0}
+                    variant="secondary"
+                    className="mt-3 w-full"
+                    size="lg"
+                  >
+                    <Zap className="h-4 w-4" aria-hidden /> Buy it now
+                  </Button>
                 </div>
               </>
             )}

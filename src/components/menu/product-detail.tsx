@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Minus, Plus, Clock, Leaf, Flame, Heart, Star } from "lucide-react";
+import { Minus, Plus, Clock, Leaf, Flame, Heart, Star, Zap } from "lucide-react";
 import { apiPost, ApiError } from "@/lib/api-client";
 import { useCart } from "@/context/cart-context";
 import { useFavorites } from "@/context/favorites-context";
@@ -40,7 +41,20 @@ export function ProductDetail({
   const [notes, setNotes] = useState("");
   const [reviews] = useState(initialReviews);
 
+  const router = useRouter();
   const { addItem } = useCart();
+
+  /**
+   * Same add as the button beside it, then straight to checkout. Deliberately
+   * not a separate "instant order" path — it goes through the cart so the
+   * server still prices everything, and anything already in the cart comes
+   * along rather than being silently dropped.
+   */
+  const buyNow = () => {
+    if (!product.isAvailable || missingRequired.length > 0) return;
+    addItem(product, { addons: chosenAddons, quantity, notes: notes || undefined });
+    router.push("/checkout");
+  };
   const { isFavorite, toggle } = useFavorites();
   const money = useMoney();
 
@@ -267,6 +281,16 @@ export function ProductDetail({
               <Heart className={cn("h-5 w-5", isFavorite(product.id) ? "fill-chilli-500 text-chilli-500" : "text-charcoal-400")} />
             </button>
           </div>
+
+          <Button
+            size="lg"
+            variant="secondary"
+            className="mt-3 w-full"
+            disabled={!product.isAvailable || missingRequired.length > 0}
+            onClick={buyNow}
+          >
+            <Zap className="h-4 w-4" aria-hidden /> Buy it now
+          </Button>
 
           {product.ingredients.length > 0 && (
             <div className="mt-8 border-t border-cream-200 pt-6">
