@@ -216,13 +216,30 @@ first paint.
 
 - **No featured products** → falls back to the genuine best seller.
 - **One** → a still image, exactly as before; no dots, no rotation.
-- **Two or more** → crossfades every 5s with dots to jump between them.
+- **Two or more** → slides every 5s, with progress dots and arrows.
 
-Rotation pauses on hover, on keyboard focus, and while the tab is in the
-background. A visitor with `prefers-reduced-motion` gets no auto-advance at all,
-but keeps the dots so the other dishes stay reachable. Every featured image
-stays mounted and crossfades on opacity, so a rotation never shows an empty
-frame while the next photo downloads.
+Dishes **slide** rather than crossfade — a fade reads as a slideshow, a slide
+reads as one thing moving — on a spring, in whichever direction they are
+travelling, so jumping from the last dish back to the first does not fly the
+wrong way. The active photograph drifts very slightly larger while it is shown,
+which is what stops a still image looking like a screenshot.
+
+It can be **dragged or swiped**, and has arrows: revealed on hover, always
+visible on touch where there is no hover to reveal them, always reachable by
+keyboard. The dots are progress bars — the active one fills as its turn runs
+down, and stops when the rotation does.
+
+Rotation pauses on hover, on keyboard focus, while dragging, and while the tab
+is in the background. A visitor with `prefers-reduced-motion` gets no
+auto-advance and no drift, but keeps the dots and arrows.
+
+Every featured image also stays mounted underneath at zero opacity, purely so
+the browser has already decoded the next photo — the slide must never reveal a
+blank frame mid-download.
+
+> The gradient overlay on the frame **must** keep `pointer-events-none`. It
+> covers the whole image, and without it every drag is swallowed before the
+> slide underneath sees it.
 
 ---
 

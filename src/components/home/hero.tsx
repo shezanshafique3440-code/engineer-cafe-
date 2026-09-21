@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Clock, Star, Truck } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, ChevronLeft, ChevronRight, Clock, Star, Truck } from "lucide-react";
 import { useSettings, useMoney } from "@/context/settings-context";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +52,24 @@ export type HeroStats = {
 function useHighlightRotation(count: number, enabled: boolean) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  // +1 forward, -1 back. The slide has to know which way it is travelling or
+  // jumping from the last dish to the first would fly the wrong way.
+  const [direction, setDirection] = useState(1);
+
+  const goTo = useCallback((next: number, dir?: number) => {
+    setIndex((current) => {
+      setDirection(dir ?? (next > current ? 1 : -1));
+      return next;
+    });
+  }, []);
+
+  const step = useCallback(
+    (delta: number) => {
+      setDirection(delta);
+      setIndex((current) => (current + delta + count) % count);
+    },
+    [count],
+  );
 
   // A shorter menu must never leave the index pointing past the end.
   useEffect(() => setIndex((current) => (current < count ? current : 0)), [count]);
@@ -65,14 +83,11 @@ function useHighlightRotation(count: number, enabled: boolean) {
 
   useEffect(() => {
     if (!enabled || paused || count < 2) return;
-    const timer = window.setInterval(
-      () => setIndex((current) => (current + 1) % count),
-      ROTATE_MS,
-    );
+    const timer = window.setInterval(() => step(1), ROTATE_MS);
     return () => window.clearInterval(timer);
-  }, [enabled, paused, count]);
+  }, [enabled, paused, count, step]);
 
-  return { index, setIndex, setPaused };
+  return { index, direction, goTo, step, setPaused, paused };
 }
 
 export function Hero({ stats }: { stats: HeroStats }) {
@@ -81,11 +96,12 @@ export function Hero({ stats }: { stats: HeroStats }) {
   const money = useMoney();
 
   const highlights = stats.highlights;
-  const { index, setIndex, setPaused } = useHighlightRotation(
+  const { index, direction, goTo, step, setPaused, paused } = useHighlightRotation(
     highlights.length,
     !reduceMotion,
   );
   const active = highlights[index] ?? null;
+  const activeSlug = active?.slug ?? "none";
   const isCarousel = highlights.length > 1;
 
   return (
@@ -186,7 +202,7 @@ export function Hero({ stats }: { stats: HeroStats }) {
           className="relative"
         >
           <div
-            className="relative aspect-[4/3.4] overflow-hidden rounded-[1.75rem] border border-cream-300 bg-cream-200 shadow-lift sm:aspect-[4/3]"
+            className="group/hero relative aspect-[4/3.4] overflow-hidden rounded-[1.75rem] border border-cream-300 bg-cream-200 shadow-lift sm:aspect-[4/3]"
             onMouseEnter={() => isCarousel && setPaused(true)}
             onMouseLeave={() => isCarousel && setPaused(false)}
             onFocusCapture={() => isCarousel && setPaused(true)}
@@ -209,28 +225,83 @@ export function Hero({ stats }: { stats: HeroStats }) {
                 className="object-cover"
               />
             ) : (
-              // Every featured dish stays mounted and crossfades, so a rotation
-              // never shows an empty frame while the next photo downloads.
-              highlights.map((item, position) => (
-                <Image
-                  key={item.slug}
-                  src={item.image ?? "/menu/chai-doodh.svg"}
-                  alt={
-                    position === index ? `${item.name} at ${settings.cafeName}` : ""
-                  }
-                  aria-hidden={position === index ? undefined : true}
-                  fill
-                  priority={position === 0}
-                  loading={position === 0 ? undefined : "eager"}
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className={cn(
-                    "object-cover transition-opacity duration-700 ease-out motion-reduce:transition-none",
-                    position === index ? "opacity-100" : "opacity-0",
-                  )}
-                />
-              ))
+              <>
+                {/* Every dish stays mounted underneath at zero opacity purely so
+                    the browser has already decoded the next photo — the slide
+                    above must never reveal a blank frame mid-download. */}
+                <div className="absolute inset-0" aria-hidden>
+                  {highlights.map((item, position) => (
+                    <Image
+                      key={`pre-${item.slug}`}
+                      src={item.image ?? "/menu/chai-doodh.svg"}
+                      alt=""
+                      fill
+                      priority={position === 0}
+                      loading={position === 0 ? undefined : "eager"}
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                      className="object-cover opacity-0"
+                    />
+                  ))}
+                </div>
+
+                <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                  <motion.div
+                    key={activeSlug}
+                    className="absolute inset-0"
+                    custom={direction}
+                    // Travels in from the side it came from, and leaves the
+                    // other way — a fade alone reads as a slideshow, this reads
+                    // as one thing moving.
+                    variants={{
+                      enter: (dir: number) => ({ x: `${dir * 100}%`, opacity: 0.4 }),
+                      center: { x: "0%", opacity: 1 },
+                      exit: (dir: number) => ({ x: `${dir * -100}%`, opacity: 0.4 }),
+                    }}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={
+                      reduceMotion
+                        ? { duration: 0 }
+                        : { type: "spring", stiffness: 260, damping: 34, mass: 0.9 }
+                    }
+                    drag={isCarousel ? "x" : false}
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={0.14}
+                    onDragStart={() => setPaused(true)}
+                    onDragEnd={(_, info) => {
+                      setPaused(false);
+                      // Either a decisive flick or a real distance counts.
+                      if (info.offset.x < -70 || info.velocity.x < -450) step(1);
+                      else if (info.offset.x > 70 || info.velocity.x > 450) step(-1);
+                    }}
+                  >
+                    <motion.div
+                      className="absolute inset-0"
+                      // A still photograph drifting very slightly is what stops
+                      // the hero looking like a screenshot.
+                      animate={reduceMotion || paused ? { scale: 1 } : { scale: 1.06 }}
+                      transition={{ duration: ROTATE_MS / 1000 + 1.2, ease: "linear" }}
+                    >
+                      <Image
+                        src={active?.image ?? "/menu/chai-doodh.svg"}
+                        alt={active ? `${active.name} at ${settings.cafeName}` : ""}
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 50vw"
+                        className="pointer-events-none select-none object-cover"
+                        draggable={false}
+                      />
+                    </motion.div>
+                  </motion.div>
+                </AnimatePresence>
+              </>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-charcoal-900/45 via-transparent to-transparent" aria-hidden />
+            {/* Decorative, and it covers the whole frame — without pointer-events-none
+                it swallows every drag before the slide underneath sees it. */}
+            <div
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-charcoal-900/45 via-transparent to-transparent"
+              aria-hidden
+            />
 
             {/* Steam rising from the chai — hidden, not unmounted, for the same
                 hydration reason as the floating glyphs above. */}
@@ -294,20 +365,63 @@ export function Hero({ stats }: { stats: HeroStats }) {
                       <button
                         key={item.slug}
                         type="button"
-                        onClick={() => setIndex(position)}
+                        onClick={() => goTo(position)}
                         aria-label={`Show ${item.name}`}
                         aria-current={position === index ? "true" : undefined}
                         className={cn(
-                          "h-1.5 rounded-full transition-all duration-300",
+                          "group h-1.5 overflow-hidden rounded-full transition-all duration-300",
                           position === index
-                            ? "w-5 bg-cream-50"
+                            ? "w-7 bg-cream-50/30"
                             : "w-1.5 bg-cream-50/50 hover:bg-cream-50/80",
                         )}
-                      />
+                      >
+                        {/* The active dot fills as its turn runs down, so the
+                            hero shows it is counting rather than just sitting
+                            there — and it stops with the rotation on hover. */}
+                        {position === index && (
+                          <motion.span
+                            key={`${item.slug}-${paused ? "paused" : "running"}`}
+                            className="block h-full rounded-full bg-cream-50"
+                            initial={{ width: reduceMotion ? "100%" : "0%" }}
+                            animate={{ width: "100%" }}
+                            transition={{
+                              duration: reduceMotion || paused ? 0 : ROTATE_MS / 1000,
+                              ease: "linear",
+                            }}
+                          />
+                        )}
+                      </button>
                     ))}
                   </div>
                 )}
               </div>
+            )}
+
+            {isCarousel && (
+              <>
+                {([
+                  { dir: -1, side: "left-3", Icon: ChevronLeft, label: "Previous dish" },
+                  { dir: 1, side: "right-3", Icon: ChevronRight, label: "Next dish" },
+                ] as const).map(({ dir, side, Icon, label }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => step(dir)}
+                    aria-label={label}
+                    className={cn(
+                      "absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-charcoal-900/40 p-2 text-cream-50 backdrop-blur transition",
+                      // Out of the way until wanted, but always reachable by
+                      // keyboard and always visible on touch, where there is no
+                      // hover to reveal them.
+                      "opacity-0 hover:bg-charcoal-900/70 focus-visible:opacity-100 group-hover/hero:opacity-100",
+                      "max-[1024px]:opacity-100",
+                      side,
+                    )}
+                  >
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </button>
+                ))}
+              </>
             )}
           </div>
 
