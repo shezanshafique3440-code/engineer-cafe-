@@ -57,12 +57,43 @@ function absoluteLogo(logoUrl: string | null, origin: string): string | null {
   return `${origin}${logoUrl.startsWith("/") ? "" : "/"}${logoUrl}`;
 }
 
+/**
+ * Reads the logo into a data URI.
+ *
+ * The QR is already inline, and the logo should be too: a remote image in a
+ * popup has to be fetched again over the network at the exact moment someone
+ * is waiting at the counter to print. On a phone that is the difference
+ * between a logo and a hole. Fetching it here means the document that reaches
+ * the print dialog is entirely self-contained.
+ *
+ * Returns null on any failure — a slip without a logo still prints.
+ */
+async function inlineLogo(url: string | null): Promise<string | null> {
+  if (!url) return null;
+  if (url.startsWith("data:")) return url;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return await new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function buildReceiptHtml(
   order: OrderDTO,
   { settings, money, origin }: ReceiptOptions,
 ): Promise<string> {
-  const qr = await trackingQr(order, origin);
-  const logo = absoluteLogo(settings.logoUrl, origin);
+  const [qr, logo] = await Promise.all([
+    trackingQr(order, origin),
+    inlineLogo(absoluteLogo(settings.logoUrl, origin)),
+  ]);
   const isPaid = order.paymentStatus === "PAID";
 
   const items = order.items
@@ -294,4 +325,51 @@ export async function buildReceiptHtml(
   </div>
 
 </body></html>`;
+}
+
+
+/**
+ * Writes a slip into an already-opened window and prints it, once its images
+ * have actually decoded.
+ *
+ * The window must be opened synchronously from the click that asked for it, or
+ * a pop-up blocker eats it — which is why it is passed in rather than opened
+ * here.
+ *
+ * The wait is the whole point. `document.close()` usually leaves `readyState`
+ * at "complete" straight away, so checking that (or listening for `load`)
+ * returns immediately while the images are still downloading, and `print()`
+ * captures the page without them. On a desktop they tend to win the race; on a
+ * phone they do not, which is exactly the bug this replaces. Waiting on each
+ * image's own decode is the only thing that actually means "ready".
+ */
+export async function printSlip(win: Window, html: string): Promise<void> {
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+
+  const images = Array.from(win.document.images);
+  await Promise.race([
+    Promise.all(
+      images.map((img) =>
+        img
+          .decode()
+          // A broken image must not block the print — better a slip with a
+          // hole than no slip at all.
+          .catch(
+            () =>
+              new Promise<void>((resolve) => {
+                if (img.complete) return resolve();
+                img.addEventListener("load", () => resolve(), { once: true });
+                img.addEventListener("error", () => resolve(), { once: true });
+              }),
+          ),
+      ),
+    ),
+    // A hard ceiling, so a hung request can never leave someone staring at a
+    // window that will not print.
+    new Promise<void>((resolve) => win.setTimeout(resolve, 6000)),
+  ]);
+
+  win.print();
 }

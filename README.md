@@ -272,6 +272,18 @@ QR encoder off the orders page's first load (6.8 kB instead of 17.9 kB).
 
 ### Printing at the counter
 
+**Do not print before the images have decoded.** `document.close()` usually
+leaves `readyState` at `"complete"` straight away, so checking that — or
+listening for `load` — returns immediately while the logo and QR are still
+downloading, and `print()` then captures the slip without them. A desktop tends
+to win that race; a phone does not, which is why the slip printed with two
+holes there. `printSlip()` waits on each image's own `decode()` instead, with a
+6s ceiling so a hung request cannot block the print entirely.
+
+The logo is also read into a data URI before the document is written, so the
+slip that reaches the print dialog needs no network at all. If the logo cannot
+be fetched it is simply omitted — a slip without a logo still prints.
+
 Both print buttons are **staff only**. Printing is a counter action — a
 customer ordering from their phone has nothing to print to, and the button only
 made sense for whoever is standing at the till. The gate is `useSession().isStaff`.

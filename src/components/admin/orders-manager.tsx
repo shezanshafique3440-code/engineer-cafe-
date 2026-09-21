@@ -157,28 +157,17 @@ function OrdersManagerInner() {
     }
     // The slip builder pulls in a QR encoder, which is dead weight on a page
     // whose main job is the orders table — so it loads on the first print.
-    const { buildReceiptHtml } = await import("@/lib/receipt");
+    const { buildReceiptHtml, printSlip } = await import("@/lib/receipt");
 
+    const html = await buildReceiptHtml(order, {
+      settings,
+      money,
+      origin: window.location.origin,
+    });
     // Written into an opened window rather than printed from this document so
-    // the admin layout, fonts and theme never leak onto the slip.
-    win.document.write(
-      await buildReceiptHtml(order, {
-        settings,
-        money,
-        origin: window.location.origin,
-      }),
-    );
-    win.document.close();
-    win.focus();
-    // The logo and the QR are <img>s; printing before they decode gives a slip
-    // with two holes in it.
-    if (win.document.readyState !== "complete") {
-      await new Promise<void>((resolve) => {
-        win.addEventListener("load", () => resolve(), { once: true });
-        window.setTimeout(resolve, 2000);
-      });
-    }
-    win.print();
+    // the admin layout, fonts and theme never leak onto the slip. printSlip
+    // holds the print until the images have decoded.
+    await printSlip(win, html);
   };
 
   return (

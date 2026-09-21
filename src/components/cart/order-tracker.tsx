@@ -48,25 +48,15 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
     try {
       // Pulls in a QR encoder, so it loads on the first print rather than on
       // every visit to this page.
-      const { buildReceiptHtml } = await import("@/lib/receipt");
-      win.document.write(
-        await buildReceiptHtml(order, {
-          settings,
-          money,
-          origin: window.location.origin,
-        }),
-      );
-      win.document.close();
-      win.focus();
-      // The logo and the QR are images; printing before they decode leaves two
-      // holes in the slip.
-      if (win.document.readyState !== "complete") {
-        await new Promise<void>((resolve) => {
-          win.addEventListener("load", () => resolve(), { once: true });
-          window.setTimeout(resolve, 2000);
-        });
-      }
-      win.print();
+      const { buildReceiptHtml, printSlip } = await import("@/lib/receipt");
+      const html = await buildReceiptHtml(order, {
+        settings,
+        money,
+        origin: window.location.origin,
+      });
+      // printSlip holds the print until the images have decoded — see there
+      // for why readyState is not good enough.
+      await printSlip(win, html);
     } catch {
       win.close();
       toast.error("Couldn't build the receipt.");
