@@ -10,6 +10,7 @@ import { Check, Clock, MapPin, Phone, Printer, RefreshCw, ShoppingBag, XCircle, 
 import { apiGet, apiPost, ApiError } from "@/lib/api-client";
 import { useMoney, useSettings } from "@/context/settings-context";
 import { useCart } from "@/context/cart-context";
+import { useSession } from "@/context/session-context";
 import { Badge, Button } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, ORDER_TYPE_LABEL, PAYMENT_METHOD_LABEL } from "@/lib/constants";
@@ -24,6 +25,9 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
   const money = useMoney();
   const settings = useSettings();
   const { addItem } = useCart();
+  // Printing is a counter action. A customer ordering from their phone has
+  // nothing to print to and should not be offered it.
+  const { isStaff } = useSession();
 
   const [printing, setPrinting] = useState(false);
 
@@ -154,17 +158,22 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
           </p>
           <p className="mt-3 font-mono text-lg font-bold text-chai-700">#{order.orderNumber}</p>
 
-          {/* The counter case: hand the customer a slip before they walk away. */}
-          <Button
-            className="mx-auto mt-5"
-            loading={printing}
-            onClick={() => void printReceipt()}
-          >
-            <Printer className="h-4 w-4" aria-hidden /> Print receipt
-          </Button>
-          <p className="mt-2 text-xs text-charcoal-500">
-            80mm slip with a QR code the customer can scan to track this order.
-          </p>
+          {/* The counter case: staff ring the order up and hand over a slip
+              before the customer walks away. */}
+          {isStaff && (
+            <>
+              <Button
+                className="mx-auto mt-5"
+                loading={printing}
+                onClick={() => void printReceipt()}
+              >
+                <Printer className="h-4 w-4" aria-hidden /> Print receipt
+              </Button>
+              <p className="mt-2 text-xs text-charcoal-500">
+                80mm slip with a QR code the customer can scan to track this order.
+              </p>
+            </>
+          )}
         </motion.div>
       )}
 
@@ -378,14 +387,16 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
             <Button variant="secondary" className="w-full" onClick={reorder}>
               <ShoppingBag className="h-4 w-4" aria-hidden /> Order Again
             </Button>
-            <Button
-              variant="ghost"
-              className="w-full"
-              loading={printing}
-              onClick={() => void printReceipt()}
-            >
-              <Printer className="h-4 w-4" aria-hidden /> Print receipt
-            </Button>
+            {isStaff && (
+              <Button
+                variant="ghost"
+                className="w-full"
+                loading={printing}
+                onClick={() => void printReceipt()}
+              >
+                <Printer className="h-4 w-4" aria-hidden /> Print receipt
+              </Button>
+            )}
             {canCancel && (
               <Button variant="danger" className="w-full" loading={cancelling} onClick={() => void cancel()}>
                 Cancel order

@@ -299,7 +299,15 @@ export function SectionHeading({
   className?: string;
 }) {
   return (
-    <div className={cn("mb-8 flex flex-wrap items-end justify-between gap-4", className)}>
+    <div
+      className={cn(
+        // Rises into place as it scrolls in. Pure CSS off an IntersectionObserver
+        // utility rather than a motion component, so a heading costs nothing to
+        // render and the whole thing is skipped under prefers-reduced-motion.
+        "reveal mb-8 flex flex-wrap items-end justify-between gap-4",
+        className,
+      )}
+    >
       <div className="max-w-2xl">
         {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
         <h2 className="text-2xl font-bold md:text-3xl">{title}</h2>

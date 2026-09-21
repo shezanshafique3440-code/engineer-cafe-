@@ -398,3 +398,36 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
+
+@layer components {
+  /**
+   * Scroll reveal.
+   *
+   * An element marked `.reveal` starts slightly low and transparent, and
+   * settles once `data-revealed` is set on it by the observer in
+   * `ScrollReveal`. Doing it in CSS rather than per-element JS keeps it off the
+   * render path — a page of headings costs one observer, not one component
+   * each.
+   *
+   * If the script never runs the element is still visible: the hidden state is
+   * only applied while `[data-reveal-ready]` is on <html>, which the observer
+   * sets itself. No JS, no hiding.
+   */
+  :root[data-reveal-ready] .reveal:not([data-revealed]) {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  .reveal {
+    transition:
+      opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-reveal-ready] .reveal:not([data-revealed]) {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

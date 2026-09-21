@@ -147,6 +147,22 @@ by `UPLOAD_PROVIDER`:
 Adding another provider means implementing one `StorageAdapter` in `src/server/storage.ts`.
 Uploaded images are never committed into the frontend source.
 
+## Scroll reveal
+
+Anything with the `.reveal` class rises into place as it scrolls in.
+`SectionHeading` carries it by default.
+
+One `IntersectionObserver` in `ScrollReveal` drives the whole page, rather than
+a motion component per element — a page of headings costs one observer, not one
+React subscription each, and the elements stay server-rendered.
+
+The hidden state only applies while `data-reveal-ready` is set on `<html>`,
+which the observer sets itself. So if the script never runs — a JS failure, an
+old browser — nothing is hidden; it is simply visible. `prefers-reduced-motion`
+skips the movement the same way. Both are verified in the browser.
+
+---
+
 ## Theming
 
 The cafe picks its palette in **Admin → Settings → Theme**. Six ship today:
@@ -238,6 +254,10 @@ QR encoder off the orders page's first load (6.8 kB instead of 17.9 kB).
 
 
 ### Printing at the counter
+
+Both print buttons are **staff only**. Printing is a counter action — a
+customer ordering from their phone has nothing to print to, and the button only
+made sense for whoever is standing at the till. The gate is `useSession().isStaff`.
 
 The confirmation screen a customer lands on after placing an order carries a
 **Print receipt** button, so a walk-in can be handed a slip before they leave
