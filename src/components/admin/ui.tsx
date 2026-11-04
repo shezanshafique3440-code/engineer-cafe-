@@ -2,6 +2,7 @@
 
 import { Children, cloneElement, isValidElement, useRef, type HTMLAttributes, type ReactNode } from "react";
 import { useDialogFocus } from "@/hooks/use-dialog-focus";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui";
@@ -90,7 +91,7 @@ export function Modal({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-0 sm:items-center sm:p-6">
       <div className="fixed inset-0 bg-charcoal-900/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
       <div
@@ -117,7 +118,8 @@ export function Modal({
         </div>
         <div className="min-h-0 overflow-y-auto overscroll-contain p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
