@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { env } from "@/lib/env";
 
 const COOKIE_NAME = "ec_session";
 
@@ -36,29 +37,30 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     if (!isStaff) {
-      const url = request.nextUrl.clone();
+      // Use the configured public origin: Next may see localhost behind Nginx.
+      const url = new URL(pathname, env.siteUrl);
       url.pathname = "/admin/login";
-      url.search = `?next=${encodeURIComponent(pathname)}`;
+      url.search = `?next=${encodeURIComponent(pathname + search)}`;
       return NextResponse.redirect(url);
     }
   }
 
   if (pathname === "/admin/login" && isStaff) {
-    const url = request.nextUrl.clone();
+    const url = new URL(pathname, env.siteUrl);
     url.pathname = "/admin";
     url.search = "";
     return NextResponse.redirect(url);
   }
 
   if (pathname.startsWith("/account") && !role) {
-    const url = request.nextUrl.clone();
+    const url = new URL(pathname, env.siteUrl);
     url.pathname = "/login";
     url.search = `?next=${encodeURIComponent(pathname + search)}`;
     return NextResponse.redirect(url);
   }
 
   if ((pathname === "/login" || pathname === "/register") && role) {
-    const url = request.nextUrl.clone();
+    const url = new URL(pathname, env.siteUrl);
     url.pathname = isStaff ? "/admin" : "/account";
     url.search = "";
     return NextResponse.redirect(url);

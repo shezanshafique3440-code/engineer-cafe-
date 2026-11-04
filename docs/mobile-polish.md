@@ -32,3 +32,7 @@ Fetch the code branch, extract `scripts/deploy-mobile-polish.sh` outside the che
 Engineer Cafe has a short maintenance window while building. Other PM2 applications and Nginx configuration are unchanged. If a command fails, the updater attempts to restore the previous code and production build. Retain the printed backup path. The deployment pins a detached Git commit so the exact version is recorded.
 
 After deployment, test a real staff login from a phone at `https://esellerstore.vip/admin/login`, open orders/products, edit a test product, check mobile menu/cart, and confirm no unexpected order is created. Do not share passwords or cookies in screenshots or console output.
+
+## Reverse-proxy login redirect fix
+
+Authentication middleware now creates redirect URLs from the configured public site origin rather than cloning Next's internal request origin. This prevents phones from being sent to `localhost:3100` behind Nginx. Four regression tests exercise account/admin gates and signed-in staff/customer redirects using actual NextRequest, middleware and signed JWTs. The VPS updater also checks the HTTPS account redirect's Location header.

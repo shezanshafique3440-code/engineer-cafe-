@@ -52,6 +52,7 @@ git switch --detach "$TARGET"
 npm run typecheck
 npm run lint
 node --import tsx src/lib/__tests__/mobile-utils.test.ts
+node --import tsx src/lib/__tests__/auth-redirects.test.ts
 NODE_OPTIONS="--max-old-space-size=2048" npm run build
 pm2 restart engineer-cafe --update-env
 curl --retry 10 --retry-connrefused --retry-delay 2 --max-time 30 --fail --silent --show-error \
@@ -74,6 +75,17 @@ JS
 curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 \
   https://esellerstore.vip/admin/login -o "$BACKUP/domain-login.html"
 grep -q 'Cafe control room' "$BACKUP/domain-login.html"
+curl --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 \
+  -D "$BACKUP/account-redirect.headers" -o /dev/null https://esellerstore.vip/account
+node - "$BACKUP/account-redirect.headers" <<'JS'
+const fs = require('node:fs');
+const headers = fs.readFileSync(process.argv[2], 'utf8');
+const location = /^location:\s*(.+)$/im.exec(headers)?.[1].trim();
+if (!location || new URL(location).origin !== 'https://esellerstore.vip' || new URL(location).pathname !== '/login') {
+  throw new Error('Public account redirect is incorrect: ' + location);
+}
+console.log('PASS: account login redirect uses the public HTTPS domain.');
+JS
 pm2 save
 trap - EXIT
 echo "PASS: mobile polish deployed; production build, login page and HTTPS checks passed."
