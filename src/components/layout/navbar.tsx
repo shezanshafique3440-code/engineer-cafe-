@@ -4,7 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Search, ShoppingBag, User, X, LogOut, LayoutDashboard, Heart } from "lucide-react";
+import {
+  Menu,
+  Search,
+  ShoppingBag,
+  User,
+  X,
+  LogOut,
+  LayoutDashboard,
+  Heart,
+} from "lucide-react";
 import { useDialogFocus } from "@/hooks/use-dialog-focus";
 import { Logo } from "./logo";
 import { useCart } from "@/context/cart-context";
@@ -26,8 +35,17 @@ const LINKS = [
   { href: "/contact", label: "Contact" },
 ];
 
+const HOME_LINKS = [
+  { href: "/", label: "Home" },
+  { href: "/menu", label: "Our menu" },
+  { href: "/#our-story", label: "Our story" },
+  { href: "/discover", label: "Discover" },
+  { href: "/#visit", label: "Visit us" },
+];
+
 export function Navbar() {
   const pathname = usePathname();
+  const cinematic = pathname === "/";
   const { itemCount } = useCart();
   const { user, logout } = useSession();
   const settings = useSettings();
@@ -61,13 +79,17 @@ export function Navbar() {
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1280px)");
-    const close = () => { if (media.matches) setMobileOpen(false); };
+    const close = () => {
+      if (media.matches) setMobileOpen(false);
+    };
     media.addEventListener("change", close);
     return () => media.removeEventListener("change", close);
   }, []);
 
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+    href === "/"
+      ? pathname === "/"
+      : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <>
@@ -81,16 +103,31 @@ export function Navbar() {
       <header
         className={cn(
           "sticky top-0 z-40 w-full transition-all duration-300",
+          cinematic && "cinema-navigation",
           scrolled
             ? "border-b border-cream-200 bg-cream-50/90 backdrop-blur-md"
             : "border-b border-transparent bg-cream-50",
         )}
       >
-        <nav className="container flex h-16 items-center justify-between gap-2 sm:gap-4 md:h-[72px]" aria-label="Main">
+        <nav
+          className="container flex h-16 items-center justify-between gap-2 sm:gap-4 md:h-[72px]"
+          aria-label="Main"
+        >
           <div className="flex items-center gap-8">
-            <Logo src={settings.logoUrl} responsive />
+            {cinematic && !settings.logoUrl ? (
+              <Link
+                href="/"
+                className="cinema-wordmark"
+                aria-label={`${settings.cafeName} home`}
+              >
+                <span>{settings.cafeName}</span>
+                <small>CHAI · PARATHA · CONVERSATION</small>
+              </Link>
+            ) : (
+              <Logo src={settings.logoUrl} responsive onDark={cinematic} />
+            )}
             <ul className="hidden items-center gap-1 xl:flex">
-              {LINKS.map((link) => (
+              {(cinematic ? HOME_LINKS : LINKS).map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -107,7 +144,11 @@ export function Navbar() {
                       <motion.span
                         layoutId="nav-underline"
                         className="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-chai-500"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 380,
+                          damping: 30,
+                        }}
                       />
                     )}
                   </Link>
@@ -117,7 +158,9 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            <AppearanceToggle className="hidden sm:inline-flex" />
+            {!cinematic && (
+              <AppearanceToggle className="hidden sm:inline-flex" />
+            )}
 
             <button
               type="button"
@@ -142,7 +185,11 @@ export function Navbar() {
               <AnimatePresence>
                 {accountOpen && (
                   <>
-                    <div className="fixed inset-0 z-10" onClick={() => setAccountOpen(false)} aria-hidden />
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setAccountOpen(false)}
+                      aria-hidden
+                    />
                     <motion.div
                       role="menu"
                       initial={{ opacity: 0, y: -6, scale: 0.97 }}
@@ -154,15 +201,39 @@ export function Navbar() {
                       {user ? (
                         <>
                           <div className="px-3 py-2">
-                            <p className="truncate text-sm font-semibold text-charcoal-900">{user.name}</p>
-                            <p className="truncate text-xs text-charcoal-500">{user.email}</p>
+                            <p className="truncate text-sm font-semibold text-charcoal-900">
+                              {user.name}
+                            </p>
+                            <p className="truncate text-xs text-charcoal-500">
+                              {user.email}
+                            </p>
                           </div>
                           <hr className="my-1 border-cream-200" />
-                          <MenuLink href="/account" icon={<LayoutDashboard className="h-4 w-4" />}>My Account</MenuLink>
-                          <MenuLink href="/account/orders" icon={<ShoppingBag className="h-4 w-4" />}>My Orders</MenuLink>
-                          <MenuLink href="/account/favorites" icon={<Heart className="h-4 w-4" />}>Favorites</MenuLink>
+                          <MenuLink
+                            href="/account"
+                            icon={<LayoutDashboard className="h-4 w-4" />}
+                          >
+                            My Account
+                          </MenuLink>
+                          <MenuLink
+                            href="/account/orders"
+                            icon={<ShoppingBag className="h-4 w-4" />}
+                          >
+                            My Orders
+                          </MenuLink>
+                          <MenuLink
+                            href="/account/favorites"
+                            icon={<Heart className="h-4 w-4" />}
+                          >
+                            Favorites
+                          </MenuLink>
                           {(user.role === "ADMIN" || user.role === "STAFF") && (
-                            <MenuLink href="/admin" icon={<LayoutDashboard className="h-4 w-4" />}>Admin Panel</MenuLink>
+                            <MenuLink
+                              href="/admin"
+                              icon={<LayoutDashboard className="h-4 w-4" />}
+                            >
+                              Admin Panel
+                            </MenuLink>
                           )}
                           <hr className="my-1 border-cream-200" />
                           <button
@@ -180,8 +251,18 @@ export function Navbar() {
                         </>
                       ) : (
                         <>
-                          <MenuLink href="/login" icon={<User className="h-4 w-4" />}>Login</MenuLink>
-                          <MenuLink href="/register" icon={<User className="h-4 w-4" />}>Create account</MenuLink>
+                          <MenuLink
+                            href="/login"
+                            icon={<User className="h-4 w-4" />}
+                          >
+                            Login
+                          </MenuLink>
+                          <MenuLink
+                            href="/register"
+                            icon={<User className="h-4 w-4" />}
+                          >
+                            Create account
+                          </MenuLink>
                         </>
                       )}
                     </motion.div>
@@ -208,7 +289,10 @@ export function Navbar() {
               )}
             </Link>
 
-            <Link href="/menu" className="btn-primary ml-1 hidden md:inline-flex">
+            <Link
+              href="/menu"
+              className="btn-primary ml-1 hidden md:inline-flex"
+            >
               Order Now
             </Link>
 
@@ -283,15 +367,48 @@ export function Navbar() {
 
                 <hr className="my-4 border-cream-200" />
 
-                <Link href="/admin/login" className="mb-2 block min-h-11 rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100">Staff login</Link>
+                <Link
+                  href="/admin/login"
+                  className="mb-2 block min-h-11 rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
+                >
+                  Staff login
+                </Link>
                 <ul className="space-y-1">
                   {user ? (
                     <>
-                      <li><Link href="/account" className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100">My Account</Link></li>
-                      <li><Link href="/account/orders" className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100">My Orders</Link></li>
-                      <li><Link href="/account/favorites" className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100">Favorites</Link></li>
+                      <li>
+                        <Link
+                          href="/account"
+                          className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
+                        >
+                          My Account
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/account/orders"
+                          className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
+                        >
+                          My Orders
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/account/favorites"
+                          className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
+                        >
+                          Favorites
+                        </Link>
+                      </li>
                       {(user.role === "ADMIN" || user.role === "STAFF") && (
-                        <li><Link href="/admin" className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100">Admin Panel</Link></li>
+                        <li>
+                          <Link
+                            href="/admin"
+                            className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
+                          >
+                            Admin Panel
+                          </Link>
+                        </li>
                       )}
                       <li>
                         <button
@@ -305,15 +422,31 @@ export function Navbar() {
                     </>
                   ) : (
                     <>
-                      <li><Link href="/login" className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100">Login</Link></li>
-                      <li><Link href="/register" className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100">Create account</Link></li>
+                      <li>
+                        <Link
+                          href="/login"
+                          className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
+                        >
+                          Login
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/register"
+                          className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
+                        >
+                          Create account
+                        </Link>
+                      </li>
                     </>
                   )}
                 </ul>
               </nav>
 
               <div className="border-t border-cream-200 p-4">
-                <Link href="/menu" className="btn-primary w-full">Order Now</Link>
+                <Link href="/menu" className="btn-primary w-full">
+                  Order Now
+                </Link>
               </div>
             </motion.div>
           </motion.div>
@@ -325,7 +458,15 @@ export function Navbar() {
   );
 }
 
-function MenuLink({ href, icon, children }: { href: string; icon: React.ReactNode; children: React.ReactNode }) {
+function MenuLink({
+  href,
+  icon,
+  children,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <Link
       href={href}

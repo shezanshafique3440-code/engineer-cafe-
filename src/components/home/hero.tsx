@@ -1,547 +1,314 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import {
+  AnimatePresence,
+  motion,
+  useInView,
+  useMotionValue,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
+} from "framer-motion";
+import {
+  ArrowDown,
   ArrowRight,
+  ArrowUpRight,
   ChevronLeft,
   ChevronRight,
-  Clock,
+  Pause,
+  Play,
   Star,
-  Truck,
 } from "lucide-react";
 import { useSettings, useMoney } from "@/context/settings-context";
-import { cn } from "@/lib/utils";
+import type { ProductDTO } from "@/lib/types";
 
-const FLOATING = [
-  { symbol: "∑", top: "12%", left: "6%", delay: 0 },
-  { symbol: "λ", top: "68%", left: "10%", delay: 0.6 },
-  { symbol: "π", top: "22%", right: "8%", delay: 1.1 },
-  { symbol: "Ω", top: "76%", right: "12%", delay: 1.6 },
-  { symbol: "∫", top: "44%", left: "3%", delay: 2.1 },
+const SCENES = [
+  {
+    name: "The signature",
+    eyebrow: "A LITTLE EVERYDAY LUXURY",
+    line: "Slow moments.",
+    emphasis: "Beautifully brewed.",
+    description:
+      "A warm cup. A golden paratha. And a little time for the things that matter.",
+    note: "Rich. Comforting. Unmistakably ours.",
+  },
+  {
+    name: "The golden hour",
+    eyebrow: "MAKE ROOM FOR A BETTER BREAK",
+    line: "Golden hours.",
+    emphasis: "Warmer company.",
+    description:
+      "Let the day slow down. Pull up a chair, find your favourite, and stay a little longer.",
+    note: "Your favourite corner of the day.",
+  },
+  {
+    name: "The ritual",
+    eyebrow: "CHAI, PARATHA & CONVERSATION",
+    line: "Simple rituals.",
+    emphasis: "Extraordinary days.",
+    description:
+      "From the first sip to the last golden layer. Good things are made to be savoured.",
+    note: "A little ritual. A lot of soul.",
+  },
 ];
+const SCENE_MS = 7200;
 
-/** How long each featured dish holds the hero before the next one takes over. */
-const ROTATE_MS = 5000;
-
-export type HeroHighlight = {
-  name: string;
-  urduName: string | null;
-  slug: string;
-  image: string | null;
-  price: number;
-  discountPrice: number | null;
-  isFeatured: boolean;
-  category: { slug: string };
-};
-
-export type HeroStats = {
-  avgPrepMinutes: number;
-  menuItems: number;
-  /** Average rating across approved reviews, or null while there are none. */
+export function Hero({
+  featured,
+  rating,
+  reviewCount,
+  menuCount,
+  prepMinutes,
+}: {
+  featured: ProductDTO | null;
   rating: number | null;
-  /**
-   * Everything the cafe has marked Featured, best seller first. Falls back to
-   * the genuine best seller when nothing is featured, and is empty only on a
-   * menu with no available products. One entry behaves exactly as the old
-   * single highlight did — the carousel only appears from two upwards.
-   */
-  highlights: HeroHighlight[];
-};
-
-/**
- * Cycles the featured dishes in the hero image. Pauses on hover, on keyboard
- * focus and while the tab is in the background, and does not auto-advance at
- * all for a visitor who asked for reduced motion — they still get the dots.
- */
-function useHighlightRotation(count: number, enabled: boolean) {
-  const [index, setIndex] = useState(0);
+  reviewCount: number;
+  menuCount: number;
+  prepMinutes: number;
+}) {
+  const settings = useSettings();
+  const money = useMoney();
+  const reducedMotion = useReducedMotion();
+  const hero = useRef<HTMLElement>(null);
+  const inView = useInView(hero, { amount: 0.15 });
+  const [scene, setScene] = useState(0);
   const [paused, setPaused] = useState(false);
-  // +1 forward, -1 back. The slide has to know which way it is travelling or
-  // jumping from the last dish to the first would fly the wrong way.
-  const [direction, setDirection] = useState(1);
-
-  const goTo = useCallback((next: number, dir?: number) => {
-    setIndex((current) => {
-      setDirection(dir ?? (next > current ? 1 : -1));
-      return next;
-    });
-  }, []);
-
-  const step = useCallback(
-    (delta: number) => {
-      setDirection(delta);
-      setIndex((current) => (current + delta + count) % count);
-    },
-    [count],
-  );
-
-  // A shorter menu must never leave the index pointing past the end.
-  useEffect(
-    () => setIndex((current) => (current < count ? current : 0)),
-    [count],
-  );
+  const [hidden, setHidden] = useState(false);
+  const [interacting, setInteracting] = useState(false);
+  const pointerX = useMotionValue(0);
+  const pointerY = useMotionValue(0);
+  const x = useSpring(pointerX, { stiffness: 60, damping: 24 });
+  const y = useSpring(pointerY, { stiffness: 60, damping: 24 });
+  const { scrollYProgress } = useScroll({
+    target: hero,
+    offset: ["start start", "end start"],
+  });
+  const scrollLift = useTransform(scrollYProgress, [0, 1], [0, -65]);
+  const playing =
+    !paused && !reducedMotion && !hidden && inView && !interacting;
 
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    const sync = () => setPaused(document.hidden);
+    const sync = () => setHidden(document.hidden);
+    sync();
     document.addEventListener("visibilitychange", sync);
     return () => document.removeEventListener("visibilitychange", sync);
   }, []);
-
   useEffect(() => {
-    if (!enabled || paused || count < 2) return;
-    const timer = window.setInterval(() => step(1), ROTATE_MS);
+    if (!playing) return;
+    const timer = window.setInterval(
+      () => setScene((value) => (value + 1) % SCENES.length),
+      SCENE_MS,
+    );
     return () => window.clearInterval(timer);
-  }, [enabled, paused, count, step]);
+  }, [playing, scene]);
 
-  return { index, direction, goTo, step, setPaused, paused };
-}
-
-export function Hero({ stats }: { stats: HeroStats }) {
-  const reduceMotion = useReducedMotion();
-  const settings = useSettings();
-  const money = useMoney();
-
-  const highlights = stats.highlights;
-  const { index, direction, goTo, step, setPaused, paused } =
-    useHighlightRotation(highlights.length, !reduceMotion);
-  const active = highlights[index] ?? null;
-  const activeSlug = active?.slug ?? "none";
-  const isCarousel = highlights.length > 1;
+  const current = SCENES[scene];
+  const featuredHref = featured
+    ? `/menu/${featured.category.slug}/${featured.slug}`
+    : "/menu/chai";
 
   return (
-    <section className="relative overflow-hidden border-b border-cream-200 bg-cream-100">
-      <div className="blueprint absolute inset-0 opacity-70" aria-hidden />
-      <div
-        className="absolute -right-24 -top-24 h-[420px] w-[420px] rounded-full bg-chai-200/35 blur-3xl"
-        aria-hidden
-      />
+    <section
+      ref={hero}
+      className="cinema-hero"
+      data-scene={scene}
+      data-motion={playing ? "playing" : "paused"}
+      aria-label="The Engineer Cafe experience"
+      aria-roledescription="carousel"
+      onFocusCapture={() => setInteracting(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget))
+          setInteracting(false);
+      }}
+      onPointerMove={(event) => {
+        if (reducedMotion || event.pointerType !== "mouse") return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        pointerX.set(((event.clientX - rect.left) / rect.width - 0.5) * 22);
+        pointerY.set(((event.clientY - rect.top) / rect.height - 0.5) * 16);
+      }}
+      onPointerLeave={() => {
+        pointerX.set(0);
+        pointerY.set(0);
+      }}
+    >
+      <div className="cinema-cafe-backdrop" aria-hidden />
+      <div className="cinema-hero-glow" aria-hidden />
+      <div className="cinema-ribbon cinema-ribbon-one" aria-hidden />
+      <div className="cinema-ribbon cinema-ribbon-two" aria-hidden />
+      <span className="cinema-ghost-word" aria-hidden>
+        chai
+      </span>
 
-      {/* Always rendered, hidden from reduced-motion visitors in CSS. Gating the
-          markup on useReducedMotion() instead would mismatch hydration — the
-          hook resolves only after mount — and force React to rebuild the hero. */}
-      {FLOATING.map((item) => (
-        <motion.span
-          key={item.symbol}
-          className="pointer-events-none absolute hidden select-none font-display text-3xl text-chai-400/35 motion-reduce:hidden lg:block"
-          style={{ top: item.top, left: item.left, right: item.right }}
-          animate={
-            reduceMotion
-              ? undefined
-              : { y: [0, -14, 0], opacity: [0.3, 0.55, 0.3] }
-          }
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            delay: item.delay,
-            ease: "easeInOut",
-          }}
-          aria-hidden
-        >
-          {item.symbol}
-        </motion.span>
-      ))}
-
-      <div className="container relative grid items-center gap-10 py-14 md:py-20 lg:grid-cols-2 lg:gap-14 lg:py-24">
-        <motion.div
-          initial={{ opacity: 0, y: 22 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <span className="inline-flex items-center gap-2 rounded-full border border-chai-300 bg-surface/70 px-3.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-chai-700 backdrop-blur">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-circuit-500 opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-circuit-500" />
-            </span>
-            Open now · {settings.city}
-          </span>
-
-          <h1 className="mt-5 text-[2.1rem] font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.4rem]">
-            Chai. Paratha. Aur{" "}
-            <span className="relative whitespace-nowrap text-chai-600">
-              Engineering
-              <svg
-                className="absolute -bottom-1 left-0 w-full text-chai-300"
-                viewBox="0 0 200 8"
-                fill="none"
-                aria-hidden
-              >
-                <path
-                  d="M2 5.5C40 2 90 1.5 198 4.5"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </span>{" "}
-            Wali Vibes.
-          </h1>
-
-          <p className="mt-5 max-w-lg text-base leading-relaxed text-charcoal-600 sm:text-lg">
-            Freshly brewed chai. Tawa-fresh parathas. Choose your comfort,
-            customise every bite, and make a little room for a better break.
+      <div className="cinema-container cinema-hero-grid">
+        <div className="cinema-hero-copy">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={scene}
+              initial={{ opacity: 0, y: reducedMotion ? 0 : 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: reducedMotion ? 0 : -12 }}
+              transition={{ duration: reducedMotion ? 0 : 0.45 }}
+            >
+              <p className="cinema-eyebrow cinema-hero-eyebrow">
+                <span />
+                {current.eyebrow}
+              </p>
+              <h1 className="cinema-hero-title">
+                {current.line}
+                <em>{current.emphasis}</em>
+              </h1>
+              <p className="cinema-hero-description">{current.description}</p>
+            </motion.div>
+          </AnimatePresence>
+          <div className="cinema-hero-actions">
+            <Link href="/menu" className="cinema-button cinema-button-cream">
+              Explore the menu <ArrowRight size={16} aria-hidden />
+            </Link>
+            <Link href="#our-story" className="cinema-text-link">
+              Our story <ArrowUpRight size={14} aria-hidden />
+            </Link>
+          </div>
+          <p className="cinema-hero-location">
+            BREWED WITH HEART <span aria-hidden>·</span> {settings.city}
           </p>
+        </div>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/menu"
-              className="btn-primary group"
-              style={{ padding: "0.875rem 1.5rem" }}
-            >
-              Explore Menu
-              <ArrowRight
-                className="h-4 w-4 transition-transform group-hover:translate-x-1"
-                aria-hidden
-              />
-            </Link>
-            <Link
-              href="/discover"
-              className="btn-secondary"
-              style={{ padding: "0.875rem 1.5rem" }}
-            >
-              Find my flavour
-            </Link>
-          </div>
-
-          <dl className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-cream-300 pt-6">
-            {[
-              {
-                icon: Clock,
-                value: `${stats.avgPrepMinutes} min`,
-                label: "Avg. prep time",
-              },
-              stats.rating
-                ? {
-                    icon: Star,
-                    value: stats.rating.toFixed(1),
-                    label: "Customer rating",
-                  }
-                : {
-                    icon: Star,
-                    value: `${stats.menuItems}`,
-                    label: "Menu items",
-                  },
-              {
-                icon: Truck,
-                value: money(settings.deliveryFee),
-                label: "Delivery fee",
-              },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <dt className="sr-only">{stat.label}</dt>
-                <dd>
-                  <stat.icon
-                    className="mb-1.5 h-4 w-4 text-chai-500"
-                    aria-hidden
-                  />
-                  <span className="block text-lg font-extrabold leading-none text-charcoal-900">
-                    {stat.value}
-                  </span>
-                  <span className="mt-1 block text-[11px] text-charcoal-500">
-                    {stat.label}
-                  </span>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.94 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-          className="relative"
-        >
-          <div
-            className="group/hero relative aspect-[4/3.4] overflow-hidden rounded-[1.75rem] border border-cream-300 bg-cream-200 shadow-lift sm:aspect-[4/3]"
-            onMouseEnter={() => isCarousel && setPaused(true)}
-            onMouseLeave={() => isCarousel && setPaused(false)}
-            onFocusCapture={() => isCarousel && setPaused(true)}
-            onBlurCapture={() => isCarousel && setPaused(false)}
-            {...(isCarousel
-              ? {
-                  role: "group",
-                  "aria-roledescription": "carousel",
-                  "aria-label": "Featured dishes",
-                }
-              : {})}
-          >
-            {highlights.length === 0 ? (
-              <Image
-                src="/menu/chai-doodh.svg"
-                alt={`Chai at ${settings.cafeName}`}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-              />
-            ) : (
-              <>
-                {/* Every dish stays mounted underneath at zero opacity purely so
-                    the browser has already decoded the next photo — the slide
-                    above must never reveal a blank frame mid-download. */}
-                <div className="absolute inset-0" aria-hidden>
-                  {highlights.map((item, position) => (
-                    <Image
-                      key={`pre-${item.slug}`}
-                      src={item.image ?? "/menu/chai-doodh.svg"}
-                      alt=""
-                      fill
-                      priority={position === 0}
-                      loading={position === 0 ? undefined : "eager"}
-                      sizes="(max-width: 1024px) 100vw, 50vw"
-                      className="object-cover opacity-0"
-                    />
-                  ))}
-                </div>
-
-                <AnimatePresence
-                  initial={false}
-                  custom={direction}
-                  mode="popLayout"
-                >
-                  <motion.div
-                    key={activeSlug}
-                    className="absolute inset-0"
-                    custom={direction}
-                    // Travels in from the side it came from, and leaves the
-                    // other way — a fade alone reads as a slideshow, this reads
-                    // as one thing moving.
-                    variants={{
-                      enter: (dir: number) => ({
-                        x: `${dir * 100}%`,
-                        opacity: 0.4,
-                      }),
-                      center: { x: "0%", opacity: 1 },
-                      exit: (dir: number) => ({
-                        x: `${dir * -100}%`,
-                        opacity: 0.4,
-                      }),
-                    }}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={
-                      reduceMotion
-                        ? { duration: 0 }
-                        : {
-                            type: "spring",
-                            stiffness: 260,
-                            damping: 34,
-                            mass: 0.9,
-                          }
-                    }
-                    drag={isCarousel ? "x" : false}
-                    dragConstraints={{ left: 0, right: 0 }}
-                    dragElastic={0.14}
-                    onDragStart={() => setPaused(true)}
-                    onDragEnd={(_, info) => {
-                      setPaused(false);
-                      // Either a decisive flick or a real distance counts.
-                      if (info.offset.x < -70 || info.velocity.x < -450)
-                        step(1);
-                      else if (info.offset.x > 70 || info.velocity.x > 450)
-                        step(-1);
-                    }}
-                  >
-                    <motion.div
-                      className="absolute inset-0"
-                      // A still photograph drifting very slightly is what stops
-                      // the hero looking like a screenshot.
-                      animate={
-                        reduceMotion || paused ? { scale: 1 } : { scale: 1.06 }
-                      }
-                      transition={{
-                        duration: ROTATE_MS / 1000 + 1.2,
-                        ease: "linear",
-                      }}
-                    >
-                      <Image
-                        src={active?.image ?? "/menu/chai-doodh.svg"}
-                        alt={
-                          active ? `${active.name} at ${settings.cafeName}` : ""
-                        }
-                        fill
-                        sizes="(max-width: 1024px) 100vw, 50vw"
-                        className="pointer-events-none select-none object-cover"
-                        draggable={false}
-                      />
-                    </motion.div>
-                  </motion.div>
-                </AnimatePresence>
-              </>
-            )}
-            {/* Decorative, and it covers the whole frame — without pointer-events-none
-                it swallows every drag before the slide underneath sees it. */}
-            <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-charcoal-900/45 via-transparent to-transparent"
-              aria-hidden
-            />
-
-            {/* Steam rising from the chai — hidden, not unmounted, for the same
-                hydration reason as the floating glyphs above. */}
-            <div
-              className="pointer-events-none absolute left-[26%] top-[14%] flex gap-2.5 motion-reduce:hidden"
-              aria-hidden
-            >
-              {[0, 0.9, 1.8].map((delay) => (
-                <span
-                  key={delay}
-                  // Steam sits over a photograph, so it stays light in every theme.
-                  className="h-10 w-[3px] animate-steam rounded-full bg-white/60 blur-[2px]"
-                  style={{ animationDelay: `${delay}s` }}
-                />
-              ))}
-            </div>
-
-            {active && (
-              <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
-                <motion.div
-                  // Re-keying on the dish gives each one its own entrance
-                  // rather than the text swapping underneath the reader.
-                  key={active.slug}
-                  // The initial state stays unconditional so server and client
-                  // render the same style attribute; reduced motion snaps
-                  // straight to the end instead of skipping the initial.
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: reduceMotion ? 0 : 0.45,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  className="min-w-0"
-                >
-                  <Link
-                    href={`/menu/${active.category.slug}/${active.slug}`}
-                    className="block rounded-2xl bg-surface/95 px-4 py-3 shadow-soft backdrop-blur transition hover:bg-surface"
-                  >
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-chai-600">
-                      {active.isFeatured ? "Featured" : "Most ordered"}
-                    </p>
-                    <p className="mt-0.5 truncate text-sm font-bold text-charcoal-900">
-                      {active.name}
-                    </p>
-                    {active.urduName && (
-                      <p
-                        className="truncate text-xs text-charcoal-500"
-                        dir="rtl"
-                      >
-                        {active.urduName}
-                      </p>
-                    )}
-                    <p className="text-xs text-charcoal-500">
-                      <span className="font-bold text-chai-700">
-                        {money(active.discountPrice ?? active.price)}
-                      </span>
-                      {active.discountPrice && (
-                        <span className="ml-1.5 line-through">
-                          {money(active.price)}
-                        </span>
-                      )}
-                    </p>
-                  </Link>
-                </motion.div>
-
-                {isCarousel && (
-                  <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-charcoal-900/45 px-2.5 py-2 backdrop-blur">
-                    {highlights.map((item, position) => (
-                      <button
-                        key={item.slug}
-                        type="button"
-                        onClick={() => goTo(position)}
-                        aria-label={`Show ${item.name}`}
-                        aria-current={position === index ? "true" : undefined}
-                        className={cn(
-                          "group h-1.5 overflow-hidden rounded-full transition-all duration-300",
-                          position === index
-                            ? "w-7 bg-cream-50/30"
-                            : "w-1.5 bg-cream-50/50 hover:bg-cream-50/80",
-                        )}
-                      >
-                        {/* The active dot fills as its turn runs down, so the
-                            hero shows it is counting rather than just sitting
-                            there — and it stops with the rotation on hover. */}
-                        {position === index && (
-                          <motion.span
-                            key={`${item.slug}-${paused ? "paused" : "running"}`}
-                            className="block h-full rounded-full bg-cream-50"
-                            initial={{ width: reduceMotion ? "100%" : "0%" }}
-                            animate={{ width: "100%" }}
-                            transition={{
-                              duration:
-                                reduceMotion || paused ? 0 : ROTATE_MS / 1000,
-                              ease: "linear",
-                            }}
-                          />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {isCarousel && (
-              <>
-                {(
-                  [
-                    {
-                      dir: -1,
-                      side: "left-3",
-                      Icon: ChevronLeft,
-                      label: "Previous dish",
-                    },
-                    {
-                      dir: 1,
-                      side: "right-3",
-                      Icon: ChevronRight,
-                      label: "Next dish",
-                    },
-                  ] as const
-                ).map(({ dir, side, Icon, label }) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => step(dir)}
-                    aria-label={label}
-                    className={cn(
-                      "absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-charcoal-900/40 p-2 text-cream-50 backdrop-blur transition",
-                      // Out of the way until wanted, but always reachable by
-                      // keyboard and always visible on touch, where there is no
-                      // hover to reveal them.
-                      "opacity-0 hover:bg-charcoal-900/70 focus-visible:opacity-100 group-hover/hero:opacity-100",
-                      "max-[1024px]:opacity-100",
-                      side,
-                    )}
-                  >
-                    <Icon className="h-5 w-5" aria-hidden />
-                  </button>
-                ))}
-              </>
-            )}
-          </div>
-
+        <div className="cinema-cup-stage">
+          <div className="cinema-orbit" aria-hidden />
+          <div className="cinema-platform" aria-hidden />
+          <div className="cinema-cup-shadow" aria-hidden />
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="absolute -left-2 top-6 hidden rounded-2xl border border-cream-200 bg-surface px-4 py-3 shadow-lift sm:block lg:-left-6"
+            className="cinema-cup-parallax"
+            style={reducedMotion ? undefined : { y: scrollLift }}
           >
-            <p className="font-mono text-[10px] uppercase tracking-wider text-charcoal-400">
-              status
-            </p>
-            <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-charcoal-900">
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-circuit-500"
-                aria-hidden
-              />
-              Chai brewing…
-            </p>
+            <motion.div
+              className="cinema-cup-pointer"
+              style={reducedMotion ? undefined : { x, y }}
+            >
+              <div className="cinema-cup-float">
+                <Image
+                  src="/experience/signature-chai.webp"
+                  alt="A glass of golden milk chai with a sculpted milk splash and cardamom"
+                  width={1254}
+                  height={1254}
+                  priority
+                  sizes="(max-width: 600px) 110vw, (max-width: 1024px) 75vw, 52vw"
+                  className="cinema-cup-image"
+                />
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
+          <div className="cinema-ingredients" aria-hidden>
+            {[0, 1, 2, 3, 4, 5].map((n) => (
+              <span key={n} className={`cinema-seed cinema-seed-${n}`} />
+            ))}
+          </div>
+          <span className="cinema-cup-caption" aria-hidden>
+            THE ART OF A GOOD CUP
+          </span>
+        </div>
+
+        <aside className="cinema-hero-aside">
+          <span className="cinema-aside-rule" aria-hidden />
+          <p className="cinema-eyebrow">YOUR NEXT FAVOURITE</p>
+          <h2>{featured?.name ?? "The chai ritual"}</h2>
+          <p>{current.note}</p>
+          {featured && (
+            <p className="cinema-feature-price">
+              {money(featured.discountPrice ?? featured.price)}{" "}
+              <span>base price</span>
+            </p>
+          )}
+          <Link
+            href={featuredHref}
+            className="cinema-button cinema-button-outline"
+          >
+            {featured ? "Make it yours" : "Explore chai"}{" "}
+            <ArrowRight size={14} aria-hidden />
+          </Link>
+          <div className="cinema-hero-rating">
+            <Star size={13} fill="currentColor" aria-hidden />
+            <span>
+              {rating !== null
+                ? `${rating.toFixed(1)} · ${reviewCount} approved reviews`
+                : `${menuCount} menu favourites to discover`}
+            </span>
+          </div>
+        </aside>
+      </div>
+
+      <div className="cinema-container cinema-hero-bottom">
+        <Link href="#cafe-signatures" className="cinema-scroll-link">
+          <span>
+            <ArrowDown size={16} aria-hidden />
+          </span>{" "}
+          A little more to love
+        </Link>
+        <div className="cinema-scene-controls" aria-label="Hero scene controls">
+          <button
+            type="button"
+            aria-label="Previous scene"
+            onClick={() =>
+              setScene((scene + SCENES.length - 1) % SCENES.length)
+            }
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <div className="cinema-scene-dots">
+            {SCENES.map((item, n) => (
+              <button
+                type="button"
+                key={item.name}
+                aria-label={`Show ${item.name}`}
+                aria-pressed={scene === n}
+                onClick={() => setScene(n)}
+              >
+                <span />
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            aria-label="Next scene"
+            onClick={() => setScene((scene + 1) % SCENES.length)}
+          >
+            <ChevronRight size={16} />
+          </button>
+          <button
+            type="button"
+            className="cinema-motion-toggle"
+            aria-label={paused ? "Play hero animation" : "Pause hero animation"}
+            aria-pressed={paused}
+            onClick={() => setPaused(!paused)}
+          >
+            {paused ? <Play size={13} /> : <Pause size={13} />}
+          </button>
+          <span className="sr-only" role="status" aria-live="off">
+            Scene {scene + 1} of {SCENES.length}: {current.name}
+          </span>
+        </div>
+        <p className="cinema-prep-note">
+          Made to order <span aria-hidden>·</span> {prepMinutes} min avg. prep
+        </p>
+      </div>
+      <div className="cinema-service-strip">
+        <div className="cinema-container">
+          <span>
+            <i className={settings.isAcceptingOrders ? "is-accepting" : ""} />
+            {settings.isAcceptingOrders
+              ? "Accepting online orders"
+              : "Online ordering paused"}
+          </span>
+          <span>Fresh from the tawa</span>
+          <span>Minimum order {money(settings.minOrderAmount)}</span>
+          <Link href="/contact">
+            A table. A takeaway. Your call. <ArrowRight size={13} aria-hidden />
+          </Link>
+        </div>
       </div>
     </section>
   );

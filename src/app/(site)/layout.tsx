@@ -1,4 +1,5 @@
 import { BackToTop } from "@/components/layout/back-to-top";
+import { StorefrontFrame } from "@/components/layout/storefront-frame";
 import { StorefrontProvider } from "@/context/storefront-context";
 import { ComparisonDock } from "@/components/storefront/compare-controls";
 import { ServiceRibbon } from "@/components/storefront/order-guidance";
@@ -32,7 +33,7 @@ export default async function SiteLayout({
         <FavoritesProvider>
           <CartProvider>
             <StorefrontProvider>
-              <div className="flex min-h-screen flex-col">
+              <StorefrontFrame>
                 <Navbar />
                 <ServiceRibbon />
                 <ComparisonDock />
@@ -45,7 +46,7 @@ export default async function SiteLayout({
                 <BottomNav />
                 <ScrollReveal />
                 <BackToTop />
-              </div>
+              </StorefrontFrame>
             </StorefrontProvider>
           </CartProvider>
         </FavoritesProvider>

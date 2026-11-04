@@ -131,7 +131,7 @@ export function ServiceRibbon() {
   const { isAcceptingOrders, minOrderAmount } = settings;
   const money = useMoney();
   return (
-    <div className="border-b border-cream-200 bg-surface">
+    <div className="storefront-service-ribbon border-b border-cream-200 bg-surface">
       <div className="container flex flex-wrap items-center justify-between gap-x-5 gap-y-2 py-3 text-xs">
         <span className="inline-flex items-center gap-2 font-semibold">
           <span

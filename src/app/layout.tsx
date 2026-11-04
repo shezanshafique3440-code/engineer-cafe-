@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Toaster } from "sonner";
 import "./globals.css";
+import "./cinematic.css";
 import { env } from "@/lib/env";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
 import { getSettings } from "@/server/settings";

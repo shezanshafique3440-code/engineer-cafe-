@@ -3,7 +3,7 @@
 set -euo pipefail
 umask 077
 export PATH="/opt/node22/bin:$PATH"
-APP=/var/www/engineer-cafe
+APP=${CAFE_APP_DIR:-/var/www/engineer-cafe}
 TARGET=${1:?Supply the full cafe-upgrade commit SHA}
 [[ "$TARGET" =~ ^[0-9a-f]{40}$ ]]
 cd "$APP"
@@ -54,6 +54,7 @@ npm run lint
 node --import tsx src/lib/__tests__/mobile-utils.test.ts
 node --import tsx src/lib/__tests__/auth-redirects.test.ts
 node --import tsx src/lib/__tests__/premium.test.ts
+node --import tsx src/lib/__tests__/storefront.test.ts
 NODE_OPTIONS="--max-old-space-size=2048" npm run build
 pm2 restart engineer-cafe --update-env
 curl --retry 10 --retry-connrefused --retry-delay 2 --max-time 30 --fail --silent --show-error \

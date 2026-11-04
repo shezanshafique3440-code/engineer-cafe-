@@ -14,3 +14,5 @@ yarn-error.log*
 coverage
 public/uploads/*
 !public/uploads/.gitkeep
+
+__pycache__/
