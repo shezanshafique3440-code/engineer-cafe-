@@ -58,7 +58,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
   const sidebar = (
-    <div className="flex h-full flex-col bg-charcoal-900 text-cream-100">
+    <div className="admin-sidebar flex h-full flex-col bg-charcoal-900 text-cream-100">
       <div className="flex h-16 items-center justify-between border-b border-charcoal-800 px-5">
         <Logo href="/admin" src={settings.logoUrl} onDark />
         <button
@@ -144,7 +144,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-cream-200 bg-cream-50/95 px-4 backdrop-blur-md lg:px-8">
+        <header className="cafe-brand-header sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-cream-200 bg-cream-50/95 px-4 backdrop-blur-md lg:px-8">
           <button
             type="button"
             onClick={() => setOpen(true)}

@@ -6,6 +6,11 @@ export PATH="/opt/node22/bin:$PATH"
 APP=${CAFE_APP_DIR:-/var/www/engineer-cafe}
 BACKUP_ROOT=${CAFE_BACKUP_ROOT:-/var/backups/engineer-cafe}
 TARGET=${1:?Supply the full reviewed commit SHA}
+HOUSE_THEME=${CAFE_SHARED_THEME:-}
+unset CAFE_SHARED_THEME
+if [ -n "$HOUSE_THEME" ]; then
+  case "$HOUSE_THEME" in chai|midnight|matcha|saffron|gulabi|graphite) ;; *) echo "Unsupported shared theme"; exit 1 ;; esac
+fi
 [[ "$TARGET" =~ ^[0-9a-f]{40}$ ]]
 cd "$APP"
 APP=$(pwd -P)
@@ -71,6 +76,12 @@ on_error() {
 trap on_error EXIT
 STOP_REQUESTED=1
 pm2 stop engineer-cafe
+if [ -n "$HOUSE_THEME" ]; then
+  docker exec -i infra-postgres-1 sh -lc 'exec psql -XqAt -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-postgres}" -d engineer_cafe' > "$BACKUP/previous-theme" <<'SQL'
+SELECT theme FROM public."CafeSetting" WHERE id = 1;
+SQL
+  case "$(cat "$BACKUP/previous-theme")" in chai|midnight|matcha|saffron|gulabi|graphite) ;; *) echo "Stored theme needs inspection"; exit 1 ;; esac
+fi
 # Stop the cafe briefly so its build and uploaded files cannot change mid-copy.
 # pg_dump is a consistent snapshot of ONLY the cafe database, never other apps.
 docker exec infra-postgres-1 sh -lc \
@@ -89,6 +100,7 @@ done
 (
   cd "$BACKUP"
   sha256sum previous-commit target-commit app-path previous.env pm2-description.txt previous-code.tar.gz build.tar.gz uploads.tar.gz database.dump rollback.sh deploy-reviewed.sh > SHA256SUMS
+  if [ -f previous-theme ]; then sha256sum previous-theme >> SHA256SUMS; fi
   sha256sum --status --check SHA256SUMS
 )
 printf '%s\n' "Backup completed $(date -u +%FT%TZ)" > "$BACKUP/backup-complete"
@@ -99,6 +111,12 @@ mv -Tf "$link_tmp" "$BACKUP_ROOT/latest"
 echo "PASS: verified code, build, .env, uploads and cafe database backups saved."
 echo "Backup directory: $BACKUP"
 echo "Manual rollback: bash '$BACKUP/rollback.sh'"
+if [ -n "$HOUSE_THEME" ]; then
+  docker exec -i infra-postgres-1 sh -lc 'exec psql -Xq -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-postgres}" -d engineer_cafe -v cafe_theme="$1"' -- "$HOUSE_THEME" <<'SQL'
+UPDATE public."CafeSetting" SET theme = :'cafe_theme' WHERE id = 1;
+SQL
+  echo "PASS: shared storefront/admin house theme selected."
+fi
 pm2 restart engineer-cafe
 curl --retry 10 --retry-connrefused --retry-delay 2 --max-time 30 --fail --silent --show-error \
   http://127.0.0.1:3100/admin/login -o /dev/null
@@ -112,7 +130,7 @@ for route in /discover /compare /api/storefront-selection; do
     -o /dev/null -w '%{http_code}' "https://esellerstore.vip$route")
   if [ "$status" != 200 ]; then echo "Route check failed: $route HTTP $status"; exit 1; fi
 done
-for asset in signature-chai.webp cafe-atmosphere.webp; do
+for asset in chai-cup.webp chai-splash.webp chai-stream.webp ice-cube.webp cafe-atmosphere.webp; do
   curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 \
     "https://esellerstore.vip/experience/$asset" -o "$BACKUP/$asset"
   cmp "$APP/public/experience/$asset" "$BACKUP/$asset"

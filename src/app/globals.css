@@ -21,33 +21,33 @@
  * ------------------------------------------------------------------------ */
 
 @layer base {
-  /* Chai — the house palette. Values identical to the pre-theme site. */
+  /* Chai — the shared cream/caramel house palette, across every route. */
   :root,
   [data-theme="chai"] {
-    --c-cream-50: 253 251 247;
-    --c-cream-100: 248 243 234;
-    --c-cream-200: 240 230 214;
-    --c-cream-300: 228 212 188;
-    --c-cream-400: 212 188 154;
+    --c-cream-50: 251 247 239;
+    --c-cream-100: 244 236 222;
+    --c-cream-200: 231 218 198;
+    --c-cream-300: 213 190 157;
+    --c-cream-400: 178 151 115;
 
-    --c-chai-50: 251 243 234;
-    --c-chai-100: 244 225 201;
-    --c-chai-200: 232 194 150;
-    --c-chai-300: 219 163 99;
-    --c-chai-400: 206 138 60;
-    --c-chai-500: 185 114 42;
-    --c-chai-600: 152 90 33;
-    --c-chai-700: 119 70 28;
-    --c-chai-800: 87 52 26;
-    --c-chai-900: 59 36 19;
+    --c-chai-50: 250 243 230;
+    --c-chai-100: 241 225 199;
+    --c-chai-200: 226 196 148;
+    --c-chai-300: 206 167 111;
+    --c-chai-400: 184 139 82;
+    --c-chai-500: 160 112 58;
+    --c-chai-600: 129 84 43;
+    --c-chai-700: 103 67 36;
+    --c-chai-800: 76 48 26;
+    --c-chai-900: 49 30 17;
 
-    --c-charcoal-50: 245 245 244;
-    --c-charcoal-100: 231 229 228;
-    --c-charcoal-300: 168 162 158;
-    --c-charcoal-500: 87 83 78;
-    --c-charcoal-700: 51 47 44;
-    --c-charcoal-800: 35 32 32;
-    --c-charcoal-900: 23 20 20;
+    --c-charcoal-50: 245 240 233;
+    --c-charcoal-100: 230 221 209;
+    --c-charcoal-300: 146 129 110;
+    --c-charcoal-500: 106 86 66;
+    --c-charcoal-700: 75 55 40;
+    --c-charcoal-800: 53 38 28;
+    --c-charcoal-900: 43 30 21;
 
     --c-circuit-400: 61 190 139;
     --c-circuit-500: 32 160 110;
@@ -57,11 +57,11 @@
     --c-chilli-500: 214 65 45;
     --c-chilli-600: 176 47 30;
 
-    --c-surface: 255 255 255;
-    --c-shadow: 35 32 32;
+    --c-surface: 255 252 246;
+    --c-shadow: 61 39 22;
     --c-blueprint: 185 114 42;
     --c-blueprint-alpha: 0.07;
-    --c-theme-color: #b9722a;
+    --c-theme-color: #81542b;
   }
 
   /* Midnight — dark mode. Warm amber on near-black, easy at 2 AM. */
@@ -284,6 +284,10 @@
   }
 
   html {
+    --font-cafe-display: Georgia, "Times New Roman", serif;
+    --c-cafe-masthead: var(--c-chai-700);
+    --c-cafe-stage: var(--c-chai-500);
+    --c-cafe-on-stage: 255 246 230;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
   }
@@ -294,7 +298,10 @@
     overflow-x: hidden;
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     @apply font-display tracking-tight text-charcoal-900;
     text-wrap: balance;
   }
@@ -313,7 +320,9 @@
 
   /* Respect the reader's motion preference everywhere. */
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
@@ -391,8 +400,13 @@
     @apply font-mono text-xs font-semibold uppercase tracking-[0.2em] text-chai-600;
   }
 
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 @layer components {
@@ -430,35 +444,85 @@
 
 /* Mobile forms keep a readable size without triggering iOS input zoom. */
 @media (max-width: 767px) {
-  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
     font-size: 16px;
     min-height: 44px;
     max-width: 100%;
   }
-  .btn { min-height: 44px; }
-  .admin-data-table { border: 0; background: transparent; box-shadow: none; }
-  .admin-data-table > div { overflow: visible; }
-  .admin-data-table table { display: block; min-width: 0; }
-  .admin-data-table thead {
-    position: absolute; width: 1px; height: 1px; padding: 0;
-    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap;
+  .btn {
+    min-height: 44px;
   }
-  .admin-data-table tbody { display: grid; gap: 1rem; border: 0; }
+  .admin-data-table {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .admin-data-table > div {
+    overflow: visible;
+  }
+  .admin-data-table table {
+    display: block;
+    min-width: 0;
+  }
+  .admin-data-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .admin-data-table tbody {
+    display: grid;
+    gap: 1rem;
+    border: 0;
+  }
   .admin-data-table tbody tr {
-    display: block; min-width: 0; border: 1px solid rgb(var(--c-cream-200));
-    border-radius: 1rem; background: rgb(var(--c-surface)); padding: .5rem;
+    display: block;
+    min-width: 0;
+    border: 1px solid rgb(var(--c-cream-200));
+    border-radius: 1rem;
+    background: rgb(var(--c-surface));
+    padding: 0.5rem;
   }
   .admin-data-table td {
-    display: grid; grid-template-columns: minmax(76px, .75fr) minmax(0, 1.5fr);
-    align-items: center; gap: .75rem; padding: .6rem;
-    white-space: normal; overflow-wrap: anywhere;
+    display: grid;
+    grid-template-columns: minmax(76px, 0.75fr) minmax(0, 1.5fr);
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .admin-data-table td::before {
-    content: attr(data-label); font-size: .6875rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--c-charcoal-500));
+    content: attr(data-label);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgb(var(--c-charcoal-500));
   }
-  .admin-data-table td > * { min-width: 0; max-width: 100%; }
-  .admin-data-table .admin-cell-content > div.flex { flex-wrap: wrap; }
-  .admin-data-table button, .admin-data-table select { min-height: 44px; }
-  .admin-data-table button[aria-label] { min-width: 44px; }
+  .admin-data-table td > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .admin-data-table .admin-cell-content > div.flex {
+    flex-wrap: wrap;
+  }
+  .admin-data-table button,
+  .admin-data-table select {
+    min-height: 44px;
+  }
+  .admin-data-table button[aria-label] {
+    min-width: 44px;
+  }
+}
+
+/* Stage/header contrast is shared by storefront, login and admin. */
+[data-theme="midnight"] {
+  --c-cafe-masthead: var(--c-cream-200);
+  --c-cafe-stage: var(--c-cream-300);
 }

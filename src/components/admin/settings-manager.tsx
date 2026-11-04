@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
 import { apiGet, apiPut, ApiError } from "@/lib/api-client";
@@ -52,6 +53,7 @@ function toForm(settings: Settings): Form {
 }
 
 export function SettingsManager() {
+  const router = useRouter();
   const [form, setForm] = useState<Form | null>(null);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
@@ -99,6 +101,7 @@ export function SettingsManager() {
         taxPercent: Number(form.taxPercent),
       });
       setSavedTheme(String(form.theme));
+      router.refresh();
       toast.success("Settings saved — the storefront is updated.");
     } catch (err) {
       if (err instanceof ApiError) {

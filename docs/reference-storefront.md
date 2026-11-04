@@ -1,39 +1,33 @@
-# Reference-led cafe storefront
+# Cafe motion and shared identity
 
-Reference-led storefront prepared for release. Git publication and the VPS rollout are separate steps.
+The previous homepage chose one chai item and overrode its own colour palette. It now selects up to five real, varied menu items and uses the same root colour/type tokens as the menu, login and admin.
 
-The supplied eight-second reference shows a warm caramel/cream cafe page, a central glass cup with a sculpted splash, floating ingredients, atmospheric transitions and cream editorial sections. The implementation adapts that visual direction to Engineer Cafe's chai and paratha menu. It builds an interactive page rather than embedding the recording of a laptop.
+## Hero behavior
 
-## Design and behavior
+- Five stable product buttons move between left, right and centre positions every 5.2 seconds. Featured products rank first, with category variety filling the remaining slots; a single featured Kashmiri chai no longer pins the whole hero to one item. Current names, descriptions, base prices and product links change with selection.
+- The cup, liquid streams, impact splash, droplets, steam and ice are independent layers. A 10.4-second sequence lowers and tilts the cup, pours liquid, spills tea and expands the splash. The cafe background transitions into the gold stage. These are composited photographic sprites and SVG/CSS animation, not a WebGL fluid simulator.
+- A sticky scroll sequence lowers/scales the cup further as visitors scroll. Small-screen layout reserves room above the fixed bottom navigation. Product selection, previous/next, pause and replay controls remain usable.
+- Animations pause when the tab is hidden, the hero is offscreen, or a keyboard user focuses its controls. Pointer clicks do not accidentally leave autoplay permanently paused. Reduced-motion users get a static cup and manual product choices without the liquid sequence or pinned scrolling.
+- Unavailable, zero-stock and packaging items are excluded. Small/empty menus do not invent duplicates. Product choices remain links to the actual option picker/menu; decorative chai artwork does not bypass ordering validation.
 
-- New three-scene hero: signature, golden hour and ritual. Scenes change the headline, atmospheric background, lighting and ribbon positions. The central custom-generated chai artwork has gentle floating motion, bounded pointer parallax and a small scroll offset.
-- Previous/next, direct scene selection and a pause control. Automatic rotation and decoration pause while the hero is outside the viewport, the tab is hidden, or a control has keyboard focus. Reduced-motion preferences disable autoplay and decorative transforms; manual scene choices remain usable.
-- Cream/gold palette and serif wordmark/headings are scoped to the homepage. Other storefront pages retain the configured theme; admin is unaffected. Existing uploaded cafe logos remain supported.
-- Photo collections, an editorial cafe story, a filtered signature menu, a visit section, approved customer reviews and links to discovery, meal planning and comparison.
-- Category cards use existing product photos and current base prices. Hidden categories, zero-stock and unavailable items are excluded from homepage recommendations. Prices, prep statistics, ratings, online-order status, contact information and service choices come from existing data/settings.
-- Product cards retain real option dialogs, favorites, comparison, cart pricing and recently viewed history. The hero's product link opens a current chai product rather than buying an illustrated drink without options.
-- The generated interior is atmospheric artwork, not a claimed photograph of the actual premises. Its visit-section caption identifies it as an illustration. The real address, opening-hours text and map query remain driven by cafe settings.
+## One theme
 
-## Assets and scope
+The homepage no longer defines its own `--c-*` palette. Root Chai tokens supply cream/caramel colours throughout the storefront and admin, including header/sidebar treatments and a shared serif heading font. Other admin-selected palettes propagate to the homepage as well. First paint follows the cafe's house theme by default; an explicit personal dark/system preference applies consistently across routes.
 
-`public/experience/signature-chai.webp` and `cafe-atmosphere.webp` are newly generated brand artwork, optimized as WebP (about 482 KiB combined). No third-party brand assets, new production dependencies, environment changes or database migrations are required. Existing menu uploads, prices and orders are unchanged.
+For this rollout, `CAFE_SHARED_THEME=chai` selects the shared Chai house palette after the pre-release backup. This is a single `CafeSetting.theme` update, not a schema migration. Theme preview/save continues through admin settings.
 
-Local integration testing uses the isolated PostgreSQL QA database and the same external, QA-only official Prisma JS/WASM adapter preload documented in `storefront-upgrade.md`. This helper is outside the repository and is not part of deployment. Native Prisma build and final live checks remain part of an approved VPS rollout.
+## Backup and rollback
+
+The guarded deploy wrapper retains Git source, production build, `.env`, uploaded files and the cafe database. `CAFE_SHARED_THEME=chai` additionally saves the old theme value in the checksummed snapshot before changing it. Failure recovery and manual rollback restore the old code/build and that one theme field when present. Current orders, menu data, uploads and `.env` are preserved; the database dump is never automatically imported. Older snapshots without a saved theme retain their existing behavior.
+
+Snapshots remain under `/var/backups/engineer-cafe/release-*`; `/var/backups/engineer-cafe/latest/rollback.sh` restores the most recent saved release. Keep the exact printed path to restore a particular snapshot after future releases.
+
+No new production dependency or Prisma schema/migration is required. Native VPS build and HTTPS/asset checks run during deployment. Isolated local integration checks use the external QA-only official Prisma PostgreSQL/WASM adapter described in `storefront-upgrade.md`; it is not deployed.
 
 ## Validation
 
-Production compilation, type checking and ESLint passed. Real Chromium checks against the isolated PostgreSQL app cover 320, 360, 390, 600, 768, 1024, 1440 and 1920 pixels. Checks exercise scene selection/pause/autoplay, reduced-motion behavior, phone navigation and staff-login access, live category filtering, required product options, actual cart additions, saved pickup preference and route-scoped styling. No browser runtime errors or failed image requests were observed. Production data was not used or modified.
+- Five selector/slot/default-appearance tests, including the reported one-featured-Kashmiri case.
+- Ten disposable-repository release tests with real Git/archive/checksum operations and mocked PM2/Docker/HTTP. Cases include build/asset/backup failures, immutable snapshot verification, later rollback, palette restoration and recovery from a failed manual rollback.
+- Built-app Chromium checks measure actual cup descent, falling liquid and splash visibility, all five automatically selected products and sideways image travel, manual selection/product links, true pause, responsive layouts, authenticated admin theme/font consistency and reduced motion. The final run covered 13 viewport checks with no browser runtime errors, configured product-to-cart flow, matching explicit dark mode, a populated admin dashboard and unsaved theme-preview cleanup.
 
-## Deployment and retained rollback
-
-After fetching the exact reviewed commit, extract and run `scripts/deploy-reference-storefront.sh` outside the checkout. It rejects tracked edits, dependency/schema differences and insufficient disk space. Before the update, it stops only `engineer-cafe` briefly to snapshot its Git source, `.env`, production build (without regenerable `.next/cache`), uploads and the dedicated `engineer_cafe` PostgreSQL database. Archives and checksums are verified before the existing guarded updater runs. Other PM2 apps and Nginx configuration are not changed.
-
-Snapshots are private directories under `/var/backups/engineer-cafe/release-*`. Each contains a standalone `rollback.sh`. `/var/backups/engineer-cafe/latest` points to the newest complete snapshot. The immutable archives remain available after either automatic recovery or a later manual rollback. The updater also retains its previous-build backup. The cafe has a maintenance window while its build is replaced.
-
-The wrapper checks the cinematic homepage, discovery/comparison routes, selection API, and both new artwork files through HTTPS. Any failure attempts recovery from the verified snapshot.
-
-For manual rollback, run `bash /var/backups/engineer-cafe/latest/rollback.sh` or use the exact backup path printed during deployment. The helper stages a copy of the old build, pins the old Git commit, restarts only the cafe and checks local/HTTPS responses. The replaced build and commit are preserved in a separate recovery subdirectory.
-
-**Rollback restores code/build only.** Current database contents, orders, uploads and `.env` stay in place so orders or menu edits made since deployment are not erased. The database dump, uploads archive, environment backup and source archive are disaster-recovery snapshots, not automatic database-restore instructions. Keep the exact backup path if subsequent releases move the `latest` pointer.
-
-Release safety is additionally covered by seven disposable-repository tests using real Git/archive/checksum operations and mocked PM2, Docker and HTTP services. They cover retained backups and later rollback, failed builds, wrong served artwork, failed database dumps, checksum tampering, failed manual rollback recovery, and tracked-edit refusal. Run with `python3 -m unittest discover -s scripts/tests -v`. These tests do not connect to a VPS or restore a database.
+New art lives under `public/experience/`. Existing menu images/prices and ordering APIs remain in use. The generated interior is an atmospheric illustration, identified as such in the visit section.

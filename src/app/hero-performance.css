@@ -1,0 +1,971 @@
+/* A shared cafe identity. No per-page colour-variable overrides. */
+.cafe-brand-header,
+.admin-workspace .admin-sidebar,
+.cinema-storefront .cinema-navigation {
+  background: rgb(var(--c-cafe-masthead) / 0.98);
+  color: rgb(var(--c-cafe-on-stage));
+}
+.cafe-brand-header > div > p,
+.cafe-brand-header > a,
+.cafe-brand-header button,
+.admin-sidebar .font-display,
+.cafe-brand-footer .font-display {
+  color: rgb(var(--c-cafe-on-stage));
+}
+.admin-sidebar .font-display .text-chai-600,
+.cafe-brand-footer .font-display .text-chai-600 {
+  color: rgb(var(--c-cafe-on-stage) / 0.8);
+}
+.admin-sidebar nav a,
+.admin-sidebar > div > a,
+.admin-sidebar button {
+  color: rgb(var(--c-cafe-on-stage) / 0.8);
+}
+.admin-sidebar nav a[aria-current="page"] {
+  background: rgb(var(--c-chai-100));
+  color: rgb(var(--c-chai-900));
+}
+.admin-sidebar nav a:hover {
+  background: rgb(var(--c-cafe-on-stage) / 0.12);
+  color: rgb(var(--c-cafe-on-stage));
+}
+.admin-sidebar input {
+  background: rgb(var(--c-cafe-on-stage) / 0.08);
+  color: rgb(var(--c-cafe-on-stage));
+  border-color: rgb(var(--c-cafe-on-stage) / 0.25);
+}
+.admin-sidebar input::placeholder {
+  color: rgb(var(--c-cafe-on-stage) / 0.6);
+}
+.admin-sidebar .relative > svg {
+  color: rgb(var(--c-cafe-on-stage) / 0.7);
+}
+.admin-sidebar > div:first-child,
+.admin-sidebar > div:last-child {
+  border-color: rgb(var(--c-cafe-on-stage) / 0.2);
+}
+.admin-workspace h1 {
+  font-weight: 400;
+  letter-spacing: -0.04em;
+}
+.cafe-brand-footer,
+.cinema-storefront > footer {
+  background: rgb(var(--c-cafe-masthead));
+  color: rgb(var(--c-cafe-on-stage));
+}
+.cafe-brand-footer h3,
+.cafe-brand-footer .text-cream-50 {
+  color: rgb(var(--c-cafe-on-stage));
+}
+.cafe-brand-footer a,
+.cafe-brand-footer p,
+.cafe-brand-footer li {
+  color: rgb(var(--c-cafe-on-stage) / 0.75);
+}
+
+/* The camera holds the scene while scrolling lowers the cup through it. */
+.cinema-journey {
+  position: relative;
+  height: 175svh;
+}
+.hero-performance {
+  position: sticky;
+  top: 90px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - 90px);
+  min-height: 650px;
+}
+.hero-performance .cinema-hero-grid {
+  flex: 1;
+  min-height: 0;
+  width: min(1440px, calc(100% - 80px));
+  grid-template-columns: 0.82fr 1.34fr 0.6fr;
+  gap: 10px;
+  padding-top: 0;
+}
+.hero-performance .cinema-hero-copy {
+  padding-block: 22px;
+}
+.hero-performance .cinema-hero-title {
+  font-size: clamp(40px, 4vw, 65px);
+  line-height: 1.12;
+}
+.hero-performance .cinema-hero-aside {
+  padding-left: 12px;
+  padding-top: 0;
+}
+.hero-performance .cinema-hero-aside h2 {
+  font-size: clamp(25px, 2.7vw, 41px);
+  overflow-wrap: anywhere;
+}
+.hero-performance .hero-feature-description {
+  min-height: 60px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.hero-performance .cinema-hero-bottom {
+  padding-block: 4px 12px;
+  min-height: 60px;
+}
+.hero-performance .cinema-service-strip > div {
+  min-height: 42px;
+}
+.hero-performance .cinema-cafe-backdrop {
+  transition: none;
+  transform: none;
+}
+.hero-performance .cinema-hero-glow {
+  background: radial-gradient(
+    ellipse at 57% 48%,
+    rgb(var(--c-chai-200) / 0.2),
+    transparent 62%
+  );
+}
+.hero-performance .cinema-hero-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(var(--c-cafe-stage));
+  animation: chai-atmosphere 10.4s ease-in-out infinite;
+}
+.hero-performance .cinema-ribbon {
+  animation: chai-ribbon-reveal 10.4s ease-in-out infinite;
+}
+.hero-performance .cinema-ghost-word {
+  font-size: clamp(260px, 32vw, 480px);
+  top: 0;
+  left: 28%;
+}
+.hero-stage {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  min-height: 420px;
+  max-height: 660px;
+  min-width: 0;
+}
+.hero-vfx-scroll {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  transform-origin: center 66%;
+}
+.chai-performance {
+  position: absolute;
+  height: min(100%, 640px);
+  aspect-ratio: 1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.chai-stage-halo {
+  position: absolute;
+  width: 91%;
+  height: 91%;
+  left: 4.5%;
+  top: 3%;
+  border-radius: 50%;
+  border: 1px solid rgb(var(--c-cafe-on-stage) / 0.15);
+  box-shadow: inset 0 0 80px rgb(var(--c-chai-200) / 0.04);
+}
+.chai-landing-disc {
+  position: absolute;
+  left: 11%;
+  top: 79%;
+  width: 77%;
+  height: 13%;
+  border-radius: 50%;
+  transform: rotate(-8deg);
+  background: linear-gradient(150deg, #f2d8a5, #b0874d 60%, #70502b);
+  box-shadow:
+    0 12px 0 #966d3f,
+    0 22px 30px #2c1a2244;
+  animation: chai-disc 10.4s ease-in-out infinite;
+}
+.chai-landing-shadow {
+  position: absolute;
+  width: 48%;
+  height: 7%;
+  left: 27%;
+  top: 78%;
+  border-radius: 50%;
+  background: #29150880;
+  filter: blur(12px);
+  animation: chai-shadow 10.4s ease-in-out infinite;
+}
+.chai-cup-drop {
+  position: absolute;
+  width: 76%;
+  height: 76%;
+  left: 12%;
+  top: 8%;
+  z-index: 3;
+  transform-origin: 52% 71%;
+  animation: chai-cup-descent 10.4s cubic-bezier(0.4, 0, 0.25, 1) infinite;
+  will-change: transform;
+}
+.chai-glass {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 18px #321b2336);
+}
+.chai-steam {
+  position: absolute;
+  top: -14%;
+  left: 24%;
+  width: 37%;
+  height: 32%;
+  overflow: visible;
+  filter: blur(2px);
+}
+.chai-steam path {
+  stroke: #fff5db;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0;
+  animation: chai-steam-rise 3.1s ease-out infinite;
+}
+.chai-steam path:nth-child(2) {
+  animation-delay: -1s;
+}
+.chai-steam path:nth-child(3) {
+  animation-delay: -2s;
+}
+.chai-liquid-vfx {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  overflow: visible;
+  z-index: 4;
+  pointer-events: none;
+}
+.chai-milk-stream,
+.chai-spill-stream {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+}
+.chai-milk-stream {
+  left: 33%;
+  top: -22%;
+  width: 22%;
+  height: 60%;
+  transform: scaleX(-1);
+  filter: brightness(1.7) saturate(0.35);
+  animation: chai-milk-visibility 10.4s linear infinite;
+}
+.chai-spill-stream {
+  left: 59%;
+  top: 36.7%;
+  width: 22%;
+  height: 52.3%;
+  animation: chai-spill-visibility 10.4s linear infinite;
+}
+.chai-liquid-sprite {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  transform-origin: center top;
+}
+.chai-milk-stream .chai-liquid-sprite {
+  animation: chai-milk-reveal 10.4s linear infinite;
+}
+.chai-spill-stream .chai-liquid-sprite {
+  animation: chai-tea-reveal 10.4s linear infinite;
+}
+.chai-impact-splash {
+  position: absolute;
+  z-index: 1;
+  width: 105%;
+  height: auto;
+  left: -2.5%;
+  top: 53%;
+  opacity: 0;
+  transform-origin: 50% 68%;
+  animation: chai-impact 10.4s ease-out infinite;
+  pointer-events: none;
+}
+.chai-impact-ripples {
+  transform-origin: 385px 551px;
+  opacity: 0;
+  animation: chai-ripples 10.4s ease-out infinite;
+}
+.chai-droplets {
+  opacity: 0;
+  animation: chai-spill-visibility 10.4s linear infinite;
+}
+.chai-droplet {
+  opacity: 0;
+  animation: chai-drop 1.3s cubic-bezier(0.35, 0, 0.8, 0.5) infinite;
+  animation-delay: var(--drop-delay);
+}
+.chai-ice {
+  position: absolute;
+  z-index: 5;
+  width: 18%;
+  aspect-ratio: 1;
+  pointer-events: none;
+  opacity: 0;
+  animation: chai-ice-flight 10.4s ease-in-out infinite;
+}
+.chai-ice img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.chai-ice-0 {
+  left: 1%;
+  top: 18%;
+  --ice-x: -35px;
+  --ice-y: -30px;
+  --ice-turn: -28deg;
+}
+.chai-ice-1 {
+  right: -1%;
+  top: 9%;
+  --ice-x: 35px;
+  --ice-y: -45px;
+  --ice-turn: 24deg;
+}
+.chai-ice-2 {
+  left: -2%;
+  top: 63%;
+  --ice-x: -40px;
+  --ice-y: 40px;
+  --ice-turn: 20deg;
+}
+.chai-ice-3 {
+  right: 0;
+  top: 72%;
+  --ice-x: 45px;
+  --ice-y: 30px;
+  --ice-turn: -20deg;
+}
+
+/* Five real dishes orbit independently; their DOM/images are never duplicated. */
+.hero-product-orbit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.hero-orbit-product {
+  position: absolute;
+  width: 100px;
+  margin-left: -50px;
+  margin-top: -50px;
+  pointer-events: auto;
+  border-radius: 50%;
+  text-align: center;
+  transition:
+    left 1.15s cubic-bezier(0.22, 1, 0.36, 1),
+    top 1.15s cubic-bezier(0.22, 1, 0.36, 1),
+    scale 0.8s,
+    opacity 0.8s;
+}
+.hero-orbit-product[data-slot="-2"] {
+  left: 7%;
+  top: 24%;
+  z-index: 1;
+  scale: 0.78;
+}
+.hero-orbit-product[data-slot="-1"] {
+  left: 10%;
+  top: 67%;
+  z-index: 3;
+  scale: 0.9;
+}
+.hero-orbit-product[data-slot="0"] {
+  left: 50%;
+  top: 92%;
+  z-index: 5;
+  scale: 1;
+}
+.hero-orbit-product[data-slot="1"] {
+  left: 90%;
+  top: 67%;
+  z-index: 3;
+  scale: 0.9;
+}
+.hero-orbit-product[data-slot="2"] {
+  left: 93%;
+  top: 24%;
+  z-index: 1;
+  scale: 0.78;
+}
+.hero-orbit-photo {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: 82px;
+  height: 82px;
+  margin-inline: auto;
+  border-radius: 50%;
+  border: 2px solid rgb(var(--c-cafe-on-stage) / 0.5);
+  background: rgb(var(--c-chai-100));
+  color: rgb(var(--c-chai-800));
+  box-shadow: 0 10px 24px #28180a55;
+  animation: hero-dish-bob 5.2s ease-in-out infinite;
+}
+.hero-orbit-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero-orbit-product[aria-pressed="true"] .hero-orbit-photo {
+  border-color: rgb(var(--c-cafe-on-stage));
+  box-shadow:
+    0 0 0 5px rgb(var(--c-cafe-on-stage) / 0.14),
+    0 12px 25px #28180a66;
+}
+.hero-orbit-product:nth-child(2n) .hero-orbit-photo {
+  animation-delay: -2.4s;
+}
+.hero-orbit-product:nth-child(3n) .hero-orbit-photo {
+  animation-delay: -1.2s;
+}
+.hero-orbit-label {
+  display: inline-block;
+  max-width: 115px;
+  padding: 5px 9px;
+  margin-top: 6px;
+  background: rgb(var(--c-cafe-masthead) / 0.9);
+  border: 1px solid rgb(var(--c-cafe-on-stage) / 0.2);
+  color: rgb(var(--c-cafe-on-stage));
+  border-radius: 20px;
+  font-size: 9px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.hero-orbit-product:hover .hero-orbit-photo {
+  border-color: rgb(var(--c-cafe-on-stage));
+}
+.hero-performance .cinema-scene-controls button {
+  width: 36px;
+  min-height: 44px;
+}
+.hero-performance .cinema-scene-dots button {
+  width: 25px;
+}
+.hero-performance[data-motion="paused"] .chai-performance *,
+.hero-performance[data-motion="paused"] .hero-orbit-photo,
+.hero-performance[data-motion="paused"] .cinema-ribbon,
+.hero-performance[data-motion="paused"] .cinema-hero-glow::before {
+  animation-play-state: paused;
+}
+
+@keyframes chai-cup-descent {
+  0%,
+  100% {
+    transform: translateY(-54px) rotate(-7deg) scale(0.9);
+  }
+  18% {
+    transform: translateY(6px) rotate(-3deg) scale(1);
+  }
+  34% {
+    transform: translateY(44px) rotate(0) scale(1);
+  }
+  51% {
+    transform: translateY(92px) rotate(12deg) scale(1);
+  }
+  67% {
+    transform: translateY(75px) rotate(5deg) scale(1);
+  }
+  83% {
+    transform: translateY(28px) rotate(-1deg) scale(0.98);
+  }
+}
+@keyframes chai-milk-visibility {
+  0%,
+  10%,
+  43%,
+  100% {
+    opacity: 0;
+  }
+  16%,
+  36% {
+    opacity: 1;
+  }
+}
+@keyframes chai-milk-fall {
+  0%,
+  13% {
+    stroke-dashoffset: 1;
+  }
+  29%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes chai-spill-visibility {
+  0%,
+  33%,
+  86%,
+  100% {
+    opacity: 0;
+  }
+  42%,
+  74% {
+    opacity: 1;
+  }
+}
+@keyframes chai-tea-fall {
+  0%,
+  37% {
+    stroke-dashoffset: 1;
+  }
+  57%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes chai-liquid-glint {
+  to {
+    stroke-dashoffset: -0.38;
+  }
+}
+@keyframes chai-impact {
+  0%,
+  39%,
+  100% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.45) rotate(-12deg);
+  }
+  56% {
+    opacity: 1;
+    transform: translateY(0) scale(1.05) rotate(0);
+  }
+  73% {
+    opacity: 0.85;
+    transform: translateY(15px) scale(1.18) rotate(5deg);
+  }
+  88% {
+    opacity: 0;
+    transform: translateY(30px) scale(1.26) rotate(9deg);
+  }
+}
+@keyframes chai-drop {
+  0% {
+    opacity: 0;
+    transform: translate(0, -25px) scale(0.5);
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drop-x), 220px) scale(0.75);
+  }
+}
+@keyframes chai-ripples {
+  0%,
+  44% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  57% {
+    opacity: 0.75;
+  }
+  82%,
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+@keyframes chai-steam-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scaleX(0.9);
+  }
+  30% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-80px) scaleX(1.3);
+  }
+}
+@keyframes chai-shadow {
+  0%,
+  100% {
+    opacity: 0.3;
+    scale: 0.75;
+  }
+  50%,
+  70% {
+    opacity: 0.9;
+    scale: 1.15;
+  }
+}
+@keyframes chai-disc {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  56% {
+    transform: rotate(3deg);
+  }
+}
+@keyframes chai-ice-flight {
+  0%,
+  53%,
+  100% {
+    opacity: 0;
+    transform: translate(0, 15px) rotate(0) scale(0.45);
+  }
+  67% {
+    opacity: 1;
+    transform: translate(var(--ice-x), var(--ice-y)) rotate(var(--ice-turn))
+      scale(1);
+  }
+  86% {
+    opacity: 0.95;
+    transform: translate(calc(var(--ice-x) * 1.2), calc(var(--ice-y) * 0.6))
+      rotate(calc(var(--ice-turn) * 1.4)) scale(1.07);
+  }
+  98% {
+    opacity: 0;
+  }
+}
+@keyframes chai-atmosphere {
+  0%,
+  13%,
+  100% {
+    opacity: 0.04;
+  }
+  47%,
+  85% {
+    opacity: 0.88;
+  }
+}
+@keyframes chai-ribbon-reveal {
+  0%,
+  18%,
+  100% {
+    opacity: 0;
+    transform: translateX(100px) rotate(-30deg);
+  }
+  55%,
+  82% {
+    opacity: 0.75;
+    transform: translateX(-30px) rotate(-18deg);
+  }
+}
+@keyframes hero-dish-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-9px) rotate(3deg);
+  }
+}
+
+@media (max-width: 1279px) {
+  .hero-performance .cinema-hero-grid {
+    grid-template-columns: 0.9fr 1.3fr;
+    width: calc(100% - 64px);
+    gap: 8px;
+  }
+  .hero-performance .cinema-hero-aside {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-column: 1 / -1;
+    padding: 8px 0;
+    gap: 8px 24px;
+    align-items: center;
+  }
+  .hero-performance .cinema-hero-aside h2 {
+    font-size: 25px;
+    margin: 0;
+  }
+  .hero-performance .cinema-hero-aside .cinema-feature-price {
+    margin: 0;
+  }
+  .hero-performance .cinema-hero-aside .cinema-button {
+    margin: 0;
+  }
+  .hero-performance .cinema-hero-aside .hero-feature-description {
+    display: none;
+  }
+  .hero-stage {
+    min-height: 320px;
+    max-height: 560px;
+  }
+  .hero-orbit-photo {
+    width: 72px;
+    height: 72px;
+  }
+  .hero-orbit-product {
+    width: 88px;
+    margin-left: -44px;
+    margin-top: -44px;
+  }
+}
+@media (max-width: 900px) {
+  .hero-performance {
+    top: 76px;
+    height: calc(100svh - 76px);
+    min-height: 630px;
+  }
+  .hero-performance .cinema-hero-grid {
+    grid-template-columns: 0.85fr 1.15fr;
+    width: calc(100% - 48px);
+  }
+  .hero-performance .cinema-hero-title {
+    font-size: 42px;
+  }
+  .hero-stage {
+    min-height: 300px;
+  }
+  .hero-performance .cinema-prep-note,
+  .hero-performance .cinema-scroll-link {
+    display: none;
+  }
+  .hero-performance .cinema-hero-bottom {
+    justify-content: center;
+  }
+  .hero-performance .cinema-service-strip > div {
+    padding-block: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .cinema-journey {
+    height: 170svh;
+  }
+  .hero-performance {
+    top: 72px;
+    height: calc(100svh - 72px - 64px - env(safe-area-inset-bottom));
+    min-height: 530px;
+  }
+  .hero-performance .cinema-hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 0;
+    width: calc(100% - 32px);
+  }
+  .hero-performance .cinema-hero-copy {
+    padding: 18px 0 0;
+  }
+  .hero-performance .cinema-hero-eyebrow {
+    margin-bottom: 10px;
+    font-size: 6.5px;
+    letter-spacing: 1.4px;
+  }
+  .hero-performance .cinema-hero-title {
+    font-size: clamp(30px, 8.6vw, 42px);
+    line-height: 1.04;
+    letter-spacing: -1.6px;
+  }
+  .hero-performance .cinema-hero-description,
+  .hero-performance .cinema-hero-location {
+    display: none;
+  }
+  .hero-performance .cinema-hero-actions {
+    margin-top: 14px;
+    gap: 20px;
+  }
+  .hero-performance .cinema-hero-actions .cinema-button {
+    min-height: 40px;
+    padding: 10px 18px;
+    font-size: 9px;
+  }
+  .hero-performance .cinema-hero-actions .cinema-text-link {
+    font-size: 9px;
+  }
+  .hero-stage {
+    height: 100%;
+    min-height: 225px;
+    max-height: none;
+  }
+  .chai-performance {
+    height: 100%;
+    max-height: 410px;
+  }
+  .chai-cup-drop {
+    width: 71%;
+    height: 71%;
+    left: 14.5%;
+  }
+  .hero-orbit-product {
+    width: 72px;
+    margin-left: -36px;
+    margin-top: -36px;
+  }
+  .hero-orbit-photo {
+    width: 52px;
+    height: 52px;
+    border-width: 1px;
+  }
+  .hero-orbit-label {
+    font-size: 7px;
+    padding: 4px 6px;
+    margin-top: 4px;
+    max-width: 78px;
+  }
+  .hero-orbit-product[data-slot="0"] {
+    top: 85%;
+    scale: 0.85;
+  }
+  .hero-orbit-product[data-slot="-2"],
+  .hero-orbit-product[data-slot="2"] {
+    top: 20%;
+    scale: 0.7;
+  }
+  .hero-orbit-product[data-slot="-1"],
+  .hero-orbit-product[data-slot="1"] {
+    top: 62%;
+    scale: 0.77;
+  }
+  .hero-performance .cinema-hero-aside {
+    border-top: 1px solid rgb(var(--c-cafe-on-stage) / 0.2);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 3px 12px;
+    align-items: center;
+    text-align: left;
+    padding: 7px 0;
+    margin: 0;
+  }
+  .hero-performance .cinema-hero-aside h2 {
+    font-size: 19px;
+    max-width: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    grid-row: 1;
+  }
+  .hero-performance .cinema-hero-aside .cinema-feature-price {
+    grid-row: 2;
+    font-size: 12px !important;
+  }
+  .hero-performance .cinema-hero-aside .cinema-button {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    padding: 9px 12px;
+    min-height: 40px;
+    font-size: 9px;
+  }
+  .hero-performance .cinema-hero-bottom {
+    padding-block: 0 3px;
+    min-height: 44px;
+  }
+  .hero-performance .cinema-scene-controls {
+    max-width: 100%;
+  }
+  .hero-performance .cinema-scene-controls button {
+    width: 35px;
+    height: 44px;
+  }
+  .hero-performance .cinema-scene-dots button {
+    width: 27px;
+  }
+  .hero-performance .cinema-service-strip > div {
+    min-height: 34px;
+    padding-block: 9px;
+    font-size: 7px;
+  }
+  .chai-ice {
+    width: 17%;
+  }
+}
+@media (max-height: 740px) and (max-width: 600px) {
+  .hero-performance {
+    min-height: 470px;
+  }
+  .hero-performance .cinema-hero-title {
+    font-size: 30px;
+  }
+  .hero-performance .cinema-hero-eyebrow {
+    display: none;
+  }
+  .hero-performance .cinema-hero-copy {
+    padding-top: 11px;
+  }
+  .hero-performance .cinema-hero-actions {
+    margin-top: 8px;
+  }
+  .hero-stage {
+    min-height: 185px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cinema-journey {
+    height: auto;
+  }
+  .hero-performance {
+    position: relative;
+    top: 0;
+    height: auto;
+    min-height: 700px;
+  }
+  .hero-performance .cinema-hero-grid {
+    min-height: 550px;
+  }
+  .hero-stage {
+    min-height: 350px;
+  }
+  .chai-performance *,
+  .hero-orbit-photo {
+    animation: none !important;
+    transition: none !important;
+  }
+  .hero-orbit-product {
+    transition: none !important;
+  }
+  .chai-cup-drop {
+    transform: translateY(20px);
+  }
+  .chai-milk-stream,
+  .chai-spill-stream,
+  .chai-droplets,
+  .chai-ice,
+  .chai-impact-splash {
+    display: none;
+  }
+}
+
+@keyframes chai-milk-reveal {
+  0%,
+  12% {
+    clip-path: inset(0 0 100% 0);
+    transform: scaleX(0.9) rotate(-1deg);
+  }
+  28%,
+  36% {
+    clip-path: inset(0);
+    transform: scaleX(1.02) rotate(1deg);
+  }
+  44%,
+  100% {
+    clip-path: inset(0);
+    transform: scaleX(0.95) rotate(0);
+  }
+}
+@keyframes chai-tea-reveal {
+  0%,
+  36% {
+    clip-path: inset(0 0 100% 0);
+    transform: scaleX(0.85) rotate(-1deg);
+  }
+  56%,
+  67% {
+    clip-path: inset(0);
+    transform: scaleX(1.06) rotate(1deg);
+  }
+  79%,
+  100% {
+    clip-path: inset(0);
+    transform: scaleX(0.95) rotate(-0.5deg);
+  }
+}

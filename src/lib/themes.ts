@@ -10,8 +10,8 @@ export const THEMES = [
   {
     id: "chai",
     name: "Chai",
-    description: "Warm cream and brown. The house palette.",
-    swatch: ["#F8F3EA", "#B9722A", "#232020"],
+    description: "Cream, caramel and gold. Shared by the cafe and admin.",
+    swatch: ["#FBF7EF", "#A0703A", "#2B1E15"],
     isDark: false,
   },
   {
@@ -64,7 +64,7 @@ export function resolveTheme(value: string | null | undefined): ThemeId {
 
 /** Browser chrome colour for the address bar, per theme. */
 export const THEME_COLOR: Record<ThemeId, string> = {
-  chai: "#B9722A",
+  chai: "#81542B",
   midnight: "#1F1C1A",
   matcha: "#4A943C",
   saffron: "#D4910E",
@@ -92,7 +92,7 @@ export const APPEARANCE_KEY = "engineer-cafe:appearance";
 export const APPEARANCE_SCRIPT = `(function(){try{
 var r=document.documentElement,s=r.dataset.siteTheme;
 if(r.dataset.siteDark==="1")return;
-var p=localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)})||"auto";
+var p=localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)})||"light";
 var d=p==="dark"||(p==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches);
 r.dataset.theme=d?${JSON.stringify(DARK_THEME)}:s;
 }catch(e){}})();`;

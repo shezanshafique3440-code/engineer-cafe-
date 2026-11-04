@@ -1,11 +1,22 @@
 #!/usr/bin/env bash
 # Standalone: copied into each protected backup before deployment starts.
-# Restore code/build only. Keep current .env, database, orders and uploads.
+# Restore code/build and the saved house-theme field. Keep orders, uploads and .env.
 set -euo pipefail
 umask 077
 export PATH="/opt/node22/bin:$PATH"
 BACKUP=${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)}
 BACKUP=$(cd "$BACKUP" && pwd -P)
+read_theme() {
+  docker exec -i infra-postgres-1 sh -lc 'exec psql -XqAt -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-postgres}" -d engineer_cafe' <<'SQL'
+SELECT theme FROM public."CafeSetting" WHERE id = 1;
+SQL
+}
+write_theme() {
+  case "$1" in chai|midnight|matcha|saffron|gulabi|graphite) ;; *) return 1 ;; esac
+  docker exec -i infra-postgres-1 sh -lc 'exec psql -Xq -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-postgres}" -d engineer_cafe -v cafe_theme="$1"' -- "$1" <<'SQL'
+UPDATE public."CafeSetting" SET theme = :'cafe_theme' WHERE id = 1;
+SQL
+}
 test -f "$BACKUP/backup-complete"
 (cd "$BACKUP" && sha256sum --status --check SHA256SUMS)
 APP=$(cat "$BACKUP/app-path")
@@ -27,6 +38,11 @@ pm2 describe engineer-cafe >/dev/null
 RECOVERY=$(mktemp -d "$BACKUP/rollback-attempt.XXXXXXXX")
 printf '%s\n' "$CURRENT" > "$RECOVERY/replaced-commit"
 cp -p .env "$RECOVERY/current.env"
+if [ -f "$BACKUP/previous-theme" ]; then
+  case "$(cat "$BACKUP/previous-theme")" in chai|midnight|matcha|saffron|gulabi|graphite) ;; *) echo "Saved theme is invalid"; exit 1 ;; esac
+  read_theme > "$RECOVERY/current-theme"
+  case "$(cat "$RECOVERY/current-theme")" in chai|midnight|matcha|saffron|gulabi|graphite) ;; *) echo "Current theme is invalid"; exit 1 ;; esac
+fi
 mkdir "$RECOVERY/restored"
 tar -xzf "$BACKUP/build.tar.gz" -C "$RECOVERY/restored"
 test -s "$RECOVERY/restored/.next/BUILD_ID"
@@ -49,6 +65,7 @@ recover_failed_rollback() {
     if [ "$BUILD_MOVED" -eq 1 ]; then
       mv "$RECOVERY/replaced-build" .next || echo "Inspect the saved build in $RECOVERY"
     fi
+    if [ -f "$RECOVERY/current-theme" ]; then write_theme "$(cat "$RECOVERY/current-theme")" || echo "Inspect the house theme setting."; fi
     pm2 restart engineer-cafe --update-env || true
   fi
   echo "Rollback did not finish. Original snapshot retained: $BACKUP"
@@ -65,6 +82,7 @@ fi
 git switch --detach "$PREVIOUS"
 mv "$RECOVERY/restored/.next" .next
 RESTORED_BUILD=1
+if [ -f "$BACKUP/previous-theme" ]; then write_theme "$(cat "$BACKUP/previous-theme")"; fi
 pm2 restart engineer-cafe --update-env
 curl --retry 10 --retry-connrefused --retry-delay 2 --max-time 30 --fail --silent --show-error \
   http://127.0.0.1:3100/admin/login -o /dev/null
@@ -73,6 +91,6 @@ curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:1
 pm2 save
 trap - EXIT
 echo "PASS: previous code and build restored: $PREVIOUS"
-echo "Current database, orders, uploads and .env were kept."
+echo "Orders, uploads and .env were kept. Only the saved house-theme field is restored when present."
 echo "Original snapshot is still available: $BACKUP"
 echo "Replaced code/build recovery files: $RECOVERY"

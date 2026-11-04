@@ -158,9 +158,7 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            {!cinematic && (
-              <AppearanceToggle className="hidden sm:inline-flex" />
-            )}
+            <AppearanceToggle className="hidden sm:inline-flex" />
 
             <button
               type="button"

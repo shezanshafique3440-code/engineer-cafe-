@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/cart-context";
@@ -12,6 +13,8 @@ import { useSettings, useMoney } from "@/context/settings-context";
  */
 export function WhatsAppButton() {
   const settings = useSettings();
+  const pathname = usePathname();
+  const [heroVisible, setHeroVisible] = useState(pathname === "/");
   const { lines, quote, localSubtotal } = useCart();
   const money = useMoney();
   const [visible, setVisible] = useState(false);
@@ -20,6 +23,32 @@ export function WhatsAppButton() {
     const timer = setTimeout(() => setVisible(true), 900);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (pathname !== "/") {
+      setHeroVisible(false);
+      return;
+    }
+    setHeroVisible(true);
+    let visibility: IntersectionObserver | null = null;
+    const pending = new MutationObserver(() => attach());
+    const attach = () => {
+      const element = document.querySelector(".cinema-journey");
+      if (!element || !("IntersectionObserver" in window)) return false;
+      visibility = new IntersectionObserver(([entry]) =>
+        setHeroVisible(entry.isIntersecting),
+      );
+      visibility.observe(element);
+      pending.disconnect();
+      return true;
+    };
+    if (!attach())
+      pending.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      pending.disconnect();
+      visibility?.disconnect();
+    };
+  }, [pathname]);
 
   const total = quote?.total ?? localSubtotal;
 
@@ -44,7 +73,7 @@ export function WhatsAppButton() {
 
   return (
     <AnimatePresence>
-      {visible && (
+      {visible && !heroVisible && (
         <motion.a
           href={href}
           target="_blank"
@@ -64,7 +93,9 @@ export function WhatsAppButton() {
         >
           <MessageCircle className="h-5 w-5 shrink-0" aria-hidden />
           <span className="hidden text-sm font-semibold sm:inline">
-            {lines.length ? `Order ${lines.length} item${lines.length === 1 ? "" : "s"}` : "WhatsApp Order"}
+            {lines.length
+              ? `Order ${lines.length} item${lines.length === 1 ? "" : "s"}`
+              : "WhatsApp Order"}
           </span>
         </motion.a>
       )}

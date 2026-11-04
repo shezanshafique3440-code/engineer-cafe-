@@ -28,9 +28,11 @@ class ReleaseBackupTests(unittest.TestCase):
         self.dockerlog = self.base / 'docker.log'
         self.state = self.base / 'state'
         self.state.write_text('running')
+        self.theme = self.base / 'theme'
+        self.theme.write_text('midnight')
         self.env = dict(os.environ, CAFE_APP_DIR=str(self.app), CAFE_BACKUP_ROOT=str(self.backups),
                         QA_APP=str(self.app), QA_PM2_LOG=str(self.pm2log), QA_DOCKER_LOG=str(self.dockerlog),
-                        QA_STATE=str(self.state), PATH=str(self.bin) + ':' + os.environ['PATH'])
+                        QA_STATE=str(self.state), QA_THEME=str(self.theme), PATH=str(self.bin) + ':' + os.environ['PATH'])
         self.write('.gitignore', '.env\n.next\npublic/uploads/\n')
         self.write('package.json', '{"name":"release-fixture"}\n')
         self.write('index.txt', 'old design')
@@ -48,6 +50,8 @@ class ReleaseBackupTests(unittest.TestCase):
         self.write('index.txt', 'new design')
         self.write('public/experience/signature-chai.webp', 'test chai artwork')
         self.write('public/experience/cafe-atmosphere.webp', 'test cafe artwork')
+        for name in ['chai-cup', 'chai-splash', 'chai-stream', 'ice-cube']:
+            self.write('public/experience/' + name + '.webp', 'fixture ' + name)
         self.write('scripts/rollback-cafe-release.sh', ROLLBACK.read_text())
         # Isolate the outer backup/rollback wrapper from the already deployed
         # updater. This delegate deliberately does NOT recover on failure.
@@ -86,6 +90,14 @@ if 'pg_restore' in args:
  if '--list' not in args:sys.exit(98)
  sys.exit(0 if sys.stdin.buffer.read().startswith(b'PGDMP') else 1)
 if '-lc' in args:
+ command=args[args.index('-lc')+1]
+ if 'psql' in command:
+  from pathlib import Path
+  sql=sys.stdin.read()
+  if 'SELECT theme' in sql:print(Path(os.environ['QA_THEME']).read_text());sys.exit(0)
+  if 'UPDATE public."CafeSetting" SET theme' in sql:
+   Path(os.environ['QA_THEME']).write_text(args[-1]);sys.exit(0)
+  sys.exit(96)
  if os.environ.get('QA_FAIL_DUMP')=='1':sys.exit(41)
  sys.stdout.buffer.write(b'PGDMP_fixture_database_snapshot');sys.exit(0)
 sys.exit(99)
@@ -215,6 +227,36 @@ if '-w' in args:sys.stdout.write('200')
         self.assertEqual((self.app / '.next/BUILD_ID').read_text(), 'new-build')
         self.assertEqual(self.state.read_text(), 'running')
         self.assertTrue((self.snapshot() / 'build.tar.gz').exists())
+
+    def test_shared_theme_is_backed_up_and_only_that_setting_is_restored(self):
+        result = self.deploy(CAFE_SHARED_THEME='chai')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.theme.read_text(), 'chai')
+        backup = self.snapshot()
+        self.assertEqual((backup / 'previous-theme').read_text().strip(), 'midnight')
+        self.write('new-order.txt', 'keep the new order')
+        result = self.run_script(backup / 'rollback.sh')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assert_old_running()
+        self.assertEqual(self.theme.read_text(), 'midnight')
+        self.assertEqual((self.app / 'new-order.txt').read_text(), 'keep the new order')
+        self.assertNotIn('pg_restore -d', self.dockerlog.read_text())
+
+    def test_failed_shared_theme_release_automatically_restores_the_old_palette(self):
+        result = self.deploy(CAFE_SHARED_THEME='chai', QA_FAIL_ASSET='1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assert_old_running()
+        self.assertEqual(self.theme.read_text(), 'midnight')
+
+    def test_failed_manual_rollback_recovers_current_palette_alongside_current_code(self):
+        result = self.deploy(CAFE_SHARED_THEME='chai')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        result = self.run_script(self.snapshot() / 'rollback.sh', QA_FAIL_ROLLBACK='1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.git('rev-parse', 'HEAD').strip(), self.target)
+        self.assertEqual(self.theme.read_text(), 'chai')
+        self.assertEqual((self.app / '.next/BUILD_ID').read_text(), 'new-build')
+
 
     def test_tracked_local_edits_block_release_without_stopping_app(self):
         self.write('index.txt', 'local edit to preserve')

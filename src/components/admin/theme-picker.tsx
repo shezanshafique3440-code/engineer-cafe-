@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Check } from "lucide-react";
-import { THEMES, resolveTheme } from "@/lib/themes";
+import { THEMES, resolveTheme, isDarkTheme } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 
 /**
@@ -30,6 +30,12 @@ export function ThemePicker({
   savedRef.current = saved;
 
   useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.siteTheme = resolveTheme(saved);
+    root.dataset.siteDark = isDarkTheme(saved) ? "1" : "0";
+  }, [saved]);
+
+  useEffect(() => {
     document.documentElement.dataset.theme = resolveTheme(value);
   }, [value]);
 
@@ -40,7 +46,11 @@ export function ThemePicker({
   }, []);
 
   return (
-    <div role="radiogroup" aria-label="Site theme" className="grid gap-3 sm:grid-cols-2">
+    <div
+      role="radiogroup"
+      aria-label="Site theme"
+      className="grid gap-3 sm:grid-cols-2"
+    >
       {THEMES.map((theme) => {
         const selected = theme.id === value;
         return (
@@ -62,14 +72,20 @@ export function ThemePicker({
               aria-hidden
             >
               {theme.swatch.map((colour) => (
-                <span key={colour} className="h-11 w-4" style={{ background: colour }} />
+                <span
+                  key={colour}
+                  className="h-11 w-4"
+                  style={{ background: colour }}
+                />
               ))}
             </span>
 
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5 text-sm font-bold text-charcoal-900">
                 {theme.name}
-                {selected && <Check className="h-3.5 w-3.5 text-chai-600" aria-hidden />}
+                {selected && (
+                  <Check className="h-3.5 w-3.5 text-chai-600" aria-hidden />
+                )}
               </span>
               <span className="mt-0.5 block text-xs leading-snug text-charcoal-500">
                 {theme.description}

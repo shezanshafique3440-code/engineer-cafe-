@@ -5,6 +5,7 @@ import { getSettings } from "@/server/settings";
 import { buildMetadata, restaurantJsonLd, SITE_DESCRIPTION } from "@/lib/seo";
 import { RecentlyViewed } from "@/components/storefront/browse-memory";
 import { Hero } from "@/components/home/hero";
+import { heroCatalog } from "@/lib/hero-catalog";
 import {
   CafeCollections,
   CafeStory,
@@ -67,10 +68,7 @@ export default async function HomePage() {
       p.stock !== 0 &&
       categories.some((c) => c.id === p.category.id),
   );
-  const featured =
-    available.find((p) => p.category.slug === "chai" && p.isFeatured) ??
-    available.find((p) => p.category.slug === "chai") ??
-    null;
+  const highlights = heroCatalog(available);
 
   return (
     <div className="cinema-home">
@@ -84,7 +82,7 @@ export default async function HomePage() {
         }}
       />
       <Hero
-        featured={featured}
+        products={highlights}
         rating={ratings._count ? ratings._avg.rating : null}
         reviewCount={ratings._count}
         menuCount={stats._count}

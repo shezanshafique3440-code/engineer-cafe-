@@ -23,7 +23,7 @@ const OPTIONS: { value: Appearance; label: string; icon: typeof Sun }[] = [
  * root layout; this component only renders the control and keeps it in sync.
  */
 export function AppearanceToggle({ className }: { className?: string }) {
-  const [appearance, setAppearance] = useState<Appearance>("auto");
+  const [appearance, setAppearance] = useState<Appearance>("light");
   // Rendering nothing until mounted keeps the server markup — which cannot
   // know a localStorage value — identical to the first client render.
   const [mounted, setMounted] = useState(false);
@@ -97,7 +97,7 @@ export function AppearanceToggle({ className }: { className?: string }) {
               "rounded-full p-1.5 transition",
               selected
                 ? "bg-surface text-chai-700 shadow-soft"
-                : "text-charcoal-400 hover:text-charcoal-700",
+                : "text-charcoal-500 hover:text-charcoal-700",
             )}
           >
             <option.icon className="h-3.5 w-3.5" aria-hidden />
