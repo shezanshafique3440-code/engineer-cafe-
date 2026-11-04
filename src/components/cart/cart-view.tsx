@@ -1,5 +1,6 @@
 "use client";
 
+import { ShareCartButton } from "@/components/premium/shared-cart";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -61,6 +62,8 @@ export function CartView() {
             {itemCount} item{itemCount === 1 ? "" : "s"} ready to go.
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-4">
+        <ShareCartButton />
         <button
           type="button"
           onClick={() => clear()}
@@ -68,6 +71,7 @@ export function CartView() {
         >
           <Trash2 className="h-4 w-4" aria-hidden /> Clear cart
         </button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px] lg:gap-8">
@@ -79,7 +83,7 @@ export function CartView() {
             return (
               <li key={line.key} className="surface flex gap-3 p-3 sm:gap-4 sm:p-4">
                 <Link
-                  href={`/menu/${line.slug}`}
+                  href={line.categorySlug ? `/menu/${line.categorySlug}/${line.slug}` : `/menu?search=${encodeURIComponent(line.name)}`}
                   className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-cream-200 sm:h-24 sm:w-24"
                 >
                   {line.image && (

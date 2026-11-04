@@ -41,6 +41,7 @@ export default async function MenuPage() {
             category, price or spice, then customise before it goes in your cart.
           </p>
 
+          <Link href="/meal-finder" className="btn-primary mt-5">Find a meal for my budget →</Link>
           <nav aria-label="Menu categories" className="no-scrollbar mt-7 flex gap-2 overflow-x-auto pb-1">
             {categories.map((category) => (
               <Link

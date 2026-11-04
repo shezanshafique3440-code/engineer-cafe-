@@ -20,6 +20,8 @@ export const PATCH = handle(async (request: Request, ctx: { params: Promise<{ id
     where: { OR: [{ id }, { orderNumber: id.toUpperCase() }] },
   });
   if (!order) throw notFound("Order not found.");
+  if (order.status === "CANCELLED") throw badRequest("Cancelled orders cannot be reopened. Create a new order instead.");
+  if (order.orderType === "PICKUP" && data.status === "OUT_FOR_DELIVERY") throw badRequest("Pickup orders cannot go out for delivery.");
   if (order.status === data.status) throw badRequest("The order is already in that status.");
   if (order.status === "DELIVERED" && data.status !== "CANCELLED") {
     throw badRequest("A delivered order can no longer change status.");

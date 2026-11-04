@@ -84,6 +84,7 @@ export type CartLine = {
   productId: string;
   name: string;
   slug: string;
+  categorySlug?: string;
   image: string | null;
   unitPrice: number;
   addons: { id: string; name: string; price: number; groupName: string }[];

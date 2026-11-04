@@ -3,7 +3,13 @@ import type { Prisma, SpiceLevel } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ProductDTO, CategoryDTO } from "@/lib/types";
 
-export type ProductSort = "popular" | "price-asc" | "price-desc" | "rating" | "newest" | "name";
+export type ProductSort =
+  | "popular"
+  | "price-asc"
+  | "price-desc"
+  | "rating"
+  | "newest"
+  | "name";
 
 export type ProductQuery = {
   category?: string;
@@ -60,7 +66,9 @@ export function toProductDTO(product: ProductRow): ProductDTO {
   };
 }
 
-function orderBy(sort: ProductSort | undefined): Prisma.ProductOrderByWithRelationInput[] {
+function orderBy(
+  sort: ProductSort | undefined,
+): Prisma.ProductOrderByWithRelationInput[] {
   switch (sort) {
     case "price-asc":
       return [{ price: "asc" }, { name: "asc" }];
@@ -74,7 +82,12 @@ function orderBy(sort: ProductSort | undefined): Prisma.ProductOrderByWithRelati
       return [{ name: "asc" }];
     case "popular":
     default:
-      return [{ isPopular: "desc" }, { soldCount: "desc" }, { ratingAverage: "desc" }, { sortOrder: "asc" }];
+      return [
+        { isPopular: "desc" },
+        { soldCount: "desc" },
+        { ratingAverage: "desc" },
+        { sortOrder: "asc" },
+      ];
   }
 }
 
@@ -137,33 +150,43 @@ export async function listProducts(query: ProductQuery) {
   };
 }
 
-export async function getProductBySlug(slug: string): Promise<ProductDTO | null> {
-  const product = await prisma.product.findUnique({
-    where: { slug },
+export const productDetailSelect = {
+  ...productSelect,
+  addonGroups: {
+    orderBy: { sortOrder: "asc" },
     select: {
-      ...productSelect,
-      addonGroups: {
-        orderBy: { sortOrder: "asc" },
+      addonGroup: {
         select: {
-          addonGroup: {
+          id: true,
+          name: true,
+          slug: true,
+          type: true,
+          isRequired: true,
+          minSelect: true,
+          maxSelect: true,
+          addons: {
+            where: { isAvailable: true },
+            orderBy: { sortOrder: "asc" },
             select: {
               id: true,
               name: true,
-              slug: true,
-              type: true,
-              isRequired: true,
-              minSelect: true,
-              maxSelect: true,
-              addons: {
-                where: { isAvailable: true },
-                orderBy: { sortOrder: "asc" },
-                select: { id: true, name: true, price: true, isDefault: true, isAvailable: true },
-              },
+              price: true,
+              isDefault: true,
+              isAvailable: true,
             },
           },
         },
       },
     },
+  },
+} satisfies Prisma.ProductSelect;
+
+export async function getProductBySlug(
+  slug: string,
+): Promise<ProductDTO | null> {
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    select: productDetailSelect,
   });
   if (!product) return null;
 
@@ -176,11 +199,16 @@ export async function getProductBySlug(slug: string): Promise<ProductDTO | null>
   return {
     ...toProductDTO(rest),
     addonGroups: addonGroups.map((link) => link.addonGroup),
-    comboItems: comboItems.map((c) => ({ productName: c.product.name, quantity: c.quantity })),
+    comboItems: comboItems.map((c) => ({
+      productName: c.product.name,
+      quantity: c.quantity,
+    })),
   };
 }
 
-export async function listCategories(includeInactive = false): Promise<CategoryDTO[]> {
+export async function listCategories(
+  includeInactive = false,
+): Promise<CategoryDTO[]> {
   const categories = await prisma.category.findMany({
     where: includeInactive ? {} : { isActive: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -215,4 +243,22 @@ export async function refreshProductRating(productId: string) {
       ratingCount: agg._count.rating,
     },
   });
+}
+
+export async function getMealCatalog() {
+  const rows = await prisma.product.findMany({
+    where: { isAvailable: true, category: { isActive: true } },
+    orderBy: [{ isPopular: "desc" }, { sortOrder: "asc" }],
+    take: 201,
+    select: productDetailSelect,
+  });
+  return {
+    products: rows
+      .slice(0, 200)
+      .map(({ addonGroups, ...rest }) => ({
+        ...toProductDTO(rest),
+        addonGroups: addonGroups.map((link) => link.addonGroup),
+      })),
+    truncated: rows.length > 200,
+  };
 }

@@ -1,5 +1,5 @@
 import "server-only";
-import type { CafeSetting, OrderType } from "@prisma/client";
+import type { CafeSetting, OrderType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { badRequest } from "./api";
 
@@ -33,7 +33,12 @@ export type Quote = {
   total: number;
   itemCount: number;
   estimatedMinutes: number;
-  coupon: { id: string; code: string; description: string | null; discount: number } | null;
+  coupon: {
+    id: string;
+    code: string;
+    description: string | null;
+    discount: number;
+  } | null;
   couponError: string | null;
   belowMinimum: boolean;
   minOrderAmount: number;
@@ -52,11 +57,12 @@ export async function priceCart(
     userId?: string | null;
   },
   settings: CafeSetting,
+  db: Prisma.TransactionClient = prisma,
 ): Promise<Quote> {
   const productIds = [...new Set(input.lines.map((l) => l.productId))];
 
   const products = productIds.length
-    ? await prisma.product.findMany({
+    ? await db.product.findMany({
         where: { id: { in: productIds } },
         include: {
           addonGroups: {
@@ -71,7 +77,10 @@ export async function priceCart(
 
   for (const line of input.lines) {
     const product = productMap.get(line.productId);
-    if (!product) throw badRequest("One of the items in your cart is no longer on the menu.");
+    if (!product)
+      throw badRequest(
+        "One of the items in your cart is no longer on the menu.",
+      );
     if (!product.isAvailable) {
       throw badRequest(`"${product.name}" is currently unavailable.`);
     }
@@ -84,7 +93,16 @@ export async function priceCart(
     }
 
     // Add-ons are only valid if they belong to a group attached to this product.
-    const allowedAddons = new Map<string, { id: string; name: string; price: number; groupName: string; isAvailable: boolean }>();
+    const allowedAddons = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        price: number;
+        groupName: string;
+        isAvailable: boolean;
+      }
+    >();
     for (const link of product.addonGroups) {
       for (const addon of link.addonGroup.addons) {
         allowedAddons.set(addon.id, {
@@ -100,9 +118,18 @@ export async function priceCart(
     const chosen: PricedLine["addons"] = [];
     for (const addonId of [...new Set(line.addonIds)]) {
       const addon = allowedAddons.get(addonId);
-      if (!addon) throw badRequest(`An option chosen for "${product.name}" is not available.`);
-      if (!addon.isAvailable) throw badRequest(`"${addon.name}" is currently unavailable.`);
-      chosen.push({ id: addon.id, name: addon.name, groupName: addon.groupName, price: addon.price });
+      if (!addon)
+        throw badRequest(
+          `An option chosen for "${product.name}" is not available.`,
+        );
+      if (!addon.isAvailable)
+        throw badRequest(`"${addon.name}" is currently unavailable.`);
+      chosen.push({
+        id: addon.id,
+        name: addon.name,
+        groupName: addon.groupName,
+        price: addon.price,
+      });
     }
 
     // Enforce each group's selection rules (e.g. exactly one sugar level).
@@ -110,18 +137,26 @@ export async function priceCart(
       const group = link.addonGroup;
       const count = chosen.filter((a) => a.groupName === group.name).length;
       if (group.isRequired && count < Math.max(1, group.minSelect)) {
-        throw badRequest(`Please choose ${group.name.toLowerCase()} for "${product.name}".`);
+        throw badRequest(
+          `Please choose ${group.name.toLowerCase()} for "${product.name}".`,
+        );
       }
       if (group.type === "SINGLE" && count > 1) {
-        throw badRequest(`Only one ${group.name.toLowerCase()} option can be chosen for "${product.name}".`);
+        throw badRequest(
+          `Only one ${group.name.toLowerCase()} option can be chosen for "${product.name}".`,
+        );
       }
       if (group.maxSelect > 0 && count > group.maxSelect) {
-        throw badRequest(`You can pick at most ${group.maxSelect} from ${group.name}.`);
+        throw badRequest(
+          `You can pick at most ${group.maxSelect} from ${group.name}.`,
+        );
       }
     }
 
     const unitPrice =
-      product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price
+      product.discountPrice &&
+      product.discountPrice > 0 &&
+      product.discountPrice < product.price
         ? product.discountPrice
         : product.price;
     const addonsTotal = chosen.reduce((sum, a) => sum + a.price, 0);
@@ -145,11 +180,14 @@ export async function priceCart(
   const subtotal = pricedLines.reduce((sum, l) => sum + l.lineTotal, 0);
   const itemCount = pricedLines.reduce((sum, l) => sum + l.quantity, 0);
 
-  const { discount, coupon, couponError } = await applyCoupon({
-    code: input.couponCode ?? "",
-    subtotal,
-    userId: input.userId ?? null,
-  });
+  const { discount, coupon, couponError } = await applyCoupon(
+    {
+      code: input.couponCode ?? "",
+      subtotal,
+      userId: input.userId ?? null,
+    },
+    db,
+  );
 
   const discountedSubtotal = Math.max(0, subtotal - discount);
 
@@ -166,9 +204,17 @@ export async function priceCart(
   const total = Math.max(0, discountedSubtotal + deliveryFee + tax);
 
   // Kitchen prep time: slowest item plus a small buffer per extra item.
-  const slowest = pricedLines.reduce((max, l) => Math.max(max, l.prepTimeMinutes), 0);
+  const slowest = pricedLines.reduce(
+    (max, l) => Math.max(max, l.prepTimeMinutes),
+    0,
+  );
   const estimatedMinutes = pricedLines.length
-    ? Math.min(90, slowest + Math.max(0, itemCount - 1) * 2 + (input.orderType === "DELIVERY" ? 15 : 0))
+    ? Math.min(
+        90,
+        slowest +
+          Math.max(0, itemCount - 1) * 2 +
+          (input.orderType === "DELIVERY" ? 15 : 0),
+      )
     : 0;
 
   return {
@@ -191,11 +237,14 @@ export async function priceCart(
  * Validates a coupon entirely server-side. A bad code never throws — it comes
  * back as `couponError` so the cart can still be priced without the discount.
  */
-export async function applyCoupon(args: {
-  code: string;
-  subtotal: number;
-  userId: string | null;
-}): Promise<{
+export async function applyCoupon(
+  args: {
+    code: string;
+    subtotal: number;
+    userId: string | null;
+  },
+  db: Prisma.TransactionClient = prisma,
+): Promise<{
   discount: number;
   coupon: { id: string; code: string; description: string | null } | null;
   couponError: string | null;
@@ -203,18 +252,39 @@ export async function applyCoupon(args: {
   const code = args.code?.trim().toUpperCase();
   if (!code) return { discount: 0, coupon: null, couponError: null };
 
-  const coupon = await prisma.coupon.findUnique({ where: { code } });
-  if (!coupon) return { discount: 0, coupon: null, couponError: "That promo code doesn't exist." };
+  const coupon = await db.coupon.findUnique({ where: { code } });
+  if (!coupon)
+    return {
+      discount: 0,
+      coupon: null,
+      couponError: "That promo code doesn't exist.",
+    };
   if (!coupon.isActive)
-    return { discount: 0, coupon: null, couponError: "This promo code is no longer active." };
+    return {
+      discount: 0,
+      coupon: null,
+      couponError: "This promo code is no longer active.",
+    };
 
   const now = new Date();
   if (coupon.startsAt && coupon.startsAt > now)
-    return { discount: 0, coupon: null, couponError: "This promo code isn't active yet." };
+    return {
+      discount: 0,
+      coupon: null,
+      couponError: "This promo code isn't active yet.",
+    };
   if (coupon.expiresAt && coupon.expiresAt < now)
-    return { discount: 0, coupon: null, couponError: "This promo code has expired." };
+    return {
+      discount: 0,
+      coupon: null,
+      couponError: "This promo code has expired.",
+    };
   if (coupon.maxUsage !== null && coupon.usageCount >= coupon.maxUsage)
-    return { discount: 0, coupon: null, couponError: "This promo code has reached its limit." };
+    return {
+      discount: 0,
+      coupon: null,
+      couponError: "This promo code has reached its limit.",
+    };
   if (args.subtotal < coupon.minOrderAmount)
     return {
       discount: 0,
@@ -224,13 +294,25 @@ export async function applyCoupon(args: {
 
   if (coupon.perUserLimit !== null && coupon.perUserLimit > 0) {
     if (!args.userId) {
-      return { discount: 0, coupon: null, couponError: "Please login to use this promo code." };
+      return {
+        discount: 0,
+        coupon: null,
+        couponError: "Please login to use this promo code.",
+      };
     }
-    const used = await prisma.order.count({
-      where: { couponId: coupon.id, userId: args.userId, status: { not: "CANCELLED" } },
+    const used = await db.order.count({
+      where: {
+        couponId: coupon.id,
+        userId: args.userId,
+        status: { not: "CANCELLED" },
+      },
     });
     if (used >= coupon.perUserLimit)
-      return { discount: 0, coupon: null, couponError: "You've already used this promo code." };
+      return {
+        discount: 0,
+        coupon: null,
+        couponError: "You've already used this promo code.",
+      };
   }
 
   let discount =
@@ -245,7 +327,11 @@ export async function applyCoupon(args: {
 
   return {
     discount,
-    coupon: { id: coupon.id, code: coupon.code, description: coupon.description },
+    coupon: {
+      id: coupon.id,
+      code: coupon.code,
+      description: coupon.description,
+    },
     couponError: null,
   };
 }

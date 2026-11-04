@@ -4,7 +4,7 @@ set -euo pipefail
 umask 077
 export PATH="/opt/node22/bin:$PATH"
 APP=/var/www/engineer-cafe
-TARGET=${1:?Supply the full mobile-polish commit SHA}
+TARGET=${1:?Supply the full cafe-upgrade commit SHA}
 [[ "$TARGET" =~ ^[0-9a-f]{40}$ ]]
 cd "$APP"
 git cat-file -e "$TARGET^{commit}"
@@ -15,7 +15,7 @@ fi
 OLD=$(git rev-parse HEAD)
 if [ "$OLD" = "$TARGET" ]; then echo "This code commit is already checked out; inspect PM2 and build before redeploying."; exit 1; fi
 if ! git diff --quiet "$OLD" "$TARGET" -- package.json package-lock.json prisma/schema.prisma prisma/migrations; then
-  echo "Dependency or database changes detected. This UI-only updater will not proceed."
+  echo "Dependency or database changes detected. This updater requires a separate dependency/database migration plan."
   exit 1
 fi
 pm2 describe engineer-cafe >/dev/null
@@ -53,6 +53,7 @@ npm run typecheck
 npm run lint
 node --import tsx src/lib/__tests__/mobile-utils.test.ts
 node --import tsx src/lib/__tests__/auth-redirects.test.ts
+node --import tsx src/lib/__tests__/premium.test.ts
 NODE_OPTIONS="--max-old-space-size=2048" npm run build
 pm2 restart engineer-cafe --update-env
 curl --retry 10 --retry-connrefused --retry-delay 2 --max-time 30 --fail --silent --show-error \
@@ -86,8 +87,26 @@ if (!location || new URL(location).origin !== 'https://esellerstore.vip' || new 
 }
 console.log('PASS: account login redirect uses the public HTTPS domain.');
 JS
+for route in /meal-finder /shared-cart; do
+  curl --fail --silent --show-error --max-time 30 "http://127.0.0.1:3100$route" -o /dev/null
+done
+curl --fail --silent --show-error --max-time 30 http://127.0.0.1:3100/api/meal-catalog -o "$BACKUP/meal-catalog.json"
+node - "$BACKUP/meal-catalog.json" <<'JS'
+const fs = require('node:fs');
+const data = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+if (!Array.isArray(data.products)) throw new Error('Meal catalog response is invalid.');
+console.log('PASS: live meal catalog and public premium pages respond.');
+JS
+for route in /api/admin/kitchen /api/admin/insights; do
+  status=$(curl --silent --show-error --max-time 30 -o /dev/null -w '%{http_code}' "http://127.0.0.1:3100$route")
+  if [ "$status" != "401" ]; then
+    echo "Protected premium endpoint returned unexpected status: $route $status"
+    exit 1
+  fi
+done
+echo "PASS: kitchen and customer insights require authentication."
 pm2 save
 trap - EXIT
-echo "PASS: mobile polish deployed; production build, login page and HTTPS checks passed."
+echo "PASS: premium cafe upgrade deployed; production build, login, HTTPS and premium route checks passed."
 echo "Backup: $BACKUP"
 echo "Code is pinned to commit: $TARGET"

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard, ShoppingBag, Package, FolderTree, Users, Ticket,
-  Star, BarChart3, Settings, Mail, LogOut, Menu, X, ExternalLink, Search, WifiOff,
+  Star, BarChart3, Settings, Mail, LogOut, Menu, X, ExternalLink, Search, WifiOff, ChefHat, Sparkles, QrCode,
 } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { useSession } from "@/context/session-context";
@@ -16,6 +16,9 @@ import { cn, initials } from "@/lib/utils";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/kitchen", label: "Kitchen live", icon: ChefHat },
+  { href: "/admin/insights", label: "Business insights", icon: Sparkles },
+  { href: "/admin/qr-studio", label: "QR menu studio", icon: QrCode },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/categories", label: "Categories", icon: FolderTree },
@@ -170,7 +173,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <main id="admin-main" className="min-w-0 p-3 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:p-5 lg:p-8">{children}</main>
       </div>
       <nav aria-label="Admin quick navigation" className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-cream-200 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
-        {NAV.slice(0, 3).map(item => <Link key={item.href} href={item.href}
+        {NAV.filter(item => ["/admin","/admin/orders","/admin/kitchen"].includes(item.href)).map(item => <Link key={item.href} href={item.href}
           aria-current={isActive(item.href) ? "page" : undefined}
           className={cn("flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold", isActive(item.href) ? "text-chai-700" : "text-charcoal-500")}>
           <item.icon className="h-5 w-5" aria-hidden />{item.label}

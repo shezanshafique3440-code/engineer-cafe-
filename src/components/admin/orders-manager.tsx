@@ -128,6 +128,9 @@ function OrdersManagerInner() {
 
   const updateStatus = async (order: OrderDTO, status: OrderStatus) => {
     if (status === "CANCELLED" && !window.confirm(`Cancel order #${order.orderNumber}?`)) return;
+    if (status === "DELIVERED" && !window.confirm(order.paymentMethod === "ONLINE"
+      ? `Confirm order #${order.orderNumber} has been handed over?`
+      : `Confirm order #${order.orderNumber} has been handed over and ${money(order.total)} cash received?`)) return;
     setUpdating(order.id);
     try {
       const data = await apiPatch<{ order: OrderDTO }>(`/api/admin/orders/${order.id}`, { status });

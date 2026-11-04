@@ -49,6 +49,8 @@ export const ORDER_TYPE_LABEL: Record<OrderType, string> = {
  * save at a time is busywork. Correcting a mistake backwards matters too.
  */
 export function allStatuses(current: OrderStatus, orderType: OrderType): OrderStatus[] {
+  if (current === "CANCELLED") return [];
+  if (current === "DELIVERED") return ["CANCELLED"];
   return [...ORDER_STATUS_FLOW, "CANCELLED" as OrderStatus].filter(
     (status) =>
       status !== current &&

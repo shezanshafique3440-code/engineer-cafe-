@@ -1,15 +1,22 @@
 import "server-only";
 import type { Order, OrderStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { HttpError } from "./api";
 import { generateOrderNumber } from "./pricing";
 
 /** Allocates the next EC#### order number inside the transaction. */
-export async function nextOrderNumber(tx: Prisma.TransactionClient): Promise<string> {
+export async function nextOrderNumber(
+  tx: Prisma.TransactionClient,
+): Promise<string> {
+  // Serialize allocation until commit so two checkouts cannot claim the same number.
+  await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(73019301)`;
   const last = await tx.order.findFirst({
     orderBy: { createdAt: "desc" },
     select: { orderNumber: true },
   });
-  const lastSequence = last ? Number(last.orderNumber.replace(/\D/g, "")) - 1000 : -1;
+  const lastSequence = last
+    ? Number(last.orderNumber.replace(/\D/g, "")) - 1000
+    : -1;
   const sequence = Number.isFinite(lastSequence) ? lastSequence + 1 : 0;
 
   // Guard against gaps/collisions from concurrent checkouts.
@@ -29,7 +36,9 @@ const orderInclude = {
   events: { orderBy: { createdAt: "asc" } },
 } satisfies Prisma.OrderInclude;
 
-export type FullOrder = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
+export type FullOrder = Prisma.OrderGetPayload<{
+  include: typeof orderInclude;
+}>;
 
 export function serializeOrder(order: FullOrder) {
   return {
@@ -97,7 +106,21 @@ export async function transitionOrder(
   status: OrderStatus,
   note?: string,
 ): Promise<FullOrder> {
-  const data: Prisma.OrderUpdateInput = { status };
+  if (order.status === "CANCELLED")
+    throw new HttpError(400, "Cancelled orders cannot be reopened.");
+  if (order.status === "DELIVERED" && status !== "CANCELLED")
+    throw new HttpError(400, "Delivered orders cannot return to the kitchen.");
+  if (order.status === status)
+    throw new HttpError(400, "The order already has this status.");
+  if (order.orderType === "PICKUP" && status === "OUT_FOR_DELIVERY")
+    throw new HttpError(400, "Pickup orders cannot go out for delivery.");
+  if (
+    status === "DELIVERED" &&
+    order.paymentMethod === "ONLINE" &&
+    order.paymentStatus !== "PAID"
+  )
+    throw new HttpError(400, "Confirm online payment before handover.");
+  const data: Prisma.OrderUpdateManyMutationInput = { status };
   const now = new Date();
 
   if (status === "CONFIRMED" && !order.confirmedAt) data.confirmedAt = now;
@@ -112,6 +135,15 @@ export async function transitionOrder(
   }
 
   return prisma.$transaction(async (tx) => {
+    const updated = await tx.order.updateMany({
+      where: { id: order.id, status: order.status, updatedAt: order.updatedAt },
+      data,
+    });
+    if (updated.count !== 1)
+      throw new HttpError(
+        409,
+        "This order changed on another screen. Refresh and try again.",
+      );
     // Restock and roll back sales counters when an order is cancelled.
     if (status === "CANCELLED" && order.status !== "CANCELLED") {
       const items = await tx.orderItem.findMany({
@@ -120,31 +152,23 @@ export async function transitionOrder(
       });
       for (const item of items) {
         if (!item.productId) continue;
-        const product = await tx.product.findUnique({
-          where: { id: item.productId },
-          select: { stock: true, soldCount: true },
-        });
-        if (!product) continue;
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: product.stock === null ? null : product.stock + item.quantity,
-            soldCount: Math.max(0, product.soldCount - item.quantity),
-          },
-        });
+        // Arithmetic in SQL avoids lost stock changes while another order checks out.
+        await tx.$executeRaw`UPDATE "Product" SET "stock" = "stock" + ${item.quantity},
+          "soldCount" = GREATEST(0, "soldCount" - ${item.quantity}), "updatedAt" = NOW()
+          WHERE "id" = ${item.productId}`;
       }
       if (order.couponId) {
-        await tx.coupon.update({
-          where: { id: order.couponId },
-          data: { usageCount: { decrement: 1 } },
-        });
+        await tx.$executeRaw`UPDATE "Coupon" SET "usageCount" = GREATEST(0, "usageCount" - 1),
+          "updatedAt" = NOW() WHERE "id" = ${order.couponId}`;
       }
     }
 
-    await tx.order.update({ where: { id: order.id }, data });
     await tx.orderEvent.create({
       data: { orderId: order.id, status, note: note || null },
     });
-    return tx.order.findUniqueOrThrow({ where: { id: order.id }, include: orderInclude });
+    return tx.order.findUniqueOrThrow({
+      where: { id: order.id },
+      include: orderInclude,
+    });
   });
 }

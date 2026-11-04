@@ -44,7 +44,7 @@ type CartValue = {
   orderType: "DELIVERY" | "PICKUP";
   hydrated: boolean;
   addItem: (
-    product: Pick<ProductDTO, "id" | "name" | "slug" | "image" | "price" | "discountPrice">,
+    product: Pick<ProductDTO, "id" | "name" | "slug" | "image" | "price" | "discountPrice"> & { category?: { slug: string } },
     options?: { addons?: CartLine["addons"]; quantity?: number; notes?: string; silent?: boolean },
   ) => void;
   setQuantity: (key: string, quantity: number) => void;
@@ -197,6 +197,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           productId: product.id,
           name: product.name,
           slug: product.slug,
+          categorySlug: product.category?.slug,
           image: product.image,
           unitPrice,
           addons,
