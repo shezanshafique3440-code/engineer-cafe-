@@ -4,7 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, ChevronLeft, ChevronRight, Clock, Star, Truck } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Star,
+  Truck,
+} from "lucide-react";
 import { useSettings, useMoney } from "@/context/settings-context";
 import { cn } from "@/lib/utils";
 
@@ -72,7 +79,10 @@ function useHighlightRotation(count: number, enabled: boolean) {
   );
 
   // A shorter menu must never leave the index pointing past the end.
-  useEffect(() => setIndex((current) => (current < count ? current : 0)), [count]);
+  useEffect(
+    () => setIndex((current) => (current < count ? current : 0)),
+    [count],
+  );
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -96,10 +106,8 @@ export function Hero({ stats }: { stats: HeroStats }) {
   const money = useMoney();
 
   const highlights = stats.highlights;
-  const { index, direction, goTo, step, setPaused, paused } = useHighlightRotation(
-    highlights.length,
-    !reduceMotion,
-  );
+  const { index, direction, goTo, step, setPaused, paused } =
+    useHighlightRotation(highlights.length, !reduceMotion);
   const active = highlights[index] ?? null;
   const activeSlug = active?.slug ?? "none";
   const isCarousel = highlights.length > 1;
@@ -120,8 +128,17 @@ export function Hero({ stats }: { stats: HeroStats }) {
           key={item.symbol}
           className="pointer-events-none absolute hidden select-none font-display text-3xl text-chai-400/35 motion-reduce:hidden lg:block"
           style={{ top: item.top, left: item.left, right: item.right }}
-          animate={reduceMotion ? undefined : { y: [0, -14, 0], opacity: [0.3, 0.55, 0.3] }}
-          transition={{ duration: 6, repeat: Infinity, delay: item.delay, ease: "easeInOut" }}
+          animate={
+            reduceMotion
+              ? undefined
+              : { y: [0, -14, 0], opacity: [0.3, 0.55, 0.3] }
+          }
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            delay: item.delay,
+            ease: "easeInOut",
+          }}
           aria-hidden
         >
           {item.symbol}
@@ -152,43 +169,80 @@ export function Hero({ stats }: { stats: HeroStats }) {
                 fill="none"
                 aria-hidden
               >
-                <path d="M2 5.5C40 2 90 1.5 198 4.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                <path
+                  d="M2 5.5C40 2 90 1.5 198 4.5"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
               </svg>
             </span>{" "}
             Wali Vibes.
           </h1>
 
           <p className="mt-5 max-w-lg text-base leading-relaxed text-charcoal-600 sm:text-lg">
-            Your perfect chai break starts here. Karak chai, tawa-fresh parathas and
-            student-friendly deals — served from 8 AM to 2 AM.
+            Freshly brewed chai. Tawa-fresh parathas. Choose your comfort,
+            customise every bite, and make a little room for a better break.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/menu" className="btn-primary group" style={{ padding: "0.875rem 1.5rem" }}>
+            <Link
+              href="/menu"
+              className="btn-primary group"
+              style={{ padding: "0.875rem 1.5rem" }}
+            >
               Explore Menu
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+              <ArrowRight
+                className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                aria-hidden
+              />
             </Link>
-            <Link href="/menu/combos" className="btn-secondary" style={{ padding: "0.875rem 1.5rem" }}>
-              Order Now
+            <Link
+              href="/discover"
+              className="btn-secondary"
+              style={{ padding: "0.875rem 1.5rem" }}
+            >
+              Find my flavour
             </Link>
           </div>
 
           <dl className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-cream-300 pt-6">
             {[
-              { icon: Clock, value: `${stats.avgPrepMinutes} min`, label: "Avg. prep time" },
+              {
+                icon: Clock,
+                value: `${stats.avgPrepMinutes} min`,
+                label: "Avg. prep time",
+              },
               stats.rating
-                ? { icon: Star, value: stats.rating.toFixed(1), label: "Customer rating" }
-                : { icon: Star, value: `${stats.menuItems}`, label: "Menu items" },
-              { icon: Truck, value: `Rs. ${settings.deliveryFee}`, label: "Delivery fee" },
+                ? {
+                    icon: Star,
+                    value: stats.rating.toFixed(1),
+                    label: "Customer rating",
+                  }
+                : {
+                    icon: Star,
+                    value: `${stats.menuItems}`,
+                    label: "Menu items",
+                  },
+              {
+                icon: Truck,
+                value: money(settings.deliveryFee),
+                label: "Delivery fee",
+              },
             ].map((stat) => (
               <div key={stat.label}>
                 <dt className="sr-only">{stat.label}</dt>
                 <dd>
-                  <stat.icon className="mb-1.5 h-4 w-4 text-chai-500" aria-hidden />
+                  <stat.icon
+                    className="mb-1.5 h-4 w-4 text-chai-500"
+                    aria-hidden
+                  />
                   <span className="block text-lg font-extrabold leading-none text-charcoal-900">
                     {stat.value}
                   </span>
-                  <span className="mt-1 block text-[11px] text-charcoal-500">{stat.label}</span>
+                  <span className="mt-1 block text-[11px] text-charcoal-500">
+                    {stat.label}
+                  </span>
                 </dd>
               </div>
             ))}
@@ -244,7 +298,11 @@ export function Hero({ stats }: { stats: HeroStats }) {
                   ))}
                 </div>
 
-                <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                <AnimatePresence
+                  initial={false}
+                  custom={direction}
+                  mode="popLayout"
+                >
                   <motion.div
                     key={activeSlug}
                     className="absolute inset-0"
@@ -253,9 +311,15 @@ export function Hero({ stats }: { stats: HeroStats }) {
                     // other way — a fade alone reads as a slideshow, this reads
                     // as one thing moving.
                     variants={{
-                      enter: (dir: number) => ({ x: `${dir * 100}%`, opacity: 0.4 }),
+                      enter: (dir: number) => ({
+                        x: `${dir * 100}%`,
+                        opacity: 0.4,
+                      }),
                       center: { x: "0%", opacity: 1 },
-                      exit: (dir: number) => ({ x: `${dir * -100}%`, opacity: 0.4 }),
+                      exit: (dir: number) => ({
+                        x: `${dir * -100}%`,
+                        opacity: 0.4,
+                      }),
                     }}
                     initial="enter"
                     animate="center"
@@ -263,7 +327,12 @@ export function Hero({ stats }: { stats: HeroStats }) {
                     transition={
                       reduceMotion
                         ? { duration: 0 }
-                        : { type: "spring", stiffness: 260, damping: 34, mass: 0.9 }
+                        : {
+                            type: "spring",
+                            stiffness: 260,
+                            damping: 34,
+                            mass: 0.9,
+                          }
                     }
                     drag={isCarousel ? "x" : false}
                     dragConstraints={{ left: 0, right: 0 }}
@@ -272,20 +341,29 @@ export function Hero({ stats }: { stats: HeroStats }) {
                     onDragEnd={(_, info) => {
                       setPaused(false);
                       // Either a decisive flick or a real distance counts.
-                      if (info.offset.x < -70 || info.velocity.x < -450) step(1);
-                      else if (info.offset.x > 70 || info.velocity.x > 450) step(-1);
+                      if (info.offset.x < -70 || info.velocity.x < -450)
+                        step(1);
+                      else if (info.offset.x > 70 || info.velocity.x > 450)
+                        step(-1);
                     }}
                   >
                     <motion.div
                       className="absolute inset-0"
                       // A still photograph drifting very slightly is what stops
                       // the hero looking like a screenshot.
-                      animate={reduceMotion || paused ? { scale: 1 } : { scale: 1.06 }}
-                      transition={{ duration: ROTATE_MS / 1000 + 1.2, ease: "linear" }}
+                      animate={
+                        reduceMotion || paused ? { scale: 1 } : { scale: 1.06 }
+                      }
+                      transition={{
+                        duration: ROTATE_MS / 1000 + 1.2,
+                        ease: "linear",
+                      }}
                     >
                       <Image
                         src={active?.image ?? "/menu/chai-doodh.svg"}
-                        alt={active ? `${active.name} at ${settings.cafeName}` : ""}
+                        alt={
+                          active ? `${active.name} at ${settings.cafeName}` : ""
+                        }
                         fill
                         sizes="(max-width: 1024px) 100vw, 50vw"
                         className="pointer-events-none select-none object-cover"
@@ -330,7 +408,10 @@ export function Hero({ stats }: { stats: HeroStats }) {
                   // straight to the end instead of skipping the initial.
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: reduceMotion ? 0 : 0.45, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{
+                    duration: reduceMotion ? 0 : 0.45,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
                   className="min-w-0"
                 >
                   <Link
@@ -344,7 +425,10 @@ export function Hero({ stats }: { stats: HeroStats }) {
                       {active.name}
                     </p>
                     {active.urduName && (
-                      <p className="truncate text-xs text-charcoal-500" dir="rtl">
+                      <p
+                        className="truncate text-xs text-charcoal-500"
+                        dir="rtl"
+                      >
                         {active.urduName}
                       </p>
                     )}
@@ -353,7 +437,9 @@ export function Hero({ stats }: { stats: HeroStats }) {
                         {money(active.discountPrice ?? active.price)}
                       </span>
                       {active.discountPrice && (
-                        <span className="ml-1.5 line-through">{money(active.price)}</span>
+                        <span className="ml-1.5 line-through">
+                          {money(active.price)}
+                        </span>
                       )}
                     </p>
                   </Link>
@@ -385,7 +471,8 @@ export function Hero({ stats }: { stats: HeroStats }) {
                             initial={{ width: reduceMotion ? "100%" : "0%" }}
                             animate={{ width: "100%" }}
                             transition={{
-                              duration: reduceMotion || paused ? 0 : ROTATE_MS / 1000,
+                              duration:
+                                reduceMotion || paused ? 0 : ROTATE_MS / 1000,
                               ease: "linear",
                             }}
                           />
@@ -399,10 +486,22 @@ export function Hero({ stats }: { stats: HeroStats }) {
 
             {isCarousel && (
               <>
-                {([
-                  { dir: -1, side: "left-3", Icon: ChevronLeft, label: "Previous dish" },
-                  { dir: 1, side: "right-3", Icon: ChevronRight, label: "Next dish" },
-                ] as const).map(({ dir, side, Icon, label }) => (
+                {(
+                  [
+                    {
+                      dir: -1,
+                      side: "left-3",
+                      Icon: ChevronLeft,
+                      label: "Previous dish",
+                    },
+                    {
+                      dir: 1,
+                      side: "right-3",
+                      Icon: ChevronRight,
+                      label: "Next dish",
+                    },
+                  ] as const
+                ).map(({ dir, side, Icon, label }) => (
                   <button
                     key={label}
                     type="button"
@@ -435,7 +534,10 @@ export function Hero({ stats }: { stats: HeroStats }) {
               status
             </p>
             <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-charcoal-900">
-              <span className="h-1.5 w-1.5 rounded-full bg-circuit-500" aria-hidden />
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-circuit-500"
+                aria-hidden
+              />
               Chai brewing…
             </p>
           </motion.div>

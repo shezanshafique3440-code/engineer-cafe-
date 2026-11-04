@@ -5,6 +5,8 @@ import type { PublicSettings } from "@/server/settings";
 
 const QUICK_LINKS = [
   { href: "/menu", label: "Menu" },
+  { href: "/discover", label: "Discover by mood" },
+  { href: "/compare", label: "Compare dishes" },
   { href: "/meal-finder", label: "Smart meal finder" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },

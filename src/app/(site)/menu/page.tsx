@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { listCategories } from "@/server/products";
 import { buildMetadata, breadcrumbJsonLd } from "@/lib/seo";
+import { RecentlyViewed } from "@/components/storefront/browse-memory";
 import { MenuBrowser } from "@/components/menu/menu-browser";
 import { ProductCardSkeleton } from "@/components/menu/product-card";
 
@@ -69,6 +70,7 @@ export default async function MenuPage() {
           <MenuBrowser categories={categories} />
         </Suspense>
       </div>
+      <RecentlyViewed/>
     </>
   );
 }

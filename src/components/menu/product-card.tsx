@@ -1,5 +1,6 @@
 "use client";
 
+import { CompareButton } from "@/components/storefront/compare-controls";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -149,7 +150,7 @@ export function ProductCard({
           <div className="mt-auto pt-3.5">
             <button
               type="button"
-              disabled={!product.isAvailable}
+              disabled={!product.isAvailable || product.stock===0}
               onClick={() => (product.hasOptions ? setDialogOpen(true) : quickAdd())}
               aria-label={`Add ${product.name} to cart`}
               className={cn(
@@ -164,6 +165,7 @@ export function ProductCard({
               {added ? "Added" : product.hasOptions ? "Choose" : "Add"}
             </button>
           </div>
+          <div className="mt-2"><CompareButton slug={product.slug} name={product.name} compact /></div>
         </div>
       </motion.article>
 

@@ -96,6 +96,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setLines(readStored());
     try {
       setCouponCodeState(window.localStorage.getItem(COUPON_KEY) ?? "");
+      const service=window.localStorage.getItem("ec-service-preference");
+      if(service==="PICKUP"||service==="DELIVERY")setOrderType(service);
     } catch {
       /* storage unavailable — carry on with an empty coupon */
     }
@@ -163,6 +165,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (id === requestId.current) setQuoting(false);
     }
   }, [lines, couponCode, orderType, hydrated, toCartLinesPayload]);
+
+  useEffect(()=>{if(!hydrated)return;try{window.localStorage.setItem("ec-service-preference",orderType);}catch{/* Preference remains available for this visit. */}},[hydrated,orderType]);
 
   // Debounce so rapid quantity taps produce one request.
   useEffect(() => {

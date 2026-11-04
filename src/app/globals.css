@@ -277,11 +277,7 @@
 }
 
 @layer base {
-  :root {
-    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-    --font-display: "Bricolage Grotesque", ui-serif, Georgia, serif;
-    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  }
+  /* Font variables are supplied by next/font on the root element. */
 
   * {
     @apply border-cream-200;

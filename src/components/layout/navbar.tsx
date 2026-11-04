@@ -20,6 +20,7 @@ const LINKS = [
   { href: "/menu/chai", label: "Chai" },
   { href: "/menu/parathas", label: "Parathas" },
   { href: "/menu/anday", label: "Anday" },
+  { href: "/discover", label: "Discover" },
   { href: "/meal-finder", label: "Meal finder" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },

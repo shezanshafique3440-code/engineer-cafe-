@@ -1,4 +1,7 @@
 import { BackToTop } from "@/components/layout/back-to-top";
+import { StorefrontProvider } from "@/context/storefront-context";
+import { ComparisonDock } from "@/components/storefront/compare-controls";
+import { ServiceRibbon } from "@/components/storefront/order-guidance";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { WhatsAppButton } from "@/components/layout/whatsapp-button";
@@ -12,8 +15,15 @@ import { FavoritesProvider } from "@/context/favorites-context";
 import { getSettings, publicSettings } from "@/server/settings";
 import { getCurrentUser } from "@/server/auth";
 
-export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [settingsRow, user] = await Promise.all([getSettings(), getCurrentUser()]);
+export default async function SiteLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [settingsRow, user] = await Promise.all([
+    getSettings(),
+    getCurrentUser(),
+  ]);
   const settings = publicSettings(settingsRow);
 
   return (
@@ -21,18 +31,22 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <SessionProvider initialUser={user}>
         <FavoritesProvider>
           <CartProvider>
-            <div className="flex min-h-screen flex-col">
-              <Navbar />
-              <main id="main" className="flex-1 pb-24 md:pb-0">
-                {children}
-              </main>
-              <Footer settings={settings} />
-              <WhatsAppButton />
-              <StickyCartBar />
-              <BottomNav />
-              <ScrollReveal />
-              <BackToTop />
-            </div>
+            <StorefrontProvider>
+              <div className="flex min-h-screen flex-col">
+                <Navbar />
+                <ServiceRibbon />
+                <ComparisonDock />
+                <main id="main" className="flex-1 pb-24 md:pb-0">
+                  {children}
+                </main>
+                <Footer settings={settings} />
+                <WhatsAppButton />
+                <StickyCartBar />
+                <BottomNav />
+                <ScrollReveal />
+                <BackToTop />
+              </div>
+            </StorefrontProvider>
           </CartProvider>
         </FavoritesProvider>
       </SessionProvider>

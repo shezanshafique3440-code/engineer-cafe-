@@ -1,5 +1,7 @@
 "use client";
 
+import { CartGuidance } from "@/components/storefront/order-guidance";
+import { PairingSuggestions } from "@/components/storefront/pairings";
 import { ShareCartButton } from "@/components/premium/shared-cart";
 import Image from "next/image";
 import Link from "next/link";
@@ -266,6 +268,7 @@ export function CartView() {
               </dl>
             )}
 
+            <CartGuidance/>
             {quote?.belowMinimum && (
               <p className="mt-4 rounded-lg bg-chai-50 px-3 py-2.5 text-xs font-medium text-chai-800" role="alert">
                 Minimum order is {money(quote.minOrderAmount)}. Add{" "}
@@ -304,6 +307,7 @@ export function CartView() {
           </div>
         </div>
       </div>
+      <PairingSuggestions/>
     </div>
   );
 }
