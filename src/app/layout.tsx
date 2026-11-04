@@ -55,6 +55,7 @@ export async function generateViewport(): Promise<Viewport> {
     width: "device-width",
     initialScale: 1,
     maximumScale: 5,
+    viewportFit: "cover",
   };
 }
 
@@ -86,6 +87,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {children}
         <Toaster
           position="bottom-right"
+          mobileOffset={{ bottom: "calc(6rem + env(safe-area-inset-bottom))", left: 16, right: 16 }}
           richColors
           closeButton
           toastOptions={{ className: "font-sans text-sm" }}

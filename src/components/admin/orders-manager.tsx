@@ -2,7 +2,8 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Search, Printer, Eye, RefreshCw, Phone, MapPin, MessageCircle } from "lucide-react";
+import { Search, Printer, Eye, RefreshCw, Phone, MapPin, MessageCircle, Download } from "lucide-react";
+import { downloadCsv } from "@/lib/csv";
 import { apiGet, apiPatch, ApiError } from "@/lib/api-client";
 import { useMoney, useSettings } from "@/context/settings-context";
 import { PageHeader, DataTable, TableSkeleton, Modal } from "./ui";
@@ -176,9 +177,18 @@ function OrdersManagerInner() {
         title="Orders"
         description={`${total} order${total === 1 ? "" : "s"} matching your filters.`}
         action={
-          <Button variant="secondary" onClick={() => void load(page)}>
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden /> Refresh
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" disabled={!orders.length || loading} title="Download orders on the current filtered page"
+              onClick={() => downloadCsv(`cafe-orders-page-${page}.csv`,
+                ["Order", "Customer", "Phone", "Total (PKR)", "Status", "Type", "Payment", "Placed at"],
+                orders.map(order => [order.orderNumber, order.customerName, order.customerPhone, order.total,
+                  ORDER_STATUS_LABEL[order.status], ORDER_TYPE_LABEL[order.orderType], order.paymentStatus, order.placedAt]))}>
+              <Download className="h-4 w-4" aria-hidden /> Export page
+            </Button>
+            <Button variant="secondary" onClick={() => void load(page)} disabled={loading}>
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden /> Refresh
+            </Button>
+          </div>
         }
       />
 

@@ -431,3 +431,38 @@
     }
   }
 }
+
+/* Mobile forms keep a readable size without triggering iOS input zoom. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    font-size: 16px;
+    min-height: 44px;
+    max-width: 100%;
+  }
+  .btn { min-height: 44px; }
+  .admin-data-table { border: 0; background: transparent; box-shadow: none; }
+  .admin-data-table > div { overflow: visible; }
+  .admin-data-table table { display: block; min-width: 0; }
+  .admin-data-table thead {
+    position: absolute; width: 1px; height: 1px; padding: 0;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap;
+  }
+  .admin-data-table tbody { display: grid; gap: 1rem; border: 0; }
+  .admin-data-table tbody tr {
+    display: block; min-width: 0; border: 1px solid rgb(var(--c-cream-200));
+    border-radius: 1rem; background: rgb(var(--c-surface)); padding: .5rem;
+  }
+  .admin-data-table td {
+    display: grid; grid-template-columns: minmax(76px, .75fr) minmax(0, 1.5fr);
+    align-items: center; gap: .75rem; padding: .6rem;
+    white-space: normal; overflow-wrap: anywhere;
+  }
+  .admin-data-table td::before {
+    content: attr(data-label); font-size: .6875rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--c-charcoal-500));
+  }
+  .admin-data-table td > * { min-width: 0; max-width: 100%; }
+  .admin-data-table .admin-cell-content > div.flex { flex-wrap: wrap; }
+  .admin-data-table button, .admin-data-table select { min-height: 44px; }
+  .admin-data-table button[aria-label] { min-width: 44px; }
+}

@@ -9,6 +9,7 @@ const QUICK_LINKS = [
   { href: "/contact", label: "Contact" },
   { href: "/account/orders", label: "My Orders" },
   { href: "/cart", label: "Cart" },
+  { href: "/admin/login", label: "Staff login" },
 ];
 
 const CATEGORY_LINKS = [
@@ -22,7 +23,7 @@ export function Footer({ settings }: { settings: PublicSettings }) {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto border-t border-charcoal-800 bg-charcoal-900 text-cream-100">
+    <footer className="mt-auto pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 border-t border-charcoal-800 bg-charcoal-900 text-cream-100">
       <div className="container grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <Logo src={settings.logoUrl} onDark />

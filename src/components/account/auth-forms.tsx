@@ -6,7 +6,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { apiPost, ApiError } from "@/lib/api-client";
 import { useSession } from "@/context/session-context";
-import { Button, Input } from "@/components/ui";
+import { Button, Input, PasswordInput } from "@/components/ui";
+import { safeRedirect } from "@/lib/safe-redirect";
 import type { SessionUser } from "@/lib/types";
 
 export function LoginForm({ adminMode = false }: { adminMode?: boolean }) {
@@ -16,54 +17,61 @@ export function LoginForm({ adminMode = false }: { adminMode?: boolean }) {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setErrors({});
+    setMessage("");
     setSubmitting(true);
     try {
       const data = await apiPost<{ user: SessionUser }>("/api/auth/login", form);
       setUser(data.user);
-      toast.success(`Welcome back, ${data.user.name.split(" ")[0]}!`);
+
 
       const next = searchParams.get("next");
       const isStaff = data.user.role === "ADMIN" || data.user.role === "STAFF";
 
       if (adminMode && !isStaff) {
-        toast.error("This account doesn't have admin access.");
+        setMessage("This account does not have admin access. Use your staff email and password.");
         setSubmitting(false);
         return;
       }
 
-      router.push(next || (isStaff && adminMode ? "/admin" : "/account"));
+      toast.success(`Welcome back, ${data.user.name.split(" ")[0]}!`);
+      router.push(safeRedirect(next, isStaff && adminMode ? "/admin" : "/account"));
       router.refresh();
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.fields) setErrors(error.fields);
+        setMessage(error.message);
         toast.error(error.message);
       } else {
-        toast.error("Couldn't sign you in. Please try again.");
+        setMessage("Couldn't sign you in. Check your connection and try again.");
       }
       setSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4" noValidate>
+    <form onSubmit={submit} className="space-y-4" aria-busy={submitting}>
+      {message && <p role="alert" className="rounded-xl border border-chilli-400/40 bg-chilli-400/10 p-3 text-sm text-chilli-600">{message}</p>}
       <Input
         label="Email"
         name="email"
         type="email"
         autoComplete="email"
+        autoCapitalize="none"
+        spellCheck={false}
+        inputMode="email"
         value={form.email}
         onChange={(e) => setForm({ ...form, email: e.target.value })}
         error={errors.email?.[0]}
         required
       />
-      <Input
+      <PasswordInput
         label="Password"
         name="password"
-        type="password"
         autoComplete="current-password"
         value={form.password}
         onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -84,30 +92,34 @@ export function RegisterForm() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setErrors({});
+    setMessage("");
     setSubmitting(true);
     try {
       const data = await apiPost<{ user: SessionUser }>("/api/auth/register", form);
       setUser(data.user);
       toast.success("Account created. Welcome to Engineer Cafe!");
-      router.push(searchParams.get("next") || "/account");
+      router.push(safeRedirect(searchParams.get("next"), "/account"));
       router.refresh();
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.fields) setErrors(error.fields);
+        setMessage(error.message);
         toast.error(error.message);
       } else {
-        toast.error("Couldn't create your account. Please try again.");
+        setMessage("Couldn't create your account. Check your connection and try again.");
       }
       setSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4" noValidate>
+    <form onSubmit={submit} className="space-y-4" aria-busy={submitting}>
+      {message && <p role="alert" className="rounded-xl border border-chilli-400/40 bg-chilli-400/10 p-3 text-sm text-chilli-600">{message}</p>}
       <Input
         label="Full name"
         name="name"
@@ -122,6 +134,9 @@ export function RegisterForm() {
         name="email"
         type="email"
         autoComplete="email"
+        autoCapitalize="none"
+        spellCheck={false}
+        inputMode="email"
         value={form.email}
         onChange={(e) => setForm({ ...form, email: e.target.value })}
         error={errors.email?.[0]}
@@ -138,10 +153,9 @@ export function RegisterForm() {
         onChange={(e) => setForm({ ...form, phone: e.target.value })}
         error={errors.phone?.[0]}
       />
-      <Input
+      <PasswordInput
         label="Password"
         name="password"
-        type="password"
         autoComplete="new-password"
         value={form.password}
         onChange={(e) => setForm({ ...form, password: e.target.value })}

@@ -14,12 +14,14 @@ export function Logo({
   className,
   href = "/",
   compact = false,
+  responsive = false,
   src,
   onDark = false,
 }: {
   className?: string;
   href?: string | null;
   compact?: boolean;
+  responsive?: boolean;
   /** Custom logo URL from cafe settings; falls back to the bundled badge. */
   src?: string | null;
   /** Set on dark surfaces (footer, admin sidebar) so the badge stays visible. */
@@ -50,7 +52,7 @@ export function Logo({
       </span>
 
       {!compact && (
-        <span className="flex flex-col leading-none">
+        <span className={cn("flex-col leading-none", responsive ? "hidden min-[360px]:flex" : "flex")}>
           <span
             className={cn(
               "font-display text-lg font-extrabold tracking-tight",

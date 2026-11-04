@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
-import { Loader2, Star } from "lucide-react";
+import { useId, useState, forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { Eye, EyeOff, Loader2, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ── Button ────────────────────────────────────────────────────────────── */
@@ -47,17 +47,17 @@ type FieldWrapProps = { label?: string; error?: string; hint?: string; required?
 
 export function FieldWrap({ label, error, hint, required, children, htmlFor }: FieldWrapProps) {
   return (
-    <div>
+    <div className="min-w-0">
       {label && (
         <label className="label" htmlFor={htmlFor}>
           {label}
-          {required && <span className="ml-0.5 text-chilli-500">*</span>}
+          {required && <span className="ml-0.5 text-chilli-500" aria-hidden>*</span>}
         </label>
       )}
       {children}
       {hint && !error && <p className="mt-1 text-xs text-charcoal-500">{hint}</p>}
       {error && (
-        <p className="mt-1 text-xs font-medium text-chilli-600" role="alert">
+        <p id={htmlFor ? `${htmlFor}-error` : undefined} className="mt-1 text-xs font-medium text-chilli-600" role="alert">
           {error}
         </p>
       )}
@@ -71,7 +71,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { label, error, hint, className, id, required, ...props },
   ref,
 ) {
-  const fieldId = id ?? props.name;
+  const generatedId = useId();
+  const fieldId = id ?? props.name ?? generatedId;
   return (
     <FieldWrap label={label} error={error} hint={hint} required={required} htmlFor={fieldId}>
       <input
@@ -87,13 +88,32 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   );
 });
 
+export function PasswordInput(props: Omit<InputProps, "type">) {
+  const [visible, setVisible] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
+  return (
+    <div className="relative">
+      <Input {...props} type={visible ? "text" : "password"} className={cn("pr-14", props.className)}
+        onKeyUp={event => { setCapsLock(event.getModifierState("CapsLock")); props.onKeyUp?.(event); }}
+        onBlur={event => { setCapsLock(false); props.onBlur?.(event); }} />
+      <button type="button" aria-label={visible ? "Hide password" : "Show password"}
+        aria-pressed={visible} onClick={() => setVisible(value => !value)}
+        className="absolute right-1 top-[23px] flex h-11 w-11 items-center justify-center rounded-lg text-charcoal-400 hover:text-chai-600">
+        {visible ? <EyeOff className="h-5 w-5" aria-hidden /> : <Eye className="h-5 w-5" aria-hidden />}
+      </button>
+      {capsLock && <p className="mt-1 text-xs text-amber-700" role="status">Caps Lock is on.</p>}
+    </div>
+  );
+}
+
 type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; error?: string; hint?: string };
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
   { label, error, hint, className, id, required, ...props },
   ref,
 ) {
-  const fieldId = id ?? props.name;
+  const generatedId = useId();
+  const fieldId = id ?? props.name ?? generatedId;
   return (
     <FieldWrap label={label} error={error} hint={hint} required={required} htmlFor={fieldId}>
       <textarea
@@ -115,7 +135,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   { label, error, hint, className, id, required, children, ...props },
   ref,
 ) {
-  const fieldId = id ?? props.name;
+  const generatedId = useId();
+  const fieldId = id ?? props.name ?? generatedId;
   return (
     <FieldWrap label={label} error={error} hint={hint} required={required} htmlFor={fieldId}>
       <select
@@ -142,7 +163,8 @@ export function Checkbox({
   className,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { label: string; description?: string }) {
-  const id = props.id ?? props.name;
+  const generatedId = useId();
+  const id = props.id ?? props.name ?? generatedId;
   return (
     <label
       htmlFor={id}

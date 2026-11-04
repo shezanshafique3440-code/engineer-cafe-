@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Search, ShoppingBag, User, X, LogOut, LayoutDashboard, Heart } from "lucide-react";
+import { useDialogFocus } from "@/hooks/use-dialog-focus";
 import { Logo } from "./logo";
 import { useCart } from "@/context/cart-context";
 import { useSession } from "@/context/session-context";
@@ -33,6 +34,8 @@ export function Navbar() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [bump, setBump] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(mobileOpen, drawerRef, () => setMobileOpen(false));
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -55,11 +58,11 @@ export function Navbar() {
   }, [itemCount]);
 
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileOpen]);
+    const media = window.matchMedia("(min-width: 1280px)");
+    const close = () => { if (media.matches) setMobileOpen(false); };
+    media.addEventListener("change", close);
+    return () => media.removeEventListener("change", close);
+  }, []);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
@@ -81,10 +84,10 @@ export function Navbar() {
             : "border-b border-transparent bg-cream-50",
         )}
       >
-        <nav className="container flex h-16 items-center justify-between gap-4 md:h-[72px]" aria-label="Main">
+        <nav className="container flex h-16 items-center justify-between gap-2 sm:gap-4 md:h-[72px]" aria-label="Main">
           <div className="flex items-center gap-8">
-            <Logo src={settings.logoUrl} />
-            <ul className="hidden items-center gap-1 lg:flex">
+            <Logo src={settings.logoUrl} responsive />
+            <ul className="hidden items-center gap-1 xl:flex">
               {LINKS.map((link) => (
                 <li key={link.href}>
                   <Link
@@ -117,7 +120,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="rounded-xl p-2.5 text-charcoal-600 transition hover:bg-cream-100 hover:text-charcoal-900"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-charcoal-600 transition hover:bg-cream-100 hover:text-charcoal-900"
               aria-label="Search the menu"
             >
               <Search className="h-[18px] w-[18px]" />
@@ -127,7 +130,7 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => setAccountOpen((v) => !v)}
-                className="rounded-xl p-2.5 text-charcoal-600 transition hover:bg-cream-100 hover:text-charcoal-900"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-charcoal-600 transition hover:bg-cream-100 hover:text-charcoal-900"
                 aria-label="Account menu"
                 aria-expanded={accountOpen}
                 aria-haspopup="menu"
@@ -187,7 +190,7 @@ export function Navbar() {
 
             <Link
               href="/cart"
-              className="relative rounded-xl p-2.5 text-charcoal-600 transition hover:bg-cream-100 hover:text-charcoal-900"
+              className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-charcoal-600 transition hover:bg-cream-100 hover:text-charcoal-900"
               aria-label={`Cart, ${itemCount} item${itemCount === 1 ? "" : "s"}`}
             >
               <ShoppingBag className="h-[18px] w-[18px]" />
@@ -210,7 +213,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="rounded-xl p-2.5 text-charcoal-700 transition hover:bg-cream-100 lg:hidden"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-charcoal-700 transition hover:bg-cream-100 xl:hidden"
               aria-label="Open menu"
               aria-expanded={mobileOpen}
             >
@@ -223,7 +226,7 @@ export function Navbar() {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            className="fixed inset-0 z-50 lg:hidden"
+            className="fixed inset-0 z-50 xl:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -234,6 +237,8 @@ export function Navbar() {
               aria-hidden
             />
             <motion.div
+              ref={drawerRef}
+              tabIndex={-1}
               role="dialog"
               aria-modal="true"
               aria-label="Navigation"
@@ -241,7 +246,7 @@ export function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="absolute right-0 top-0 flex h-full w-[86%] max-w-sm flex-col bg-cream-50 shadow-lift"
+              className="absolute right-0 top-0 flex h-full w-[86%] max-w-sm flex-col bg-cream-50 pb-[env(safe-area-inset-bottom)] shadow-lift"
             >
               <div className="flex items-center justify-between border-b border-cream-200 px-5 py-4">
                 <Logo src={settings.logoUrl} />
@@ -276,6 +281,7 @@ export function Navbar() {
 
                 <hr className="my-4 border-cream-200" />
 
+                <Link href="/admin/login" className="mb-2 block min-h-11 rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100">Staff login</Link>
                 <ul className="space-y-1">
                   {user ? (
                     <>

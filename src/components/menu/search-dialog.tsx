@@ -5,12 +5,13 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, X, Loader2 } from "lucide-react";
+import { useDialogFocus } from "@/hooks/use-dialog-focus";
 import { apiGet } from "@/lib/api-client";
 import { useMoney } from "@/context/settings-context";
 import type { ProductDTO } from "@/lib/types";
 import { ENGINEER_QUIPS } from "@/lib/constants";
 
-const SUGGESTIONS = ["chai", "cheese paratha", "chicken", "spicy", "combo", "fries"];
+const SUGGESTIONS = ["chai", "cheese paratha", "chicken", "spicy", "omelette", "chanay"];
 
 /** Instant, keyboard-accessible menu search. No page reload. */
 export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -18,6 +19,9 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
   const [results, setResults] = useState<ProductDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(open, dialogRef, onClose);
   const inputRef = useRef<HTMLInputElement>(null);
   const money = useMoney();
 
@@ -31,18 +35,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     setSearched(false);
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
+
 
   useEffect(() => {
     if (!open) return;
@@ -50,10 +43,13 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     if (query.length < 2) {
       setResults([]);
       setSearched(false);
+      setLoading(false);
+      setFailed(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
+    setFailed(false);
     const timer = setTimeout(async () => {
       try {
         const data = await apiGet<{ products: ProductDTO[] }>(
@@ -64,7 +60,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
           setSearched(true);
         }
       } catch {
-        if (!cancelled) setResults([]);
+        if (!cancelled) { setResults([]); setFailed(true); }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -86,6 +82,8 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
         >
           <div className="absolute inset-0 bg-charcoal-900/40 backdrop-blur-sm" onClick={onClose} aria-hidden />
           <motion.div
+            ref={dialogRef}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
             aria-label="Search the menu"
@@ -110,7 +108,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-charcoal-400 hover:bg-cream-100"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-charcoal-400 hover:bg-cream-100"
                 aria-label="Close search"
               >
                 <X className="h-4 w-4" />
@@ -138,6 +136,11 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                   <p className="mt-6 font-mono text-xs text-charcoal-300">
                     {ENGINEER_QUIPS[2]}
                   </p>
+                </div>
+              ) : failed ? (
+                <div className="px-5 py-8 text-center" role="status">
+                  <p className="text-sm text-charcoal-600">Search could not load. Check your connection or browse the menu.</p>
+                  <Link href="/menu" onClick={onClose} className="btn-secondary mt-4">Browse menu</Link>
                 </div>
               ) : results.length === 0 && searched && !loading ? (
                 <div className="px-5 py-10 text-center">

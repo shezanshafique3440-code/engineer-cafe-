@@ -1,3 +1,4 @@
+import { BackToTop } from "@/components/layout/back-to-top";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { WhatsAppButton } from "@/components/layout/whatsapp-button";
@@ -30,6 +31,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
               <StickyCartBar />
               <BottomNav />
               <ScrollReveal />
+              <BackToTop />
             </div>
           </CartProvider>
         </FavoritesProvider>

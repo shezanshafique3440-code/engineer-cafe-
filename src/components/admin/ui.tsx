@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useRef, type HTMLAttributes, type ReactNode } from "react";
+import { useDialogFocus } from "@/hooks/use-dialog-focus";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui";
@@ -16,8 +17,8 @@ export function PageHeader({
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-extrabold text-charcoal-900">{title}</h1>
+      <div className="min-w-0">
+        <h1 className="break-words text-2xl font-extrabold text-charcoal-900">{title}</h1>
         {description && <p className="mt-1 text-sm text-charcoal-500">{description}</p>}
       </div>
       {action}
@@ -57,7 +58,7 @@ export function StatCard({
           </span>
         )}
       </div>
-      <p className="mt-3 text-2xl font-extrabold text-charcoal-900">{value}</p>
+      <p className="mt-3 break-words text-xl font-extrabold text-charcoal-900 sm:text-2xl">{value}</p>
       {hint && <p className="mt-1 text-xs text-charcoal-500">{hint}</p>}
     </>
   );
@@ -84,43 +85,37 @@ export function Modal({
   children: ReactNode;
   size?: "md" | "lg";
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(open, dialogRef, onClose);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-0 sm:items-center sm:p-6">
       <div className="fixed inset-0 bg-charcoal-900/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "relative my-4 w-full rounded-2xl bg-surface shadow-lift",
+          "relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-surface shadow-lift sm:my-4 sm:rounded-2xl",
           size === "lg" ? "max-w-3xl" : "max-w-xl",
         )}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-cream-200 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-cream-200 px-4 py-3 sm:px-5 sm:py-4">
           <h2 className="text-lg font-bold">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-charcoal-400 transition hover:bg-cream-100"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-charcoal-400 transition hover:bg-cream-100"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="min-h-0 overflow-y-auto overscroll-contain p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-5">{children}</div>
       </div>
     </div>
   );
@@ -135,12 +130,19 @@ export function DataTable({
   children: ReactNode;
   empty?: boolean;
 }) {
+  const rows = Children.map(children, row => {
+    if (!isValidElement<HTMLAttributes<HTMLTableRowElement>>(row) || row.type !== "tr") return row;
+    return cloneElement(row, { role: "row" }, Children.map(row.props.children, (cell, index) => {
+      if (!isValidElement<HTMLAttributes<HTMLTableCellElement>>(cell) || cell.type !== "td") return cell;
+      return cloneElement(cell, { "data-label": columns[index] ?? "", role: "cell" } as HTMLAttributes<HTMLTableCellElement>, <div className="admin-cell-content">{cell.props.children}</div>);
+    }));
+  });
   return (
-    <div className="surface overflow-hidden">
+    <div className="admin-data-table surface min-w-0 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
-          <thead>
-            <tr className="border-b border-cream-200 bg-cream-50">
+        <table role="table" className="w-full min-w-[720px] text-sm">
+          <thead role="rowgroup">
+            <tr role="row" className="border-b border-cream-200 bg-cream-50">
               {columns.map((column) => (
                 <th
                   key={column}
@@ -152,7 +154,7 @@ export function DataTable({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-cream-200">{children}</tbody>
+          <tbody role="rowgroup" className="divide-y divide-cream-200">{rows}</tbody>
         </table>
       </div>
       {empty && (
