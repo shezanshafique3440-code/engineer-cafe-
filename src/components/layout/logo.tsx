@@ -40,6 +40,7 @@ export function Logo({
           isCustom && onDark ? "bg-cream-50 p-1" : "",
         )}
       >
+        {/* Runtime and external brand URLs load directly, without menu optimizer restrictions. */}
         <Image
           src={badge}
           alt=""
@@ -47,7 +48,7 @@ export function Logo({
           height={40}
           className="h-full w-full object-contain"
           priority
-          unoptimized={badge.startsWith("/brand/")}
+          unoptimized
         />
       </span>
 

@@ -23,6 +23,7 @@ export type StorageAdapter = {
 /**
  * Development / single-VPS adapter. Files land in `public/uploads` which is
  * git-ignored — uploaded images are never committed into the frontend source.
+ * The /uploads/[...path] route serves files added after production startup.
  */
 const localAdapter: StorageAdapter = {
   name: "local",

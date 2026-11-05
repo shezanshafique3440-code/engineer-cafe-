@@ -59,6 +59,7 @@ export function SettingsManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   // What the server currently holds, so the theme preview can be rolled back
   // if the admin walks away from the form without saving.
   const [savedTheme, setSavedTheme] = useState(DEFAULT_THEME as string);
@@ -89,6 +90,10 @@ export function SettingsManager() {
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form) return;
+    if (logoUploading) {
+      toast.error("Wait for the logo upload to finish before saving.");
+      return;
+    }
     setErrors({});
     setSaving(true);
 
@@ -142,7 +147,7 @@ export function SettingsManager() {
         title="Settings"
         description="These values drive the storefront — no redeploy needed."
         action={
-          <Button type="submit" loading={saving}>
+          <Button type="submit" loading={saving} disabled={logoUploading}>
             <Save className="h-4 w-4" aria-hidden /> Save changes
           </Button>
         }
@@ -154,7 +159,8 @@ export function SettingsManager() {
           <div className="space-y-4">
             <Input label="Cafe name" name="cafeName" value={str("cafeName")} onChange={(e) => set("cafeName", e.target.value)} error={errors.cafeName?.[0]} required />
             <Input label="Tagline" name="tagline" value={str("tagline")} onChange={(e) => set("tagline", e.target.value)} error={errors.tagline?.[0]} />
-            <ImageUpload value={str("logoUrl")} onChange={(url) => set("logoUrl", url)} label="Logo" />
+            <ImageUpload value={str("logoUrl")} onChange={(url) => set("logoUrl", url)} label="Logo" fit="contain" onUploadingChange={setLogoUploading} error={errors.logoUrl?.[0]} />
+            <p className="text-xs text-charcoal-500">Upload or replace your logo, then choose Save changes to publish it.</p>
           </div>
         </section>
 
@@ -226,7 +232,7 @@ export function SettingsManager() {
       </div>
 
       <div className="mt-6 flex justify-end">
-        <Button type="submit" size="lg" loading={saving}>
+        <Button type="submit" size="lg" loading={saving} disabled={logoUploading}>
           <Save className="h-4 w-4" aria-hidden /> Save changes
         </Button>
       </div>

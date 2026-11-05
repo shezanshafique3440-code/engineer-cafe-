@@ -136,6 +136,10 @@ Images are uploaded through `/api/admin/upload`, which routes to a storage adapt
 by `UPLOAD_PROVIDER`:
 
 - `local` — writes to `public/uploads` (git-ignored). Good for a single VPS.
+  The `/uploads/[...path]` handler reads newly uploaded images at request time,
+  including files added after `next start`; no rebuild or PM2 restart is needed.
+  Existing nested menu-photo URLs remain valid. The handler confines reads to
+  raster images inside the uploads directory and revalidates cached content.
 - `cloudinary` — set `CLOUDINARY_CLOUD_NAME` plus either
   `CLOUDINARY_UPLOAD_PRESET` (unsigned, simplest) or
   `CLOUDINARY_API_KEY` + `CLOUDINARY_API_SECRET` (signed). A refusal from
@@ -146,6 +150,12 @@ by `UPLOAD_PROVIDER`:
 
 Adding another provider means implementing one `StorageAdapter` in `src/server/storage.ts`.
 Uploaded images are never committed into the frontend source.
+
+In Admin → Settings, upload or replace the logo, then choose **Save changes**.
+Saving waits for an in-progress logo upload. Brand images load directly from
+their saved URL, so local runtime uploads and external logo URLs do not depend
+on the menu-image optimizer's provider list. The preview uses `contain` to keep
+the entire logo visible; an unreadable image shows a clear error.
 
 ## Scroll reveal
 
