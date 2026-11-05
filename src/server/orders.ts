@@ -65,6 +65,7 @@ export function serializeOrder(order: FullOrder) {
     cancelReason: order.cancelReason,
     createdAt: order.createdAt.toISOString(),
     placedAt: order.placedAt.toISOString(),
+    version: order.updatedAt.toISOString(),
     deliveredAt: order.deliveredAt?.toISOString() ?? null,
     items: order.items.map((item) => ({
       id: item.id,
@@ -98,6 +99,62 @@ export type OrderDTO = ReturnType<typeof serializeOrder>;
 
 export function findOrder(where: Prisma.OrderWhereInput) {
   return prisma.order.findFirst({ where, include: orderInclude });
+}
+
+/** Remove a confirmed snapshot once, releasing only unfinished reservations. */
+export async function deleteOrder(
+  id: string,
+  confirmation: { orderNumber: string; version: string },
+) {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.findFirst({
+      where: { OR: [{ id }, { orderNumber: id.toUpperCase() }] },
+      include: { items: { select: { productId: true, quantity: true } } },
+    });
+    if (!order)
+      throw new HttpError(
+        404,
+        "Order no longer exists. Refresh the order list.",
+      );
+    if (
+      order.orderNumber !== confirmation.orderNumber ||
+      order.updatedAt.toISOString() !== confirmation.version
+    )
+      throw new HttpError(
+        409,
+        "This order changed on another screen. Refresh and review it before deleting.",
+      );
+
+    // The delete predicate serializes deletion against another delete or status
+    // transition. Cascades remove items, add-ons and timeline in this transaction.
+    const removed = await tx.order.deleteMany({
+      where: {
+        id: order.id,
+        orderNumber: confirmation.orderNumber,
+        updatedAt: order.updatedAt,
+      },
+    });
+    if (removed.count !== 1)
+      throw new HttpError(
+        409,
+        "This order changed on another screen. Refresh and try again.",
+      );
+
+    // Delivered food was consumed; cancelled reservations were already released.
+    if (order.status !== "DELIVERED" && order.status !== "CANCELLED") {
+      for (const item of order.items) {
+        if (!item.productId) continue;
+        await tx.$executeRaw`UPDATE "Product" SET "stock" = "stock" + ${item.quantity},
+          "soldCount" = GREATEST(0, "soldCount" - ${item.quantity}), "updatedAt" = NOW()
+          WHERE "id" = ${item.productId}`;
+      }
+      if (order.couponId) {
+        await tx.$executeRaw`UPDATE "Coupon" SET "usageCount" = GREATEST(0, "usageCount" - 1),
+          "updatedAt" = NOW() WHERE "id" = ${order.couponId}`;
+      }
+    }
+    return { id: order.id, orderNumber: order.orderNumber };
+  });
 }
 
 /** Applies a status change plus its side effects (timestamps, stock, event log). */

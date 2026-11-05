@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { orderStatusSchema } from "@/lib/validation";
-import { handle, json, notFound, parseBody, requireAdmin, badRequest } from "@/server/api";
-import { findOrder, serializeOrder, transitionOrder } from "@/server/orders";
+import { orderDeleteSchema, orderStatusSchema } from "@/lib/validation";
+import { handle, json, notFound, parseBody, requireAdmin, badRequest, forbidden } from "@/server/api";
+import { deleteOrder, findOrder, serializeOrder, transitionOrder } from "@/server/orders";
 
 export const GET = handle(async (_r: Request, ctx: { params: Promise<{ id: string }> }) => {
   await requireAdmin();
@@ -30,3 +30,19 @@ export const PATCH = handle(async (request: Request, ctx: { params: Promise<{ id
   const updated = await transitionOrder(order, data.status, data.note || undefined);
   return json({ order: serializeOrder(updated) });
 });
+
+export const DELETE = handle(
+  async (request: Request, ctx: { params: Promise<{ id: string }> }) => {
+    const user = await requireAdmin();
+    if (user.role !== "ADMIN")
+      throw forbidden("Only an admin can permanently delete orders.");
+    const { id } = await ctx.params;
+    const confirmation = await parseBody(request, orderDeleteSchema);
+    const deleted = await deleteOrder(id, confirmation);
+    return json({
+      ok: true,
+      ...deleted,
+      message: `Order #${deleted.orderNumber} deleted.`,
+    });
+  },
+);

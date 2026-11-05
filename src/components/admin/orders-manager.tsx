@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Search, Printer, Eye, RefreshCw, Phone, MapPin, MessageCircle, Download } from "lucide-react";
+import { Search, Printer, Eye, RefreshCw, Phone, MapPin, MessageCircle, Download, Trash2 } from "lucide-react";
 import { downloadCsv } from "@/lib/csv";
-import { apiGet, apiPatch, ApiError } from "@/lib/api-client";
+import { apiDelete, apiGet, apiPatch, ApiError } from "@/lib/api-client";
+import { useSession } from "@/context/session-context";
 import { useMoney, useSettings } from "@/context/settings-context";
 import { PageHeader, DataTable, TableSkeleton, Modal } from "./ui";
 import { Button, Select, ErrorState, Badge } from "@/components/ui";
@@ -13,7 +14,7 @@ import {
   ORDER_STATUS_LABEL, ORDER_STATUS_TONE, ORDER_TYPE_LABEL,
   PAYMENT_METHOD_LABEL, nextStatuses, allStatuses,
 } from "@/lib/constants";
-import { whatsappOrderHref, toWhatsAppNumber, NOTIFY_LABEL } from "@/lib/notifications";
+import { whatsappOrderHref, toWhatsAppNumber, NOTIFY_LABEL, ORDERS_CHANGED_EVENT } from "@/lib/notifications";
 import type { OrderDTO } from "@/server/orders";
 import type { OrderStatus } from "@prisma/client";
 
@@ -40,6 +41,9 @@ function OrdersManagerInner() {
   const [error, setError] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
   const [viewing, setViewing] = useState<OrderDTO | null>(null);
+  const [deleting, setDeleting] = useState<OrderDTO | null>(null);
+  const [deletingBusy, setDeletingBusy] = useState(false);
+  const refreshButton = useRef<HTMLButtonElement>(null);
 
   const [filters, setFilters] = useState({
     search: "",
@@ -51,6 +55,8 @@ function OrdersManagerInner() {
 
   const money = useMoney();
   const settings = useSettings();
+  const { user } = useSession();
+  const canDelete = user?.role === "ADMIN";
 
   const load = useCallback(
     async (targetPage = 1) => {
@@ -136,6 +142,7 @@ function OrdersManagerInner() {
       const data = await apiPatch<{ order: OrderDTO }>(`/api/admin/orders/${order.id}`, { status });
       setOrders((current) => current.map((o) => (o.id === order.id ? data.order : o)));
       if (viewing?.id === order.id) setViewing(data.order);
+      window.dispatchEvent(new Event(ORDERS_CHANGED_EVENT));
 
       // Every status change is worth telling the customer about, so the toast
       // carries the send rather than leaving it to be remembered.
@@ -150,6 +157,43 @@ function OrdersManagerInner() {
       toast.error(err instanceof ApiError ? err.message : "Couldn't update this order.");
     } finally {
       setUpdating(null);
+    }
+  };
+
+  const requestDelete = (order: OrderDTO) => {
+    setViewing(null);
+    setDeleting(order);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleting || deletingBusy) return;
+    const order = deleting;
+    setDeletingBusy(true);
+    try {
+      await apiDelete(`/api/admin/orders/${order.id}`, {
+        orderNumber: order.orderNumber,
+        version: order.version,
+      });
+      setOrders((current) => current.filter((row) => row.id !== order.id));
+      setTotal((current) => Math.max(0, current - 1));
+      setStatusCounts((current) => ({
+        ...current,
+        [order.status]: Math.max(0, (current[order.status] ?? 0) - 1),
+      }));
+      setDeleting(null);
+      window.dispatchEvent(new Event(ORDERS_CHANGED_EVENT));
+      toast.success(`Order #${order.orderNumber} deleted.`);
+      await load(orders.length === 1 && page > 1 ? page - 1 : page);
+      requestAnimationFrame(() => refreshButton.current?.focus());
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Couldn't delete this order.");
+      if (err instanceof ApiError && [404, 409].includes(err.status)) {
+        setDeleting(null);
+        await load(page);
+        requestAnimationFrame(() => refreshButton.current?.focus());
+      }
+    } finally {
+      setDeletingBusy(false);
     }
   };
 
@@ -188,7 +232,7 @@ function OrdersManagerInner() {
                   ORDER_STATUS_LABEL[order.status], ORDER_TYPE_LABEL[order.orderType], order.paymentStatus, order.placedAt]))}>
               <Download className="h-4 w-4" aria-hidden /> Export page
             </Button>
-            <Button variant="secondary" onClick={() => void load(page)} disabled={loading}>
+            <Button ref={refreshButton} variant="secondary" onClick={() => void load(page)} disabled={loading}>
               <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden /> Refresh
             </Button>
           </div>
@@ -312,7 +356,7 @@ function OrdersManagerInner() {
                     {formatDate(order.placedAt, true)}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {options.length > 0 && (
                         <select
                           aria-label={`Change status of order ${order.orderNumber}`}
@@ -357,6 +401,18 @@ function OrdersManagerInner() {
                       >
                         <Printer className="h-4 w-4" />
                       </button>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => requestDelete(order)}
+                          disabled={updating === order.id || deletingBusy}
+                          aria-label={`Delete order ${order.orderNumber}`}
+                          title={`Delete order #${order.orderNumber}`}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-chilli-500 transition hover:bg-chilli-400/10 hover:text-chilli-600 disabled:opacity-40"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -507,6 +563,36 @@ function OrdersManagerInner() {
               </Button>
               <Button size="sm" variant="secondary" onClick={() => void printOrder(viewing)}>
                 <Printer className="h-3.5 w-3.5" aria-hidden /> Print
+              </Button>
+              {canDelete && (
+                <Button size="sm" variant="danger" disabled={updating === viewing.id || deletingBusy} onClick={() => requestDelete(viewing)}>
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden /> Delete order
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+      <Modal
+        open={Boolean(deleting)}
+        onClose={() => { if (!deletingBusy) setDeleting(null); }}
+        title={deleting ? `Delete order #${deleting.orderNumber}?` : "Delete order"}
+      >
+        {deleting && (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-cream-200 bg-cream-50 p-4 text-sm">
+              <p className="font-semibold">{deleting.customerName}</p>
+              <p className="mt-1 text-charcoal-500">{money(deleting.total)} · {ORDER_STATUS_LABEL[deleting.status]}</p>
+            </div>
+            <p className="text-sm text-charcoal-600">This permanently removes the order, its receipt and timeline from order history and reports. This cannot be undone here.</p>
+            {deleting.status !== "DELIVERED" && deleting.status !== "CANCELLED" && (
+              <p className="text-sm text-charcoal-600">Reserved stock for this unfinished order will be released.</p>
+            )}
+            <p className="text-xs text-charcoal-500">Deleting an order does not issue a payment refund.</p>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-cream-200 pt-4">
+              <Button variant="secondary" disabled={deletingBusy} onClick={() => setDeleting(null)}>Keep order</Button>
+              <Button variant="danger" loading={deletingBusy} onClick={() => void confirmDelete()}>
+                <Trash2 className="h-4 w-4" aria-hidden /> Delete order
               </Button>
             </div>
           </div>

@@ -1,5 +1,7 @@
 import type { OrderStatus } from "@prisma/client";
 
+export const ORDERS_CHANGED_EVENT = "engineer-cafe:orders-changed";
+
 /**
  * Order notifications, WhatsApp-first.
  *

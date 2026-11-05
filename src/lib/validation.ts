@@ -201,6 +201,11 @@ export const settingsSchema = z.object({
   isAcceptingOrders: z.boolean(),
 });
 
+export const orderDeleteSchema = z.object({
+  orderNumber: z.string().trim().min(1).max(50),
+  version: z.string().datetime(),
+});
+
 export const orderStatusSchema = z.object({
   status: z.enum([
     "PENDING",

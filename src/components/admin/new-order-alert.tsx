@@ -10,6 +10,7 @@ import { Bell, BellOff, RefreshCw } from "lucide-react";
 import { apiGet } from "@/lib/api-client";
 import { useMoney } from "@/context/settings-context";
 import { cn } from "@/lib/utils";
+import { ORDERS_CHANGED_EVENT } from "@/lib/notifications";
 
 const POLL_MS = 20_000;
 const MUTE_KEY = "engineer-cafe:order-alert-muted";
@@ -96,20 +97,22 @@ export function NewOrderAlert() {
       }
     };
     void load();
+    const onOrdersChanged = () => { void load(); };
+    window.addEventListener(ORDERS_CHANGED_EVENT, onOrdersChanged);
     const timer = window.setInterval(() => {
       if (!document.hidden) void load();
     }, POLL_MS);
     return () => {
       active = false;
+      window.removeEventListener(ORDERS_CHANGED_EVENT, onOrdersChanged);
       window.clearInterval(timer);
     };
   }, [open, refresh]);
   const [muted, setMuted] = useState(false);
 
-  // The newest order id already accounted for. `null` means we have not taken
-  // a baseline yet, so the first poll must never fire an alert for an order
-  // that was placed before this tab opened.
-  const seenRef = useRef<string | null>(null);
+  // Retain a high-water timestamp: deleting the latest order must not make an
+  // older one sound like a new arrival. The first poll only takes a baseline.
+  const seenRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -161,11 +164,11 @@ export function NewOrderAlert() {
 
         setPending(pulse.pendingCount);
 
-        const latestId = pulse.latest?.id ?? "";
+        const latestTime = pulse.latest ? Date.parse(pulse.latest.placedAt) : 0;
         if (seenRef.current === null) {
-          seenRef.current = latestId; // baseline only
-        } else if (pulse.latest && latestId !== seenRef.current) {
-          seenRef.current = latestId;
+          seenRef.current = latestTime;
+        } else if (pulse.latest && latestTime > seenRef.current) {
+          seenRef.current = latestTime;
           announce(pulse.latest);
         }
       } catch {
@@ -174,9 +177,12 @@ export function NewOrderAlert() {
     };
 
     void poll();
+    const onOrdersChanged = () => { void poll(); };
+    window.addEventListener(ORDERS_CHANGED_EVENT, onOrdersChanged);
     const timer = window.setInterval(() => void poll(), POLL_MS);
     return () => {
       cancelled = true;
+      window.removeEventListener(ORDERS_CHANGED_EVENT, onOrdersChanged);
       window.clearInterval(timer);
     };
   }, [announce]);

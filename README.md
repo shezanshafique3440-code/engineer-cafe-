@@ -309,6 +309,33 @@ footer and the page's own buttons on the paper — worth remembering if anyone
 is tempted to add another print control.
 
 
+### Deleting an order
+
+An **Admin** can use the trash button immediately beside **Print** in the orders
+table, or **Delete order** beside Print in the detail dialog. The confirmation
+shows the order number, customer and amount. **Keep order** dismisses it without
+changing anything. Deletion permanently removes the order, its items, add-ons
+and timeline from history and reports; it does not issue a payment refund.
+
+`DELETE /api/admin/orders/[id]` requires the confirmed `orderNumber` and current
+`version`. The database role is checked again, so Staff, customers and anonymous
+requests cannot use it. A changed order is rejected with 409 and the list reloads
+for review. The conditional delete and inventory/coupon updates share one
+transaction: unfinished reservations are released once, cancelled reservations
+are not released twice, and delivered stock/redemptions stay recorded. A failed
+update rolls the entire deletion back. No schema migration is required.
+
+After deletion the list, status counts and notification badge refresh. Deleting
+the final row on a later page returns to the previous page. Notification polling
+keeps a timestamp high-water mark so removing the newest order cannot announce
+an older one as a new arrival. Newer incoming orders still sound normally.
+
+Validated against isolated PostgreSQL and a built Next app: authorization,
+stale/missing confirmations, concurrent deletes, delete/cancel races, child
+cascades, stock/coupon effects, a forced SQL failure, receipt printing, detail
+and row confirmations, pagination, notification refresh and four layouts from
+320 to 1440px. Production orders were not used in these checks.
+
 ### Counter sales complete themselves
 
 A pickup order paid with Cash at Counter is created **already Delivered and
