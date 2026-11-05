@@ -83,6 +83,7 @@ export default async function HomePage() {
       />
       <Hero
         products={highlights}
+        catalog={available}
         rating={ratings._count ? ratings._avg.rating : null}
         reviewCount={ratings._count}
         menuCount={stats._count}

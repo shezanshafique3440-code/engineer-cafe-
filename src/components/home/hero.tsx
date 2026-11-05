@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   motion,
   useInView,
@@ -23,19 +23,23 @@ import {
 } from "lucide-react";
 import { useSettings, useMoney } from "@/context/settings-context";
 import { heroSlot } from "@/lib/hero-catalog";
-import { ChaiPerformance } from "./chai-performance";
+import { DishPerformance } from "./dish-performance";
+import { DishChooser, DishIngredients } from "./dish-dialogs";
+import { dishExperience, isExperienceProduct } from "@/lib/dish-experience";
 import type { ProductDTO } from "@/lib/types";
 
 export const HERO_ROTATE_MS = 5200;
 
 export function Hero({
   products,
+  catalog,
   rating,
   reviewCount,
   menuCount,
   prepMinutes,
 }: {
   products: ProductDTO[];
+  catalog: ProductDTO[];
   rating: number | null;
   reviewCount: number;
   menuCount: number;
@@ -52,6 +56,16 @@ export function Hero({
   const [hidden, setHidden] = useState(false);
   const [keyboardFocus, setKeyboardFocus] = useState(false);
   const [replay, setReplay] = useState(0);
+  const [extraId, setExtraId] = useState<string | null>(null);
+  const [readyId, setReadyId] = useState<string | null>(null);
+  const [chooserOpen, setChooserOpen] = useState(false);
+  const [ingredientsOpen, setIngredientsOpen] = useState(false);
+  const menu = useMemo(() => catalog.filter(isExperienceProduct), [catalog]);
+  const extra = menu.find((p) => p.id === extraId);
+  const picks = extra
+    ? [extra, ...products.filter((p) => p.id !== extra.id)].slice(0, 5)
+    : products;
+  const onReady = useCallback((id: string) => setReadyId(id), []);
   const { scrollYProgress } = useScroll({
     target: journey,
     offset: ["start start", "end end"],
@@ -59,9 +73,18 @@ export function Hero({
   const cupDescent = useTransform(scrollYProgress, [0, 0.5, 1], [-14, 45, 85]);
   const cupScale = useTransform(scrollYProgress, [0, 1], [1, 0.88]);
   const atmosphere = useTransform(scrollYProgress, [0, 0.6, 1], [1, 0.18, 0]);
-  const playing = !paused && !reduced && !hidden && inView && !keyboardFocus;
-  const featured = products[active] ?? products[0] ?? null;
-  const count = products.length;
+  const featured = picks[active] ?? picks[0] ?? null;
+  const count = picks.length;
+  const profile = featured ? dishExperience(featured) : null;
+  const playing =
+    !paused &&
+    !reduced &&
+    !hidden &&
+    inView &&
+    !keyboardFocus &&
+    !chooserOpen &&
+    !ingredientsOpen &&
+    (!featured || readyId === featured.id);
 
   useEffect(() => {
     const sync = () => setHidden(document.hidden);
@@ -79,10 +102,24 @@ export function Hero({
       HERO_ROTATE_MS,
     );
     return () => window.clearInterval(timer);
-  }, [playing, active, count]);
+  }, [playing, active, count, replay]);
 
+  const choose = (index: number) => {
+    setActive(index);
+    setReplay((i) => i + 1);
+  };
   const step = (delta: number) => {
-    if (count) setActive((i) => (i + delta + count) % count);
+    if (count) choose((active + delta + count) % count);
+  };
+  const selectDish = (product: ProductDTO) => {
+    const index = picks.findIndex((p) => p.id === product.id);
+    if (index >= 0) choose(index);
+    else {
+      setExtraId(product.id);
+      choose(0);
+    }
+    setChooserOpen(false);
+    setKeyboardFocus(false);
   };
   return (
     <div className="cinema-journey" ref={journey}>
@@ -110,7 +147,7 @@ export function Hero({
         <div className="cinema-ribbon cinema-ribbon-one" aria-hidden />
         <div className="cinema-ribbon cinema-ribbon-two" aria-hidden />
         <span className="cinema-ghost-word" aria-hidden>
-          chai
+          {featured?.category.name.toLocaleLowerCase() ?? "cafe"}
         </span>
 
         <div className="cinema-container cinema-hero-grid">
@@ -123,16 +160,21 @@ export function Hero({
               Made to savour.<em>Worth slowing down.</em>
             </h1>
             <p className="cinema-hero-description">
-              A cup that comes alive. A menu full of favourites. Let your next
-              little ritual find you.
+              Every dish has a little story. Choose a favourite and watch its
+              ingredients come alive.
             </p>
             <div className="cinema-hero-actions">
               <Link href="/menu" className="cinema-button cinema-button-cream">
                 Explore the menu <ArrowRight size={16} aria-hidden />
               </Link>
-              <Link href="#cafe-signatures" className="cinema-text-link">
-                Keep exploring <ArrowDown size={14} aria-hidden />
-              </Link>
+              <button
+                type="button"
+                className="cinema-text-link"
+                onClick={() => setChooserOpen(true)}
+                aria-haspopup="dialog"
+              >
+                Choose a dish <ArrowRight size={14} aria-hidden />
+              </button>
             </div>
             <p className="cinema-hero-location">
               BREWED WITH HEART <span aria-hidden>·</span> {settings.city}
@@ -144,13 +186,24 @@ export function Hero({
               className="hero-vfx-scroll"
               style={reduced ? undefined : { y: cupDescent, scale: cupScale }}
             >
-              <ChaiPerformance key={replay} />
+              {featured ? (
+                <DishPerformance
+                  key={`${featured.id}:${replay}`}
+                  product={featured}
+                  onReady={onReady}
+                />
+              ) : (
+                <div className="dish-empty-stage">
+                  <Coffee size={72} aria-hidden />
+                  <p>Explore today’s menu</p>
+                </div>
+              )}
             </motion.div>
             <div
               className="hero-product-orbit"
               aria-label="Featured menu items"
             >
-              {products.map((product, index) => (
+              {picks.map((product, index) => (
                 <button
                   key={product.id}
                   type="button"
@@ -158,7 +211,7 @@ export function Hero({
                   data-slot={heroSlot(index, active, count)}
                   aria-label={`Feature ${product.name}`}
                   aria-pressed={featured?.id === product.id}
-                  onClick={() => setActive(index)}
+                  onClick={() => choose(index)}
                 >
                   <span className="hero-orbit-photo">
                     {product.image ? (
@@ -196,6 +249,16 @@ export function Hero({
                 "Freshly made. A little moment, your way."}
             </p>
             {featured && (
+              <button
+                type="button"
+                className="hero-recipe-link"
+                onClick={() => setIngredientsOpen(true)}
+                aria-haspopup="dialog"
+              >
+                View ingredients <span>{profile?.ingredients.length ?? 0}</span>
+              </button>
+            )}
+            {featured && (
               <p className="cinema-feature-price">
                 {money(featured.discountPrice ?? featured.price)}{" "}
                 <span>base price</span>
@@ -228,7 +291,7 @@ export function Hero({
             <span>
               <ArrowDown size={16} aria-hidden />
             </span>
-            Scroll to follow the cup
+            Scroll to savour the moment
           </Link>
           <div
             className="cinema-scene-controls"
@@ -243,13 +306,13 @@ export function Hero({
               <ChevronLeft size={16} />
             </button>
             <div className="cinema-scene-dots">
-              {products.map((product, n) => (
+              {picks.map((product, n) => (
                 <button
                   type="button"
                   key={product.id}
                   aria-label={`Show ${product.name}`}
                   aria-pressed={active === n}
-                  onClick={() => setActive(n)}
+                  onClick={() => choose(n)}
                 >
                   <span />
                 </button>
@@ -283,7 +346,7 @@ export function Hero({
             <button
               type="button"
               className="cinema-motion-toggle"
-              aria-label="Replay chai pour"
+              aria-label="Replay food experience"
               onClick={(e) => {
                 setReplay((i) => i + 1);
                 setPaused(false);
@@ -315,6 +378,19 @@ export function Hero({
           </div>
         </div>
       </section>
+      <DishChooser
+        products={menu}
+        open={chooserOpen}
+        onClose={() => setChooserOpen(false)}
+        onSelect={selectDish}
+      />
+      {featured && (
+        <DishIngredients
+          product={featured}
+          open={ingredientsOpen}
+          onClose={() => setIngredientsOpen(false)}
+        />
+      )}
     </div>
   );
 }

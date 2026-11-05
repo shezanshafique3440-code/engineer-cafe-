@@ -130,7 +130,7 @@ for route in /discover /compare /api/storefront-selection; do
     -o /dev/null -w '%{http_code}' "https://esellerstore.vip$route")
   if [ "$status" != 200 ]; then echo "Route check failed: $route HTTP $status"; exit 1; fi
 done
-for asset in chai-cup.webp chai-splash.webp chai-stream.webp ice-cube.webp cafe-atmosphere.webp; do
+for asset in chai-cup.webp chai-splash.webp chai-stream.webp ice-cube.webp cafe-atmosphere.webp ingredient-atlas.webp ingredient-extras.webp; do
   curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 \
     "https://esellerstore.vip/experience/$asset" -o "$BACKUP/$asset"
   cmp "$APP/public/experience/$asset" "$BACKUP/$asset"

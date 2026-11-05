@@ -1,0 +1,864 @@
+/* Dish-local effects use their own art colours; the shared UI theme is untouched. */
+.dish-experience {
+  --dish-cycle: 4.8s;
+  isolation: isolate;
+}
+.dish-aura {
+  position: absolute;
+  width: 84%;
+  height: 84%;
+  left: 8%;
+  top: 7%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgb(var(--dish-tone) / 0.33),
+    transparent 69%
+  );
+  filter: blur(12px);
+  animation: dish-aura var(--dish-cycle) ease-in-out infinite;
+}
+.dish-main-object {
+  position: absolute;
+  left: 13%;
+  top: 13%;
+  width: 74%;
+  height: 69%;
+  z-index: 3;
+  border-radius: 50%;
+  border: 3px solid rgb(var(--dish-tone) / 0.65);
+  background: rgb(var(--c-chai-100));
+  box-shadow:
+    0 0 0 7px rgb(var(--dish-tone) / 0.12),
+    0 22px 40px #2c180b55,
+    inset 0 3px 12px #ffffff55;
+  transform-origin: 50% 65%;
+  animation: dish-object-arrive var(--dish-cycle) cubic-bezier(0.22, 1, 0.36, 1)
+    infinite;
+}
+.dish-main-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: inherit;
+}
+.dish-photo-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 25px;
+  text-align: center;
+  color: rgb(var(--c-chai-800));
+  border-radius: inherit;
+}
+.dish-photo-fallback span {
+  font-family: var(--font-cafe-display);
+  font-size: 25px;
+}
+.dish-steam {
+  position: absolute;
+  z-index: 4;
+  left: 30%;
+  top: -15%;
+  width: 35%;
+  height: 30%;
+  overflow: visible;
+  filter: blur(2px);
+  pointer-events: none;
+}
+.dish-steam path {
+  stroke: #fff4db;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0;
+  animation: chai-steam-rise 2.5s ease-out infinite;
+}
+.dish-steam path:nth-child(2) {
+  animation-delay: -0.8s;
+}
+.dish-steam path:nth-child(3) {
+  animation-delay: -1.6s;
+}
+.dish-object-shadow {
+  position: absolute;
+  width: 58%;
+  height: 7%;
+  left: 21%;
+  top: 83%;
+  border-radius: 50%;
+  background: #30180d80;
+  filter: blur(13px);
+  animation: dish-shadow var(--dish-cycle) ease-in-out infinite;
+}
+.dish-serving-stage {
+  position: absolute;
+  z-index: 0;
+  left: 12%;
+  top: 79%;
+  width: 76%;
+  height: 11%;
+  border-radius: 50%;
+  background: linear-gradient(150deg, #f0d7a3, #b79156 65%, #755330);
+  box-shadow:
+    0 10px 0 #8a6338,
+    0 25px 30px #2c180b33;
+  transform: rotate(-7deg);
+}
+.dish-liquid-splash {
+  position: absolute;
+  z-index: 2;
+  left: -2%;
+  top: 54%;
+  width: 104%;
+  height: auto;
+  pointer-events: none;
+  filter: var(--dish-fluid-filter);
+  transform-origin: 50% 64%;
+  animation: dish-liquid-impact var(--dish-cycle) ease-out infinite;
+}
+.dish-liquid-fall,
+.dish-milk-fall {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+}
+.dish-liquid-fall {
+  left: 62%;
+  top: 34%;
+  width: 21%;
+  height: 51%;
+  filter: var(--dish-fluid-filter);
+  animation: dish-liquid-visibility var(--dish-cycle) linear infinite;
+}
+.dish-milk-fall {
+  left: 30%;
+  top: -20%;
+  width: 20%;
+  height: 58%;
+  transform: scaleX(-1);
+  filter: brightness(1.8) saturate(0.25);
+  animation: dish-milk-visibility var(--dish-cycle) linear infinite;
+}
+.dish-liquid-fall img,
+.dish-milk-fall img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  transform-origin: top center;
+  animation: dish-fluid-reveal var(--dish-cycle) linear infinite;
+}
+.dish-liquid-drops {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  animation: dish-liquid-visibility var(--dish-cycle) linear infinite;
+}
+.dish-liquid-drops ellipse {
+  animation: chai-drop 1s ease-in infinite;
+  animation-delay: var(--drop-delay);
+}
+.dish-food-effects {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  pointer-events: none;
+}
+.dish-flour-cloud {
+  position: absolute;
+  left: 20%;
+  top: 51%;
+  width: 60%;
+  height: 28%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    #fff9eaa8,
+    #ffefd833 40%,
+    transparent 70%
+  );
+  filter: blur(8px);
+  animation: dish-flour var(--dish-cycle) ease-out infinite;
+}
+.dish-crumb {
+  position: absolute;
+  left: 50%;
+  top: 51%;
+  display: block;
+  width: 6px;
+  height: 4px;
+  background: rgb(var(--dish-tone));
+  border-radius: 40% 50% 25% 50%;
+  box-shadow: 0 0 2px #fff3c7;
+  animation: dish-crumb-burst var(--dish-cycle) ease-out infinite;
+  animation-delay: var(--crumb-delay);
+}
+.dish-crumb:nth-child(3n) {
+  width: 4px;
+  height: 7px;
+}
+.dish-crumb:nth-child(2n) {
+  background: #e7c787;
+}
+.dish-cheese-pull {
+  position: absolute;
+  left: 42%;
+  top: 32%;
+  width: 25%;
+  height: 39%;
+  transform: rotate(-15deg);
+}
+.dish-cheese-pull i {
+  position: absolute;
+  left: var(--strand-x);
+  top: 0;
+  display: block;
+  width: 4px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #dbad53, #fff4c2 45%, #e8ba68);
+  box-shadow: 1px 0 2px #7a4c1f33;
+  transform-origin: top;
+  transform: rotate(var(--strand-angle));
+  animation: dish-cheese var(--dish-cycle) ease-in-out infinite;
+}
+.dish-food-drizzle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+}
+.dish-food-drizzle path {
+  stroke: #efc674;
+  stroke-width: 11;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  filter: drop-shadow(1px 2px 1px #5d321a44);
+  animation: dish-drizzle var(--dish-cycle) ease-in-out infinite;
+}
+.dish-experience[data-effect="chocolate"] .dish-food-drizzle path {
+  stroke: #572d1a;
+  stroke-width: 15;
+}
+.dish-experience[data-effect="cream"] .dish-food-drizzle path {
+  stroke: #fff3da;
+  stroke-width: 18;
+}
+.dish-sizzle-rings {
+  position: absolute;
+  left: 22%;
+  top: 50%;
+  width: 56%;
+  height: 27%;
+}
+.dish-sizzle-rings i {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border: 1px solid rgb(var(--dish-tone) / 0.8);
+  border-radius: 50%;
+  opacity: 0;
+  animation: dish-sizzle var(--dish-cycle) ease-out infinite;
+}
+.dish-sizzle-rings i:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.dish-sizzle-rings i:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+.dish-ingredient-orbit {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  pointer-events: none;
+}
+.dish-ingredient {
+  position: absolute;
+  width: 100px;
+  margin-left: -50px;
+  margin-top: -38px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  opacity: 0;
+  text-align: center;
+  animation: dish-ingredient-burst var(--dish-cycle)
+    cubic-bezier(0.2, 0.8, 0.25, 1) infinite;
+  animation-delay: var(--ingredient-delay);
+}
+.dish-ingredient-object {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  filter: drop-shadow(0 8px 7px #29190d45);
+}
+.dish-ingredient-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-image: url("/experience/ingredient-atlas.webp");
+  background-size: 600% 400%;
+  background-repeat: no-repeat;
+}
+.dish-ingredient-sprite[data-atlas="extra"] {
+  background-image: url("/experience/ingredient-extras.webp");
+  background-size: 400% 200%;
+}
+.dish-ingredient-icon {
+  width: 30px;
+  height: 30px;
+  color: rgb(var(--c-cafe-on-stage));
+  padding: 5px;
+  border: 1px solid rgb(var(--c-cafe-on-stage) / 0.35);
+  border-radius: 50%;
+  background: rgb(var(--c-cafe-masthead) / 0.65);
+}
+.dish-ingredient-label {
+  display: inline-block;
+  max-width: 110px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid rgb(var(--c-cafe-on-stage) / 0.22);
+  background: rgb(var(--c-cafe-masthead) / 0.9);
+  color: rgb(var(--c-cafe-on-stage));
+  font-size: 9px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.dish-recipe-ice {
+  position: absolute;
+  z-index: 3;
+  width: 16%;
+  top: 23%;
+  animation: dish-ice var(--dish-cycle) ease-in-out infinite;
+}
+.dish-recipe-ice-0 {
+  left: 5%;
+}
+.dish-recipe-ice-1 {
+  right: 4%;
+  top: 68%;
+  animation-delay: -0.3s;
+}
+.hero-performance .hero-recipe-link {
+  display: inline-flex;
+  gap: 9px;
+  align-items: center;
+  color: rgb(var(--c-cafe-on-stage));
+  min-height: 38px;
+  margin-top: 5px;
+  font-size: 11px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.hero-recipe-link span {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding-inline: 5px;
+  border-radius: 50%;
+  text-decoration: none;
+  background: rgb(var(--c-cafe-on-stage) / 0.12);
+  font-size: 9px;
+}
+.dish-empty-stage {
+  min-height: 350px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  color: rgb(var(--c-cafe-on-stage));
+}
+.dish-full-recipe {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.dish-full-recipe li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgb(var(--c-cream-200));
+  border-radius: 14px;
+  background: rgb(var(--c-cream-50));
+  font-size: 14px;
+}
+.dish-full-recipe .dish-ingredient-sprite {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+}
+.dish-full-recipe .dish-ingredient-icon {
+  color: rgb(var(--c-chai-700));
+  background: rgb(var(--c-chai-100));
+  flex-shrink: 0;
+}
+.dish-chooser-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1px solid rgb(var(--c-cream-300));
+  border-radius: 12px;
+  background: rgb(var(--c-cream-50));
+  color: rgb(var(--c-charcoal-500));
+}
+.dish-chooser-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--c-charcoal-900));
+  outline: 0;
+  font-size: 16px;
+}
+.dish-chooser-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.dish-chooser-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgb(var(--c-cream-200));
+  border-radius: 15px;
+  text-align: left;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+.dish-chooser-item:hover {
+  background: rgb(var(--c-chai-50));
+  border-color: rgb(var(--c-chai-300));
+}
+.dish-chooser-photo {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: rgb(var(--c-cream-100));
+  color: rgb(var(--c-chai-600));
+}
+.dish-chooser-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.dish-chooser-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.dish-chooser-copy strong {
+  font-size: 13px;
+  color: rgb(var(--c-charcoal-900));
+}
+.dish-chooser-copy small {
+  font-size: 10px;
+  color: rgb(var(--c-charcoal-500));
+}
+.dish-chooser-copy > span {
+  font-size: 12px;
+  color: rgb(var(--c-chai-700));
+  font-weight: 600;
+}
+.hero-performance[data-motion="paused"] .dish-ingredient {
+  animation: none;
+  left: var(--ingredient-x);
+  top: var(--ingredient-y);
+  opacity: 1;
+  transform: rotate(var(--ingredient-turn));
+}
+
+@keyframes dish-object-arrive {
+  0% {
+    transform: translateY(8px) rotate(-5deg) scale(0.88);
+    opacity: 1;
+  }
+  20% {
+    transform: translateY(-12px) rotate(-2deg) scale(1);
+  }
+  55% {
+    transform: translateY(5px) rotate(4deg) scale(1);
+  }
+  80%,
+  100% {
+    transform: translateY(0) rotate(-1deg) scale(0.99);
+  }
+}
+@keyframes dish-aura {
+  0%,
+  100% {
+    opacity: 0.35;
+    scale: 0.8;
+  }
+  35%,
+  65% {
+    opacity: 1;
+    scale: 1.15;
+  }
+}
+@keyframes dish-shadow {
+  0%,
+  100% {
+    opacity: 0.4;
+    scale: 0.85;
+  }
+  50% {
+    opacity: 0.75;
+    scale: 1.1;
+  }
+}
+@keyframes dish-ingredient-burst {
+  0% {
+    left: 50%;
+    top: 53%;
+    transform: rotate(-35deg) scale(0.2);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  45%,
+  80% {
+    left: var(--ingredient-x);
+    top: var(--ingredient-y);
+    transform: rotate(var(--ingredient-turn)) scale(1);
+    opacity: 1;
+  }
+  100% {
+    left: var(--ingredient-x);
+    top: calc(var(--ingredient-y) + 3%);
+    transform: rotate(0) scale(0.85);
+    opacity: 0.25;
+  }
+}
+@keyframes dish-liquid-impact {
+  0%,
+  12%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-15deg);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1) rotate(-3deg);
+  }
+  67% {
+    opacity: 0.8;
+    transform: scale(1.13) rotate(3deg);
+  }
+  88% {
+    opacity: 0;
+    transform: scale(1.22) rotate(6deg);
+  }
+}
+@keyframes dish-liquid-visibility {
+  0%,
+  15%,
+  91%,
+  100% {
+    opacity: 0;
+  }
+  32%,
+  72% {
+    opacity: 1;
+  }
+}
+@keyframes dish-milk-visibility {
+  0%,
+  4%,
+  48%,
+  100% {
+    opacity: 0;
+  }
+  16%,
+  36% {
+    opacity: 1;
+  }
+}
+@keyframes dish-fluid-reveal {
+  0%,
+  8% {
+    clip-path: inset(0 0 100%);
+    transform: scaleX(0.85);
+  }
+  36%,
+  70% {
+    clip-path: inset(0);
+    transform: scaleX(1.03);
+  }
+  100% {
+    clip-path: inset(0);
+    transform: scaleX(0.96);
+  }
+}
+@keyframes dish-flour {
+  0%,
+  10%,
+  100% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  33% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.8) translateY(-30px);
+  }
+}
+@keyframes dish-crumb-burst {
+  0%,
+  12% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4);
+  }
+  25% {
+    opacity: 1;
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: translate(var(--crumb-x), var(--crumb-y)) rotate(200deg)
+      scale(0.9);
+  }
+}
+@keyframes dish-cheese {
+  0%,
+  12% {
+    height: 0;
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  58% {
+    height: 145px;
+    opacity: 0.95;
+  }
+  82%,
+  100% {
+    height: 175px;
+    opacity: 0;
+  }
+}
+@keyframes dish-drizzle {
+  0%,
+  8% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  65% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  94%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+@keyframes dish-sizzle {
+  0%,
+  15% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  28% {
+    opacity: 0.9;
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(1.8) translateY(-10px);
+  }
+}
+@keyframes dish-ice {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) rotate(-20deg);
+  }
+  30%,
+  70% {
+    opacity: 1;
+    transform: translateY(-20px) rotate(15deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(0) rotate(30deg);
+  }
+}
+
+@media (max-width: 1279px) {
+  .hero-performance .cinema-hero-aside {
+    grid-template-columns: 1fr auto auto;
+  }
+  .hero-performance .hero-recipe-link {
+    grid-row: 2;
+    margin: 0;
+    min-height: 28px;
+    font-size: 10px;
+  }
+  .hero-performance .cinema-hero-aside .cinema-feature-price {
+    grid-row: 1 / 3;
+    grid-column: 2;
+  }
+  .hero-performance .cinema-hero-aside .cinema-button {
+    grid-row: 1 / 3;
+    grid-column: 3;
+  }
+}
+@media (max-width: 600px) {
+  .dish-main-object {
+    left: 14%;
+    top: 14%;
+    width: 72%;
+    height: 65%;
+    border-width: 2px;
+  }
+  .dish-ingredient {
+    width: 72px;
+    margin-left: -36px;
+    margin-top: -30px;
+    gap: 1px;
+  }
+  .dish-ingredient-object {
+    width: 38px;
+    height: 38px;
+  }
+  .dish-ingredient-label {
+    font-size: 7px;
+    max-width: 82px;
+    padding: 3px 5px;
+  }
+  .dish-ingredient-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .dish-cheese-pull {
+    left: 39%;
+  }
+  .dish-cheese-pull i {
+    width: 3px;
+  }
+  .hero-performance .cinema-hero-aside {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 12px;
+  }
+  .hero-performance .hero-recipe-link {
+    grid-row: 3;
+    grid-column: 1 / -1;
+    min-height: 32px;
+    font-size: 10px;
+    margin-top: 3px;
+    justify-self: center;
+  }
+  .hero-performance .cinema-hero-aside .cinema-feature-price {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  .hero-performance .cinema-hero-aside .cinema-button {
+    grid-row: 1 / 3;
+    grid-column: 2;
+  }
+  .dish-full-recipe {
+    gap: 8px;
+  }
+  .dish-full-recipe li {
+    flex-direction: column;
+    padding: 10px;
+    gap: 5px;
+    text-align: center;
+    font-size: 12px;
+  }
+  .dish-chooser-grid {
+    grid-template-columns: 1fr;
+  }
+  .dish-chooser-copy strong {
+    font-size: 14px;
+  }
+}
+@media (max-height: 720px) and (max-width: 600px) {
+  .cinema-journey {
+    height: auto;
+  }
+  .hero-performance {
+    position: relative;
+    top: 0;
+    height: auto;
+    min-height: 0;
+  }
+  .hero-stage {
+    height: 275px;
+    min-height: 275px;
+  }
+  .hero-performance .cinema-hero-grid {
+    flex: initial;
+  }
+  .hero-performance .cinema-hero-copy {
+    padding-bottom: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dish-experience *,
+  .dish-experience *::before,
+  .dish-experience *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .dish-main-object {
+    transform: none;
+    opacity: 1;
+  }
+  .dish-ingredient {
+    left: var(--ingredient-x);
+    top: var(--ingredient-y);
+    opacity: 1;
+    transform: rotate(var(--ingredient-turn));
+  }
+  .dish-liquid-splash,
+  .dish-liquid-fall,
+  .dish-milk-fall,
+  .dish-liquid-drops,
+  .dish-food-effects,
+  .dish-recipe-ice,
+  .dish-steam {
+    display: none;
+  }
+}

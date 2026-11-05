@@ -50,7 +50,7 @@ class ReleaseBackupTests(unittest.TestCase):
         self.write('index.txt', 'new design')
         self.write('public/experience/signature-chai.webp', 'test chai artwork')
         self.write('public/experience/cafe-atmosphere.webp', 'test cafe artwork')
-        for name in ['chai-cup', 'chai-splash', 'chai-stream', 'ice-cube']:
+        for name in ['chai-cup', 'chai-splash', 'chai-stream', 'ice-cube', 'ingredient-atlas', 'ingredient-extras']:
             self.write('public/experience/' + name + '.webp', 'fixture ' + name)
         self.write('scripts/rollback-cafe-release.sh', ROLLBACK.read_text())
         # Isolate the outer backup/rollback wrapper from the already deployed
