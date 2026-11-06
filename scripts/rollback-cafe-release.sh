@@ -12,7 +12,7 @@ SELECT theme FROM public."CafeSetting" WHERE id = 1;
 SQL
 }
 write_theme() {
-  case "$1" in chai|midnight|matcha|saffron|gulabi|graphite) ;; *) return 1 ;; esac
+  case "$1" in chai|midnight|matcha|saffron|gulabi|graphite|ocean|royal|terracotta|espresso) ;; *) return 1 ;; esac
   docker exec -i infra-postgres-1 sh -lc 'exec psql -Xq -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-postgres}" -d engineer_cafe -v cafe_theme="$1"' -- "$1" <<'SQL'
 UPDATE public."CafeSetting" SET theme = :'cafe_theme' WHERE id = 1;
 SQL
@@ -39,9 +39,9 @@ RECOVERY=$(mktemp -d "$BACKUP/rollback-attempt.XXXXXXXX")
 printf '%s\n' "$CURRENT" > "$RECOVERY/replaced-commit"
 cp -p .env "$RECOVERY/current.env"
 if [ -f "$BACKUP/previous-theme" ]; then
-  case "$(cat "$BACKUP/previous-theme")" in chai|midnight|matcha|saffron|gulabi|graphite) ;; *) echo "Saved theme is invalid"; exit 1 ;; esac
+  case "$(cat "$BACKUP/previous-theme")" in chai|midnight|matcha|saffron|gulabi|graphite|ocean|royal|terracotta|espresso) ;; *) echo "Saved theme is invalid"; exit 1 ;; esac
   read_theme > "$RECOVERY/current-theme"
-  case "$(cat "$RECOVERY/current-theme")" in chai|midnight|matcha|saffron|gulabi|graphite) ;; *) echo "Current theme is invalid"; exit 1 ;; esac
+  case "$(cat "$RECOVERY/current-theme")" in chai|midnight|matcha|saffron|gulabi|graphite|ocean|royal|terracotta|espresso) ;; *) echo "Current theme is invalid"; exit 1 ;; esac
 fi
 mkdir "$RECOVERY/restored"
 tar -xzf "$BACKUP/build.tar.gz" -C "$RECOVERY/restored"

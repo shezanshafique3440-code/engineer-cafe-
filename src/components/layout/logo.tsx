@@ -35,9 +35,8 @@ export function Logo({
       <span
         className={cn(
           "relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl",
-          // A logo uploaded by the cafe can be any colour, so give it a light
-          // chip on dark surfaces instead of letting it disappear.
-          isCustom && onDark ? "bg-cream-50 p-1" : "",
+          // Keep a light chip behind uploaded artwork in every reading mode.
+          isCustom ? "bg-[#fffaf2] p-1" : "",
         )}
       >
         {/* Runtime and external brand URLs load directly, without menu optimizer restrictions. */}
@@ -57,15 +56,15 @@ export function Logo({
           <span
             className={cn(
               "font-display text-lg font-extrabold tracking-tight",
-              onDark ? "text-cream-50" : "text-charcoal-900",
+              onDark ? "text-[rgb(var(--c-cafe-on-stage))]" : "text-charcoal-900",
             )}
           >
-            Engineer<span className="text-chai-600">Cafe</span>
+            Engineer<span className={onDark ? "text-current" : "text-chai-600"}>Cafe</span>
           </span>
           <span
             className={cn(
               "mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em]",
-              onDark ? "text-charcoal-500" : "text-charcoal-300",
+              onDark ? "text-[rgb(var(--c-cafe-on-stage)/0.75)]" : "text-charcoal-300",
             )}
           >
             the innovation brew

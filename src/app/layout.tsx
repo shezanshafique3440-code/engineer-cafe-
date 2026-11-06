@@ -5,10 +5,12 @@ import "./globals.css";
 import "./cinematic.css";
 import "./hero-performance.css";
 import "./dish-experience.css";
+import "./theme-presets.css";
 import { env } from "@/lib/env";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
 import { getSettings } from "@/server/settings";
 import { resolveTheme, THEME_COLOR, isDarkTheme, APPEARANCE_SCRIPT } from "@/lib/themes";
+import { ThemeAppearanceProvider } from "@/context/theme-appearance-context";
 
 const inter = localFont({
   src: "./fonts/inter.woff2",
@@ -88,14 +90,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script dangerouslySetInnerHTML={{ __html: APPEARANCE_SCRIPT }} />
       </head>
       <body>
-        {children}
-        <Toaster
-          position="bottom-right"
-          mobileOffset={{ bottom: "calc(6rem + env(safe-area-inset-bottom))", left: 16, right: 16 }}
-          richColors
-          closeButton
-          toastOptions={{ className: "font-sans text-sm" }}
-        />
+        <ThemeAppearanceProvider siteTheme={theme}>
+          {children}
+          <Toaster
+            position="bottom-right"
+            mobileOffset={{ bottom: "calc(6rem + env(safe-area-inset-bottom))", left: 16, right: 16 }}
+            richColors
+            closeButton
+            toastOptions={{ className: "font-sans text-sm" }}
+          />
+        </ThemeAppearanceProvider>
       </body>
     </html>
   );

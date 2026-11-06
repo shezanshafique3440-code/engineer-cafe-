@@ -49,6 +49,34 @@ export const THEMES = [
     swatch: ["#F4F4F2", "#52524D", "#222220"],
     isDark: false,
   },
+  {
+    id: "ocean",
+    name: "Ocean",
+    description: "Coastal blue, clean paper and a cool modern finish.",
+    swatch: ["#F3F8FC", "#236A99", "#152B3C"],
+    isDark: false,
+  },
+  {
+    id: "royal",
+    name: "Royal",
+    description: "Plum and lavender with a quiet, elegant feel.",
+    swatch: ["#F8F4FC", "#7950A0", "#2D1F3E"],
+    isDark: false,
+  },
+  {
+    id: "terracotta",
+    name: "Terracotta",
+    description: "Clay, warm ivory and rust for an earthy cafe.",
+    swatch: ["#FCF5EF", "#AC5038", "#3E261E"],
+    isDark: false,
+  },
+  {
+    id: "espresso",
+    name: "Espresso",
+    description: "Deep chocolate, soft copper and an evening mood.",
+    swatch: ["#211714", "#DBAC8C", "#F9EEE6"],
+    isDark: true,
+  },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]["id"];
@@ -70,9 +98,13 @@ export const THEME_COLOR: Record<ThemeId, string> = {
   saffron: "#D4910E",
   gulabi: "#C74E78",
   graphite: "#52524D",
+  ocean: "#236A99",
+  royal: "#7950A0",
+  terracotta: "#AC5038",
+  espresso: "#211714",
 };
 
-/** The palette used when a visitor asks for dark mode. */
+/** Chai's dark counterpart; other brand families use THEME_MODES below. */
 export const DARK_THEME: ThemeId = "midnight";
 
 /** True when the cafe's own palette is already dark. */
@@ -84,15 +116,65 @@ export type Appearance = "auto" | "light" | "dark";
 
 export const APPEARANCE_KEY = "engineer-cafe:appearance";
 
+/** Only base themes are selectable/persisted by admins; modes stay personal. */
+export const THEME_MODES = {
+  chai: { light: "chai", dark: "midnight" },
+  midnight: { light: "chai", dark: "midnight" },
+  matcha: { light: "matcha", dark: "matcha-dark" },
+  saffron: { light: "saffron", dark: "saffron-dark" },
+  gulabi: { light: "gulabi", dark: "gulabi-dark" },
+  graphite: { light: "graphite", dark: "graphite-dark" },
+  ocean: { light: "ocean", dark: "ocean-dark" },
+  royal: { light: "royal", dark: "royal-dark" },
+  terracotta: { light: "terracotta", dark: "terracotta-dark" },
+  espresso: { light: "espresso-light", dark: "espresso" },
+} as const satisfies Record<ThemeId, { light: string; dark: string }>;
+
+export type ThemeVariant = (typeof THEME_MODES)[ThemeId]["light" | "dark"];
+
+export const VARIANT_COLOR: Record<ThemeVariant, string> = {
+  ...THEME_COLOR,
+  "matcha-dark": "#17241B",
+  "saffron-dark": "#282016",
+  "gulabi-dark": "#291C25",
+  "graphite-dark": "#202225",
+  "ocean-dark": "#172632",
+  "royal-dark": "#241C33",
+  "terracotta-dark": "#2C201C",
+  "espresso-light": "#7E4C39",
+};
+
+export function resolveAppearance(
+  value: string | null | undefined,
+): Appearance | null {
+  return value === "light" || value === "dark" || value === "auto"
+    ? value
+    : null;
+}
+
+export function appearanceTheme(
+  site: string | null | undefined,
+  appearance: Appearance | null,
+  systemDark = false,
+): ThemeVariant {
+  const theme = resolveTheme(site);
+  // With no explicit personal preference, the cafe's exact saved theme wins.
+  if (!appearance) return theme;
+  const mode =
+    appearance === "auto" ? (systemDark ? "dark" : "light") : appearance;
+  return THEME_MODES[theme][mode];
+}
+
 /**
  * Runs as a blocking inline script in <head>, before the first paint, so a
  * visitor who chose dark never sees a flash of the cafe's light palette.
  * Kept as a string because it must execute before React loads.
  */
 export const APPEARANCE_SCRIPT = `(function(){try{
-var r=document.documentElement,s=r.dataset.siteTheme;
-if(r.dataset.siteDark==="1")return;
-var p=localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)})||"light";
-var d=p==="dark"||(p==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches);
-r.dataset.theme=d?${JSON.stringify(DARK_THEME)}:s;
+var r=document.documentElement,s=r.dataset.siteTheme,m=${JSON.stringify(THEME_MODES)};
+if(!Object.prototype.hasOwnProperty.call(m,s))s=${JSON.stringify(DEFAULT_THEME)};
+var p=null;try{p=localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});}catch(e){}
+if(p!=="light"&&p!=="dark"&&p!=="auto")p=null;
+var k=p==="auto"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):p;
+r.dataset.theme=k?m[s][k]:s;
 }catch(e){}})();`;

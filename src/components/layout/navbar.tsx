@@ -442,6 +442,10 @@ export function Navbar() {
               </nav>
 
               <div className="border-t border-cream-200 p-4">
+                <div className="mb-3 flex items-center justify-between gap-2 sm:hidden">
+                  <span className="text-xs font-semibold text-charcoal-600">Appearance</span>
+                  <AppearanceToggle className="[&_button]:h-11 [&_button]:w-11" />
+                </div>
                 <Link href="/menu" className="btn-primary w-full">
                   Order Now
                 </Link>

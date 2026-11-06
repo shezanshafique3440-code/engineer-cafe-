@@ -248,6 +248,27 @@ if '-w' in args:sys.stdout.write('200')
         self.assert_old_running()
         self.assertEqual(self.theme.read_text(), 'midnight')
 
+    def test_new_theme_presets_can_be_backed_up_and_restored(self):
+        self.theme.write_text('ocean')
+        result = self.deploy(CAFE_SHARED_THEME='espresso')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.theme.read_text(), 'espresso')
+        self.assertEqual((self.snapshot() / 'previous-theme').read_text().strip(), 'ocean')
+        result = self.run_script(self.snapshot() / 'rollback.sh')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assert_old_running()
+        self.assertEqual(self.theme.read_text(), 'ocean')
+
+    def test_failed_rollback_recovers_a_new_dark_preset(self):
+        self.theme.write_text('royal')
+        result = self.deploy(CAFE_SHARED_THEME='espresso')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        result = self.run_script(self.snapshot() / 'rollback.sh', QA_FAIL_ROLLBACK='1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.git('rev-parse', 'HEAD').strip(), self.target)
+        self.assertEqual(self.theme.read_text(), 'espresso')
+        self.assertEqual(self.state.read_text(), 'running')
+
     def test_failed_manual_rollback_recovers_current_palette_alongside_current_code(self):
         result = self.deploy(CAFE_SHARED_THEME='chai')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

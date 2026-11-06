@@ -1,0 +1,575 @@
+/* Admin palettes and their personal reading modes share the same brand family. */
+
+html {
+  color-scheme: light;
+}
+
+[data-theme="ocean"] {
+  --c-cream-50: 249 252 254;
+  --c-cream-100: 243 248 252;
+  --c-cream-200: 223 237 247;
+  --c-cream-300: 194 216 233;
+  --c-cream-400: 151 186 211;
+  --c-chai-50: 238 247 253;
+  --c-chai-100: 214 234 248;
+  --c-chai-200: 177 214 239;
+  --c-chai-300: 130 190 225;
+  --c-chai-400: 80 159 204;
+  --c-chai-500: 46 126 179;
+  --c-chai-600: 35 106 153;
+  --c-chai-700: 27 81 119;
+  --c-chai-800: 20 58 87;
+  --c-chai-900: 14 38 59;
+  --c-charcoal-50: 240 246 250;
+  --c-charcoal-100: 221 232 240;
+  --c-charcoal-300: 137 160 177;
+  --c-charcoal-500: 74 100 120;
+  --c-charcoal-700: 42 68 87;
+  --c-charcoal-800: 27 47 64;
+  --c-charcoal-900: 21 43 60;
+  --c-surface: 255 255 255;
+  --c-shadow: 27 47 64;
+  --c-blueprint: 46 126 179;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #236a99;
+}
+
+[data-theme="royal"] {
+  --c-cream-50: 253 250 255;
+  --c-cream-100: 248 244 252;
+  --c-cream-200: 236 226 246;
+  --c-cream-300: 218 200 234;
+  --c-cream-400: 193 167 216;
+  --c-chai-50: 249 243 254;
+  --c-chai-100: 237 221 250;
+  --c-chai-200: 216 193 235;
+  --c-chai-300: 192 160 215;
+  --c-chai-400: 165 123 196;
+  --c-chai-500: 143 98 179;
+  --c-chai-600: 121 80 160;
+  --c-chai-700: 94 59 128;
+  --c-chai-800: 69 42 96;
+  --c-chai-900: 44 26 65;
+  --c-charcoal-50: 246 241 250;
+  --c-charcoal-100: 232 222 240;
+  --c-charcoal-300: 162 144 178;
+  --c-charcoal-500: 100 78 118;
+  --c-charcoal-700: 65 46 81;
+  --c-charcoal-800: 48 32 62;
+  --c-charcoal-900: 45 31 62;
+  --c-surface: 255 253 255;
+  --c-shadow: 48 32 62;
+  --c-blueprint: 143 98 179;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #7950a0;
+}
+
+[data-theme="terracotta"] {
+  --c-cream-50: 255 251 247;
+  --c-cream-100: 252 245 239;
+  --c-cream-200: 242 227 214;
+  --c-cream-300: 226 201 181;
+  --c-cream-400: 204 164 136;
+  --c-chai-50: 253 242 235;
+  --c-chai-100: 247 222 208;
+  --c-chai-200: 237 199 176;
+  --c-chai-300: 227 171 151;
+  --c-chai-400: 208 131 104;
+  --c-chai-500: 190 104 77;
+  --c-chai-600: 172 80 56;
+  --c-chai-700: 137 60 40;
+  --c-chai-800: 101 43 30;
+  --c-chai-900: 67 28 21;
+  --c-charcoal-50: 249 241 236;
+  --c-charcoal-100: 236 222 212;
+  --c-charcoal-300: 174 145 126;
+  --c-charcoal-500: 116 87 70;
+  --c-charcoal-700: 80 54 40;
+  --c-charcoal-800: 62 38 30;
+  --c-charcoal-900: 48 30 23;
+  --c-surface: 255 253 249;
+  --c-shadow: 62 38 30;
+  --c-blueprint: 190 104 77;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #ac5038;
+}
+
+[data-theme="espresso-light"] {
+  --c-cream-50: 253 249 244;
+  --c-cream-100: 247 238 229;
+  --c-cream-200: 235 217 202;
+  --c-cream-300: 216 188 165;
+  --c-cream-400: 188 152 122;
+  --c-chai-50: 251 242 233;
+  --c-chai-100: 242 223 206;
+  --c-chai-200: 225 192 164;
+  --c-chai-300: 205 158 124;
+  --c-chai-400: 181 125 89;
+  --c-chai-500: 153 97 66;
+  --c-chai-600: 126 76 57;
+  --c-chai-700: 101 57 42;
+  --c-chai-800: 75 41 31;
+  --c-chai-900: 49 26 20;
+  --c-charcoal-50: 246 238 232;
+  --c-charcoal-100: 232 219 208;
+  --c-charcoal-300: 161 139 122;
+  --c-charcoal-500: 109 86 70;
+  --c-charcoal-700: 75 53 41;
+  --c-charcoal-800: 55 37 28;
+  --c-charcoal-900: 38 24 18;
+  --c-surface: 255 252 247;
+  --c-shadow: 55 37 28;
+  --c-blueprint: 153 97 66;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #7e4c39;
+}
+
+[data-theme="matcha-dark"] {
+  --c-cream-50: 14 21 16;
+  --c-cream-100: 21 32 24;
+  --c-cream-200: 33 47 36;
+  --c-cream-300: 48 66 52;
+  --c-cream-400: 69 91 74;
+  --c-chai-50: 23 45 20;
+  --c-chai-100: 34 68 29;
+  --c-chai-200: 45 93 38;
+  --c-chai-300: 57 119 47;
+  --c-chai-400: 74 148 60;
+  --c-chai-500: 99 172 83;
+  --c-chai-600: 132 194 118;
+  --c-chai-700: 176 218 165;
+  --c-chai-800: 216 238 209;
+  --c-chai-900: 239 248 236;
+  --c-charcoal-50: 34 33 34;
+  --c-charcoal-100: 48 47 49;
+  --c-charcoal-300: 133 130 136;
+  --c-charcoal-500: 180 176 183;
+  --c-charcoal-700: 218 215 222;
+  --c-charcoal-800: 235 232 240;
+  --c-charcoal-900: 249 246 252;
+  --c-surface: 23 36 27;
+  --c-shadow: 235 232 240;
+  --c-blueprint: 99 172 83;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #17241b;
+}
+
+[data-theme="saffron-dark"] {
+  --c-cream-50: 23 19 12;
+  --c-cream-100: 33 27 18;
+  --c-cream-200: 49 40 25;
+  --c-cream-300: 70 57 34;
+  --c-cream-400: 94 77 48;
+  --c-chai-50: 68 45 10;
+  --c-chai-100: 101 67 12;
+  --c-chai-200: 138 91 11;
+  --c-chai-300: 176 117 10;
+  --c-chai-400: 212 145 14;
+  --c-chai-500: 236 168 33;
+  --c-chai-600: 245 191 77;
+  --c-chai-700: 251 217 137;
+  --c-chai-800: 254 238 197;
+  --c-chai-900: 255 248 230;
+  --c-charcoal-50: 34 33 34;
+  --c-charcoal-100: 48 47 49;
+  --c-charcoal-300: 133 130 136;
+  --c-charcoal-500: 180 176 183;
+  --c-charcoal-700: 218 215 222;
+  --c-charcoal-800: 235 232 240;
+  --c-charcoal-900: 249 246 252;
+  --c-surface: 40 32 22;
+  --c-shadow: 235 232 240;
+  --c-blueprint: 236 168 33;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #282016;
+}
+
+[data-theme="gulabi-dark"] {
+  --c-cream-50: 23 15 21;
+  --c-cream-100: 35 23 31;
+  --c-cream-200: 51 34 45;
+  --c-cream-300: 70 47 61;
+  --c-cream-400: 95 64 83;
+  --c-chai-50: 67 23 39;
+  --c-chai-100: 99 34 57;
+  --c-chai-200: 134 45 77;
+  --c-chai-300: 168 58 97;
+  --c-chai-400: 199 78 120;
+  --c-chai-500: 219 108 146;
+  --c-chai-600: 232 145 173;
+  --c-chai-700: 243 188 206;
+  --c-chai-800: 250 222 231;
+  --c-chai-900: 253 241 245;
+  --c-charcoal-50: 34 33 34;
+  --c-charcoal-100: 48 47 49;
+  --c-charcoal-300: 133 130 136;
+  --c-charcoal-500: 180 176 183;
+  --c-charcoal-700: 218 215 222;
+  --c-charcoal-800: 235 232 240;
+  --c-charcoal-900: 249 246 252;
+  --c-surface: 41 28 37;
+  --c-shadow: 235 232 240;
+  --c-blueprint: 219 108 146;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #291c25;
+}
+
+[data-theme="graphite-dark"] {
+  --c-cream-50: 15 17 19;
+  --c-cream-100: 24 26 29;
+  --c-cream-200: 38 41 45;
+  --c-cream-300: 55 59 64;
+  --c-cream-400: 77 82 88;
+  --c-chai-50: 25 25 23;
+  --c-chai-100: 36 36 34;
+  --c-chai-200: 48 48 45;
+  --c-chai-300: 63 63 59;
+  --c-chai-400: 82 82 77;
+  --c-chai-500: 113 113 108;
+  --c-chai-600: 155 155 150;
+  --c-chai-700: 199 199 195;
+  --c-chai-800: 228 228 225;
+  --c-chai-900: 244 244 242;
+  --c-charcoal-50: 34 33 34;
+  --c-charcoal-100: 48 47 49;
+  --c-charcoal-300: 133 130 136;
+  --c-charcoal-500: 180 176 183;
+  --c-charcoal-700: 218 215 222;
+  --c-charcoal-800: 235 232 240;
+  --c-charcoal-900: 249 246 252;
+  --c-surface: 32 34 37;
+  --c-shadow: 235 232 240;
+  --c-blueprint: 113 113 108;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #202225;
+}
+
+[data-theme="ocean-dark"] {
+  --c-cream-50: 12 19 26;
+  --c-cream-100: 18 29 39;
+  --c-cream-200: 29 44 59;
+  --c-cream-300: 43 62 81;
+  --c-cream-400: 62 86 107;
+  --c-chai-50: 14 38 59;
+  --c-chai-100: 20 58 87;
+  --c-chai-200: 27 81 119;
+  --c-chai-300: 35 106 153;
+  --c-chai-400: 46 126 179;
+  --c-chai-500: 80 159 204;
+  --c-chai-600: 130 190 225;
+  --c-chai-700: 177 214 239;
+  --c-chai-800: 214 234 248;
+  --c-chai-900: 238 247 253;
+  --c-charcoal-50: 34 33 34;
+  --c-charcoal-100: 48 47 49;
+  --c-charcoal-300: 133 130 136;
+  --c-charcoal-500: 180 176 183;
+  --c-charcoal-700: 218 215 222;
+  --c-charcoal-800: 235 232 240;
+  --c-charcoal-900: 249 246 252;
+  --c-surface: 23 38 50;
+  --c-shadow: 235 232 240;
+  --c-blueprint: 80 159 204;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #172632;
+}
+
+[data-theme="royal-dark"] {
+  --c-cream-50: 19 14 27;
+  --c-cream-100: 28 21 39;
+  --c-cream-200: 43 32 58;
+  --c-cream-300: 62 47 81;
+  --c-cream-400: 85 66 108;
+  --c-chai-50: 44 26 65;
+  --c-chai-100: 69 42 96;
+  --c-chai-200: 94 59 128;
+  --c-chai-300: 121 80 160;
+  --c-chai-400: 143 98 179;
+  --c-chai-500: 165 123 196;
+  --c-chai-600: 192 160 215;
+  --c-chai-700: 216 193 235;
+  --c-chai-800: 237 221 250;
+  --c-chai-900: 249 243 254;
+  --c-charcoal-50: 34 33 34;
+  --c-charcoal-100: 48 47 49;
+  --c-charcoal-300: 133 130 136;
+  --c-charcoal-500: 180 176 183;
+  --c-charcoal-700: 218 215 222;
+  --c-charcoal-800: 235 232 240;
+  --c-charcoal-900: 249 246 252;
+  --c-surface: 36 28 51;
+  --c-shadow: 235 232 240;
+  --c-blueprint: 165 123 196;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #241c33;
+}
+
+[data-theme="terracotta-dark"] {
+  --c-cream-50: 25 17 14;
+  --c-cream-100: 37 26 21;
+  --c-cream-200: 53 38 31;
+  --c-cream-300: 74 53 43;
+  --c-cream-400: 98 72 59;
+  --c-chai-50: 67 28 21;
+  --c-chai-100: 101 43 30;
+  --c-chai-200: 137 60 40;
+  --c-chai-300: 172 80 56;
+  --c-chai-400: 190 104 77;
+  --c-chai-500: 208 131 104;
+  --c-chai-600: 227 171 151;
+  --c-chai-700: 237 199 176;
+  --c-chai-800: 247 222 208;
+  --c-chai-900: 253 242 235;
+  --c-charcoal-50: 34 33 34;
+  --c-charcoal-100: 48 47 49;
+  --c-charcoal-300: 133 130 136;
+  --c-charcoal-500: 180 176 183;
+  --c-charcoal-700: 218 215 222;
+  --c-charcoal-800: 235 232 240;
+  --c-charcoal-900: 249 246 252;
+  --c-surface: 44 32 28;
+  --c-shadow: 235 232 240;
+  --c-blueprint: 208 131 104;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #2c201c;
+}
+
+[data-theme="espresso"] {
+  --c-cream-50: 19 13 11;
+  --c-cream-100: 28 19 16;
+  --c-cream-200: 43 30 25;
+  --c-cream-300: 62 43 35;
+  --c-cream-400: 85 60 48;
+  --c-chai-50: 46 28 22;
+  --c-chai-100: 67 42 32;
+  --c-chai-200: 95 60 43;
+  --c-chai-300: 132 87 59;
+  --c-chai-400: 179 128 89;
+  --c-chai-500: 219 172 140;
+  --c-chai-600: 232 190 159;
+  --c-chai-700: 242 211 185;
+  --c-chai-800: 249 229 212;
+  --c-chai-900: 253 242 231;
+  --c-charcoal-50: 39 29 24;
+  --c-charcoal-100: 55 41 34;
+  --c-charcoal-300: 141 119 103;
+  --c-charcoal-500: 184 160 140;
+  --c-charcoal-700: 220 200 181;
+  --c-charcoal-800: 237 221 205;
+  --c-charcoal-900: 249 238 230;
+  --c-surface: 33 23 20;
+  --c-shadow: 237 221 205;
+  --c-blueprint: 219 172 140;
+  --c-blueprint-alpha: 0.07;
+  --c-theme-color: #211714;
+}
+
+/* A richer saffron foreground keeps small button text readable. */
+[data-theme="saffron"] {
+  --c-chai-600: 145 95 8;
+  --c-chai-700: 115 75 9;
+}
+[data-theme="midnight"],
+[data-theme$="-dark"],
+[data-theme="espresso"] {
+  color-scheme: dark;
+  --c-cafe-masthead: var(--c-cream-100);
+  --c-cafe-stage: var(--c-cream-200);
+  --c-circuit-400: 74 214 156;
+  --c-circuit-500: 52 190 132;
+  --c-circuit-600: 40 166 113;
+  --c-chilli-400: 247 138 122;
+  --c-chilli-500: 235 106 88;
+  --c-chilli-600: 214 82 64;
+}
+[data-theme="midnight"] .btn.bg-chilli-500,
+[data-theme$="-dark"] .btn.bg-chilli-500,
+[data-theme="espresso"] .btn.bg-chilli-500 {
+  color: rgb(var(--c-cream-50));
+}
+.cinema-button-brown {
+  color: rgb(var(--c-cream-50));
+}
+
+/* Brand the scene around the food; ingredient and product art keep their colours. */
+.cinema-cafe-backdrop {
+  background-image:
+    linear-gradient(
+      90deg,
+      rgb(var(--c-cafe-masthead) / 0.93),
+      rgb(var(--c-cafe-stage) / 0.4) 55%,
+      rgb(var(--c-cafe-masthead) / 0.4)
+    ),
+    url("/experience/cafe-atmosphere.webp");
+}
+.cinema-ghost-word {
+  color: rgb(var(--c-cafe-on-stage) / 0.07);
+}
+.cinema-ribbon {
+  border-color: rgb(var(--c-chai-200) / 0.3);
+  border-bottom-color: rgb(var(--c-chai-800) / 0.2);
+}
+.cinema-service-strip {
+  background: rgb(var(--c-cafe-masthead) / 0.16);
+}
+.cinema-navigation .font-display .text-chai-600 {
+  color: rgb(var(--c-cafe-on-stage) / 0.85);
+}
+
+/* Private theme gallery previews are self-contained, independent of the active theme. */
+.theme-preset-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.theme-preset-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgb(var(--c-cream-200));
+  background: rgb(var(--c-surface));
+  text-align: left;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.theme-preset-card:hover {
+  border-color: rgb(var(--c-chai-400));
+}
+.theme-preset-card:focus-visible {
+  outline: 3px solid rgb(var(--c-chai-500));
+  outline-offset: 3px;
+}
+.theme-preset-card.is-selected {
+  border-color: rgb(var(--c-chai-500));
+  box-shadow: 0 0 0 2px rgb(var(--c-chai-500) / 0.3);
+}
+.theme-preset-card:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.theme-preset-scene {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  width: 100%;
+  height: 136px;
+  gap: 11px;
+  color: var(--preview-ink);
+  background: var(--preview-paper);
+}
+.theme-preset-nav {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.theme-preset-nav svg {
+  color: var(--preview-accent);
+  margin-right: auto;
+}
+.theme-preset-nav i {
+  display: block;
+  width: 22px;
+  height: 3px;
+  border-radius: 5px;
+  background: var(--preview-accent);
+  opacity: 0.6;
+}
+.theme-preset-mini-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+.theme-preset-mini-content > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.theme-preset-mini-content b {
+  display: block;
+  height: 7px;
+  width: 80%;
+  border-radius: 5px;
+  background: var(--preview-ink);
+  opacity: 0.85;
+}
+.theme-preset-mini-content b:nth-child(2) {
+  width: 60%;
+}
+.theme-preset-mini-content i {
+  display: block;
+  height: 13px;
+  width: 45px;
+  margin-top: 4px;
+  border-radius: 20px;
+  background: var(--preview-accent);
+}
+.theme-preset-plate {
+  display: grid;
+  place-items: center;
+  width: 57px;
+  height: 57px;
+  border: 1px solid var(--preview-accent);
+  border-radius: 50%;
+  color: var(--preview-accent);
+  box-shadow: 0 0 0 5px
+    color-mix(in srgb, var(--preview-accent) 12%, transparent);
+}
+.theme-preset-mini-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.theme-preset-mini-cards i {
+  display: block;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--preview-accent);
+  opacity: 0.2;
+}
+.theme-preset-caption {
+  display: block;
+  width: 100%;
+  padding: 14px;
+}
+.theme-preset-caption strong {
+  color: rgb(var(--c-charcoal-900));
+  font-size: 14px;
+}
+.theme-preset-description {
+  display: block;
+  font-size: 12px;
+  color: rgb(var(--c-charcoal-500));
+  line-height: 1.5;
+  margin-top: 5px;
+}
+.theme-preset-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 10px;
+  color: rgb(var(--c-charcoal-500));
+}
+.theme-preset-saved {
+  padding: 3px 8px;
+  border-radius: 15px;
+  color: rgb(var(--c-chai-700));
+  background: rgb(var(--c-chai-100));
+  font-weight: 600;
+}
+@media (min-width: 640px) {
+  .theme-preset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1280px) {
+  .theme-preset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

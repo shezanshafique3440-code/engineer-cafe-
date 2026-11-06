@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { heroCatalog, heroSlot } from "../hero-catalog";
-import { APPEARANCE_SCRIPT, DEFAULT_THEME } from "../themes";
+import { DEFAULT_THEME } from "../themes";
 import type { ProductDTO } from "../types";
 const dish = (
   id: string,
@@ -76,7 +76,6 @@ test("five rotating products have distinct symmetric slots in either direction",
       [-2, -1, 0, 1, 2],
     );
 });
-test("first paint uses the house palette unless a visitor explicitly chose otherwise", () => {
+test("the cafe's default palette remains Chai", () => {
   assert.equal(DEFAULT_THEME, "chai");
-  assert.ok(APPEARANCE_SCRIPT.includes('||"light"'));
 });

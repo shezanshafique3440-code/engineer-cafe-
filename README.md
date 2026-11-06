@@ -175,45 +175,61 @@ skips the movement the same way. Both are verified in the browser.
 
 ## Theming
 
-The cafe picks its palette in **Admin → Settings → Theme**. Six ship today:
-Chai (default), Midnight (dark), Matcha, Saffron, Gulabi and Graphite.
+The admin picks the site's palette in **Admin → Settings → Website theme**.
+Ten presets ship: **Chai**, **Midnight**, **Matcha**, **Saffron**, **Gulabi**,
+**Graphite**, **Ocean**, **Royal**, **Terracotta** and **Espresso**.
 
-Every colour in `tailwind.config.ts` resolves through a CSS variable
-(`rgb(var(--c-chai-500) / <alpha-value>)`), and a theme is just a block of RGB
-triplets in `globals.css` under `[data-theme="…"]`. That is the whole mechanism:
-adding a seventh theme means adding one block there and one entry in
-`src/lib/themes.ts` — no component changes, no rebuild of anything else.
+The private gallery shows a miniature preview for each style, supports keyboard
+arrows/Home/End, and identifies the saved preset. Clicking a card previews the
+real palette in the current admin tab. **Reset preview** restores the saved
+choice; **Save changes** publishes it to the storefront, menus, checkout,
+login and admin. Leaving an unsaved preview restores the saved theme and the
+browser's own reading preference.
 
-Scale semantics every theme must honour:
+Only the **ADMIN** role sees the gallery and can publish a palette. The settings
+API enforces this independently of the UI. Staff can keep saving operational
+settings, but their requests never write the palette, including when an admin
+changes it concurrently. Visitors cannot save website settings.
+
+Every Tailwind colour resolves through shared RGB variables. The original
+palettes live in `globals.css`; new palettes, matching reading variants and the
+private gallery styles live in `theme-presets.css`. The theme registry and its
+closed API validation set are in `src/lib/themes.ts`. Food photos and ingredient
+art retain their own colours; page backgrounds, headers, controls and the hero
+surround follow the selected brand.
 
 | Scale | Role |
 |---|---|
-| `cream` 50 → 400 | page background, panels, borders (light → heavier) |
-| `charcoal` 50 → 900 | text, faint → strongest; 900 is the headline colour |
-| `chai` 50 → 900 | the brand accent |
-| `surface` | cards and inputs, sitting on top of `cream` |
+| `cream` 50 → 400 | Page backgrounds, panels and borders |
+| `charcoal` 50 → 900 | Text, from muted to headline strength |
+| `chai` 50 → 900 | The selected brand accent |
+| `surface` | Cards and inputs |
 
-The dark themes invert the `cream` and `charcoal` scales rather than renaming
-them, which is what lets the same utility classes work in both. Cards use
-`bg-surface`, not `bg-white`; plain `text-white` is left alone because it only
-ever sits on a saturated accent, where light text is right in every theme.
-
-**No flash.** The root layout renders `data-theme` on `<html>` from the database,
-so the first paint is already correct — there is no client-side theme swap to
-see. Saving settings calls `revalidatePath("/", "layout")` so the storefront
-picks up a new palette immediately rather than waiting out the 60s window.
-
-**Live preview.** Clicking a theme in admin repaints the panel straight away
-without saving; navigating away restores the stored one.
+Saving revalidates the root layout, so no redeploy is needed to choose a preset.
+There is no new production dependency or database migration. Backup/rollback
+scripts accept the same ten base preset IDs and can restore the saved house
+palette without importing old order data.
 
 ### Visitor appearance
 
-Separately from the cafe's palette, a visitor can choose Light / System / Dark
-from the navbar. "Light" is whatever the cafe chose, "Dark" is Midnight, and
-"System" follows the device. The choice is stored in `localStorage` and applied
-by a blocking inline script in `<head>` before first paint, so a returning
-visitor never sees a flash of the light palette. The control hides itself when
-the cafe's own theme is already dark — there is nothing to switch between.
+Visitors keep **Light / System / Dark** controls in the desktop navbar and the
+phone navigation drawer. No palette gallery appears on public pages. With no
+personal preference, the exact admin-selected preset is shown, including dark
+presets. An explicit reading preference selects the same brand's light/dark
+variant: Ocean stays blue in Dark, Matcha stays green, and Espresso has a cream
+counterpart in Light. System follows the device only when selected.
+
+Only the personal reading mode is stored in `localStorage`; it never changes
+`CafeSetting.theme`. A blocking head script applies it before first paint.
+The shared appearance provider synchronizes controls and tabs, handles blocked
+storage, restores private previews and keeps the browser theme colour consistent
+during client-side navigation. Controls remain available when the cafe chose a
+dark preset. Custom logo artwork keeps a light backing in every mode.
+
+Validation covers all ten presets and their paired modes, saved vs private
+previews, first paint without React, keyboard selection, blocked storage,
+cross-tab updates, role restrictions, concurrent staff/admin saves, unchanged
+operational settings, ordering with required options and responsive layouts.
 
 ---
 

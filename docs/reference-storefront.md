@@ -14,7 +14,7 @@ The previous homepage chose one chai item and overrode its own colour palette. I
 
 ## One theme
 
-The homepage no longer defines its own `--c-*` palette. Root Chai tokens supply cream/caramel colours throughout the storefront and admin, including header/sidebar treatments and a shared serif heading font. Other admin-selected palettes propagate to the homepage as well. First paint follows the cafe's house theme by default; an explicit personal dark/system preference applies consistently across routes.
+The homepage no longer defines its own `--c-*` palette. Root tokens supply a consistent palette throughout the storefront and admin, including header/sidebar treatments and a shared serif heading font. Admin Settings offers ten presets, with private previews and admin-only publishing. Visitors retain Light/System/Dark controls using matching brand variants; no personal preference means the exact saved house preset. The hero surround follows these tokens while food art retains its original colours.
 
 For this rollout, `CAFE_SHARED_THEME=chai` selects the shared Chai house palette after the pre-release backup. This is a single `CafeSetting.theme` update, not a schema migration. Theme preview/save continues through admin settings.
 
@@ -28,9 +28,9 @@ No new production dependency or Prisma schema/migration is required. Native VPS 
 
 ## Validation
 
-- Five selector/slot/default-appearance tests, including the reported one-featured-Kashmiri case.
+- Five selector/slot/default tests, including the reported one-featured-Kashmiri case. Six theme tests exercise all ten presets, paired reading modes, restricted preset IDs and prepaint/runtime consistency.
 - Eight recipe/effect tests cover every ingredient in the seeded food menu, accurate drink/food families, admin recipe edits, no invented milk/ice/butter, unknown/empty/duplicate/Urdu recipes, and availability/packaging exclusions. Existing mobile/auth/premium/storefront tests also pass.
-- Ten disposable-repository release tests with real Git/archive/checksum operations and mocked PM2/Docker/HTTP. Cases include build/asset/backup failures, immutable snapshot verification, later rollback, palette restoration and recovery from a failed manual rollback.
+- Twelve disposable-repository release tests with real Git/archive/checksum operations and mocked PM2/Docker/HTTP. Cases include build/asset/backup failures, immutable snapshot verification, later rollback, palette restoration and recovery from a failed manual rollback, including the new Ocean/Royal/Espresso presets.
 - Built-app Chromium checks verify visible pink liquid, flour bursts, animated cheese strands, same-item replay, synchronized photos/recipes, multiple autoplay changes, eight additional choices from the whole menu, modal search/focus/Escape/pause, and required-option product-to-cart flow. Nine layouts from 320 to 1920px include short 568/667px phones. The shared admin notification modal and reduced-motion manual selection also pass, with no browser runtime or artwork-loading errors. Prior checks covered shared admin/storefront palette/fonts, explicit dark mode and theme-preview cleanup.
 
 New art lives under `public/experience/`. Two transparent ingredient atlases provide 32 sprite cells, with English/Urdu aliases resolved in `src/lib/dish-experience.ts`. The extra atlas is requested only when its ingredients appear. Both files join the deployment's byte-for-byte HTTPS artwork checks. Existing menu images/prices and ordering APIs remain in use; this upgrade does not reseed the production menu. The generated interior is an atmospheric illustration, identified as such in the visit section.

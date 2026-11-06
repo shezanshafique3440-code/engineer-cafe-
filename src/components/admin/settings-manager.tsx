@@ -9,6 +9,7 @@ import { PageHeader } from "./ui";
 import { ImageUpload } from "./image-upload";
 import { ThemePicker } from "./theme-picker";
 import { DEFAULT_THEME } from "@/lib/themes";
+import { useSession } from "@/context/session-context";
 import { Button, Input, Textarea, Checkbox, ErrorState } from "@/components/ui";
 
 type Settings = {
@@ -54,6 +55,7 @@ function toForm(settings: Settings): Form {
 
 export function SettingsManager() {
   const router = useRouter();
+  const { user } = useSession();
   const [form, setForm] = useState<Form | null>(null);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
@@ -98,14 +100,15 @@ export function SettingsManager() {
     setSaving(true);
 
     try {
-      await apiPut("/api/admin/settings", {
+      const data = await apiPut<{ settings: Settings }>("/api/admin/settings", {
         ...form,
         deliveryFee: Number(form.deliveryFee),
         freeDeliveryOver: form.freeDeliveryOver ? Number(form.freeDeliveryOver) : null,
         minOrderAmount: Number(form.minOrderAmount),
         taxPercent: Number(form.taxPercent),
       });
-      setSavedTheme(String(form.theme));
+      setSavedTheme(data.settings.theme);
+      setForm(toForm(data.settings));
       router.refresh();
       toast.success("Settings saved — the storefront is updated.");
     } catch (err) {
@@ -179,18 +182,19 @@ export function SettingsManager() {
           </div>
         </section>
 
-        <section className="surface p-5 lg:col-span-2" aria-labelledby="theme-heading">
-          <h2 id="theme-heading" className="text-lg font-bold">Theme</h2>
+        {user?.role === "ADMIN" && <section className="surface p-5 lg:col-span-2" aria-labelledby="theme-heading">
+          <h2 id="theme-heading" className="text-lg font-bold">Website theme</h2>
           <p className="mb-4 mt-0.5 text-sm text-charcoal-500">
-            Repaints the whole site — storefront and this panel. Click one to preview it
-            straight away; it is only kept once you save.
+            Choose the colours and style for your storefront and admin panel. Preview a theme here, then save to publish it. Visitors keep their personal Light, System and Dark controls.
           </p>
           <ThemePicker
             value={str("theme")}
             saved={savedTheme}
             onChange={(id) => set("theme", id)}
+            disabled={saving}
           />
-        </section>
+          {errors.theme?.[0] && <p role="alert" className="mt-3 text-sm text-chilli-600">{errors.theme[0]}</p>}
+        </section>}
 
         <section className="surface p-5" aria-labelledby="ordering-heading">
           <h2 id="ordering-heading" className="mb-4 text-lg font-bold">Ordering &amp; fees</h2>

@@ -58,6 +58,7 @@ node --import tsx src/lib/__tests__/storefront.test.ts
 node --import tsx src/lib/__tests__/hero-catalog.test.ts
 node --import tsx src/lib/__tests__/dish-experience.test.ts
 node --import tsx src/lib/__tests__/local-uploads.test.ts
+node --import tsx src/lib/__tests__/themes.test.ts
 NODE_OPTIONS="--max-old-space-size=2048" npm run build
 pm2 restart engineer-cafe --update-env
 curl --retry 10 --retry-connrefused --retry-delay 2 --max-time 30 --fail --silent --show-error \

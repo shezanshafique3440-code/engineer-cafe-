@@ -9,7 +9,7 @@ TARGET=${1:?Supply the full reviewed commit SHA}
 HOUSE_THEME=${CAFE_SHARED_THEME:-}
 unset CAFE_SHARED_THEME
 if [ -n "$HOUSE_THEME" ]; then
-  case "$HOUSE_THEME" in chai|midnight|matcha|saffron|gulabi|graphite) ;; *) echo "Unsupported shared theme"; exit 1 ;; esac
+  case "$HOUSE_THEME" in chai|midnight|matcha|saffron|gulabi|graphite|ocean|royal|terracotta|espresso) ;; *) echo "Unsupported shared theme"; exit 1 ;; esac
 fi
 [[ "$TARGET" =~ ^[0-9a-f]{40}$ ]]
 cd "$APP"
@@ -80,7 +80,7 @@ if [ -n "$HOUSE_THEME" ]; then
   docker exec -i infra-postgres-1 sh -lc 'exec psql -XqAt -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-postgres}" -d engineer_cafe' > "$BACKUP/previous-theme" <<'SQL'
 SELECT theme FROM public."CafeSetting" WHERE id = 1;
 SQL
-  case "$(cat "$BACKUP/previous-theme")" in chai|midnight|matcha|saffron|gulabi|graphite) ;; *) echo "Stored theme needs inspection"; exit 1 ;; esac
+  case "$(cat "$BACKUP/previous-theme")" in chai|midnight|matcha|saffron|gulabi|graphite|ocean|royal|terracotta|espresso) ;; *) echo "Stored theme needs inspection"; exit 1 ;; esac
 fi
 # Stop the cafe briefly so its build and uploaded files cannot change mid-copy.
 # pg_dump is a consistent snapshot of ONLY the cafe database, never other apps.
