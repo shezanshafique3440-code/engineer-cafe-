@@ -1,3 +1,4 @@
+import { T } from "@/context/language-context";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -61,15 +62,10 @@ export default async function AboutPage() {
         <div className="container relative py-14 md:py-20">
           <p className="eyebrow">{"// our story"}</p>
           <h1 className="mt-2 max-w-3xl text-3xl font-extrabold leading-tight md:text-5xl">
-            The degree didn&apos;t open a door.
-            <br />
-            So he built one.
-          </h1>
+            {<T text="The degree didn&apos;t open a door."/>}<br />
+            {<T text="So he built one."/>}</h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-charcoal-600 md:text-lg">
-            {settings.cafeName} did not begin with a business plan or an investor. It began with an
-            engineering degree, a folder of unanswered applications, and a young man who finally got
-            tired of waiting for somebody else to give him permission to start.
-          </p>
+            {settings.cafeName} {<T text="did not begin with a business plan or an investor. It began with an engineering degree, a folder of unanswered applications, and a young man who finally got tired of waiting for somebody else to give him permission to start."/>}</p>
         </div>
       </section>
 
@@ -90,51 +86,29 @@ export default async function AboutPage() {
 
           <div className="space-y-5 text-sm leading-relaxed text-charcoal-600 md:text-base">
             <h2 className="text-2xl font-bold text-charcoal-900 md:text-3xl">
-              He did everything the right way. It still wasn&apos;t enough.
-            </h2>
+              {<T text="He did everything the right way. It still wasn&apos;t enough."/>}</h2>
             <p>
-              Four years of engineering. The semesters that ate themselves, the nights that ran into
-              mornings, the exams survived on chai and stubbornness. And then, at the end of it, the
-              degree — held up in a photograph, the proof that the hard part was over.
-            </p>
+              {<T text="Four years of engineering. The semesters that ate themselves, the nights that ran into mornings, the exams survived on chai and stubbornness. And then, at the end of it, the degree — held up in a photograph, the proof that the hard part was over."/>}</p>
             <p>
-              Except the hard part had not even started. What followed was the season nobody warns
-              you about: applications sent into silence. Interviews that ended in{" "}
-              <em>we&apos;ll let you know</em>. Reference numbers that led nowhere. A qualified
-              engineer with a folder full of certificates and absolutely nothing to do on a Monday
-              morning.
-            </p>
+              {<T text="Except the hard part had not even started. What followed was the season nobody warns you about: applications sent into silence. Interviews that ended in"/>}{" "}
+              <em>{<T text="we&apos;ll let you know"/>}</em>{<T text=". Reference numbers that led nowhere. A qualified engineer with a folder full of certificates and absolutely nothing to do on a Monday morning."/>}</p>
             <p>
-              Like everything else in this country, the waiting happened over chai. Cup after cup at
-              roadside dhabas, alongside other graduates carrying the same folder and the same
-              expression. And somewhere in those long, flat afternoons, the question quietly turned
-              itself around. It stopped being <em>who will give me a job?</em> and became{" "}
-              <em>why am I still asking?</em>
+              {<T text="Like everything else in this country, the waiting happened over chai. Cup after cup at roadside dhabas, alongside other graduates carrying the same folder and the same expression. And somewhere in those long, flat afternoons, the question quietly turned itself around. It stopped being"/>}<em>{<T text="who will give me a job?"/>}</em> {<T text="and became"/>}{" "}
+              <em>{<T text="why am I still asking?"/>}</em>
             </p>
 
             <div className="rounded-2xl border-l-4 border-chai-500 bg-cream-100 p-5">
               <p className="font-display text-lg font-bold italic text-charcoal-900">
-                &ldquo;Job nahi mili. Isliye khud bana li.&rdquo;
-              </p>
+                {<T text="&ldquo;Job nahi mili. Isliye khud bana li.&rdquo;"/>}</p>
               <p className="mt-1.5 text-xs text-charcoal-500">
-                No one gave him a job. So he built one — and then he built a few more.
-              </p>
+                {<T text="No one gave him a job. So he built one — and then he built a few more."/>}</p>
             </div>
 
             <p>
-              So he stopped asking. The engineering did not go to waste; it simply changed shape. The
-              same mind trained to break a problem into variables turned itself on a kettle, a tawa
-              and a bag of loose-leaf tea. How hot. How long. How much milk. What ratio of gur to
-              patti. He tested it the way he had been taught to test anything — one variable at a
-              time, iteration after iteration, until the cup came out right <em>every single time</em>.
+              {<T text="So he stopped asking. The engineering did not go to waste; it simply changed shape. The same mind trained to break a problem into variables turned itself on a kettle, a tawa and a bag of loose-leaf tea. How hot. How long. How much milk. What ratio of gur to patti. He tested it the way he had been taught to test anything — one variable at a time, iteration after iteration, until the cup came out right"/>}<em>{<T text="every single time"/>}</em>.
             </p>
             <p>
-              The first days were small and unglamorous: one burner, one man, and a great deal of
-              refusing to be embarrassed. Customers came for the chai and stayed because somebody
-              actually cared whether it was good. Word travelled the way it always does — one friend
-              telling another. One kettle became two. A stool became a table. A table became a room
-              full of students who now treat this place as an extension of their hostel.
-            </p>
+              {<T text="The first days were small and unglamorous: one burner, one man, and a great deal of refusing to be embarrassed. Customers came for the chai and stayed because somebody actually cared whether it was good. Word travelled the way it always does — one friend telling another. One kettle became two. A stool became a table. A table became a room full of students who now treat this place as an extension of their hostel."/>}</p>
 
             <dl className="grid grid-cols-3 gap-4 border-t border-cream-200 pt-6">
               {[
@@ -160,26 +134,14 @@ export default async function AboutPage() {
           <div className="mx-auto max-w-3xl text-center">
             <p className="eyebrow justify-center">{"// where it stands today"}</p>
             <h2 className="mt-2 text-2xl font-bold md:text-3xl">
-              Not a fallback. The actual plan.
-            </h2>
+              {<T text="Not a fallback. The actual plan."/>}</h2>
             <div className="mt-5 space-y-4 text-sm leading-relaxed text-charcoal-600 md:text-base">
               <p>
-                {settings.cafeName} is not the story of a man who failed at engineering and settled
-                for a chai stall. It is the story of a man who applied engineering to chai — which,
-                as anyone who has argued about doodh patti at 2 AM knows, is a far more serious
-                subject than most people are willing to admit.
-              </p>
+                {settings.cafeName} {<T text="is not the story of a man who failed at engineering and settled for a chai stall. It is the story of a man who applied engineering to chai — which, as anyone who has argued about doodh patti at 2 AM knows, is a far more serious subject than most people are willing to admit."/>}</p>
               <p>
-                Today the tawa does not get a chance to cool. The menu has grown from a single
-                kettle to {menuItems} items — nine kinds of chai, sixteen parathas, anday, and the
-                sides that go with them. There is a full kitchen, a team, and a queue that forms
-                before the shutters are properly up. Same founder. Same counter. Same obsession with
-                getting the ratio right.
-              </p>
+                {<T text="Today the tawa does not get a chance to cool. The menu has grown from a single kettle to"/>}{menuItems} {<T text="items — nine kinds of chai, sixteen parathas, anday, and the sides that go with them. There is a full kitchen, a team, and a queue that forms before the shutters are properly up. Same founder. Same counter. Same obsession with getting the ratio right."/>}</p>
               <p className="font-semibold text-charcoal-800">
-                And if you are sitting here right now with a degree and no offer letter, holding a
-                cup he made — take the hint.
-              </p>
+                {<T text="And if you are sitting here right now with a degree and no offer letter, holding a cup he made — take the hint."/>}</p>
             </div>
           </div>
         </div>
@@ -190,12 +152,9 @@ export default async function AboutPage() {
           <div className="mb-9 max-w-2xl">
             <p className="eyebrow">{"// our mission"}</p>
             <h2 className="mt-2 text-2xl font-bold md:text-3xl">
-              Serve chai worth interrupting work for.
-            </h2>
+              {<T text="Serve chai worth interrupting work for."/>}</h2>
             <p className="mt-3 text-sm text-charcoal-600 md:text-base">
-              Six commitments we hold ourselves to on every order, whether you&apos;re sitting in or
-              ordering at 1 AM.
-            </p>
+              {<T text="Six commitments we hold ourselves to on every order, whether you&apos;re sitting in or ordering at 1 AM."/>}</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -224,18 +183,16 @@ export default async function AboutPage() {
                 {"// come see for yourself"}
               </p>
               <h2 className="mx-auto mt-3 max-w-2xl text-2xl font-extrabold text-cream-50 md:text-4xl">
-                Your table is probably free right now.
-              </h2>
+                {<T text="Your table is probably free right now."/>}</h2>
               <p className="mx-auto mt-3 max-w-lg text-sm text-charcoal-300 md:text-base">
                 {settings.address} · {settings.openingHours}
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-3">
                 <Link href="/menu" className="btn bg-chai-500 px-6 py-3.5 text-base text-white hover:bg-chai-400">
-                  Browse the menu <ArrowRight className="h-4 w-4" aria-hidden />
+                  {<T text="Browse the menu"/>}<ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
                 <Link href="/contact" className="btn border border-cream-50/30 px-6 py-3.5 text-base text-cream-50 hover:bg-cream-50/10">
-                  Get in touch
-                </Link>
+                  {<T text="Get in touch"/>}</Link>
               </div>
             </div>
           </div>

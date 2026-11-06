@@ -1,3 +1,4 @@
+import { T } from "@/context/language-context";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -16,10 +17,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="surface p-6 md:p-8">
           <p className="eyebrow">{"// welcome back"}</p>
-          <h1 className="mt-2 text-2xl font-extrabold">Login to Engineer Cafe</h1>
+          <h1 className="mt-2 text-2xl font-extrabold">{<T text="Login to Engineer Cafe"/>}</h1>
           <p className="mt-1.5 text-sm text-charcoal-500">
-            Track your orders, save favorites and reorder in one tap.
-          </p>
+            {<T text="Track your orders, save favorites and reorder in one tap."/>}</p>
 
           <div className="mt-6">
             <Suspense fallback={<div className="skeleton h-64 w-full" />}>
@@ -28,10 +28,9 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-5 text-center text-sm text-charcoal-500">
-            New here?{" "}
+            {<T text="New here?"/>}{" "}
             <Link href="/register" className="font-semibold text-chai-700 hover:underline">
-              Create an account
-            </Link>
+              {<T text="Create an account"/>}</Link>
           </p>
         </div>
 

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import { useState } from "react";
 import { toast } from "sonner";
@@ -42,20 +43,18 @@ export function ContactForm() {
     return (
       <div className="surface flex flex-col items-center p-8 text-center">
         <CheckCircle2 className="h-10 w-10 text-circuit-500" aria-hidden />
-        <h2 className="mt-4 text-lg font-bold">Message sent.</h2>
+        <h2 className="mt-4 text-lg font-bold">{<T text="Message sent."/>}</h2>
         <p className="mt-1.5 text-sm text-charcoal-500">
-          We usually reply within a few hours during opening times.
-        </p>
+          {<T text="We usually reply within a few hours during opening times."/>}</p>
         <Button variant="secondary" className="mt-6" onClick={() => setSent(false)}>
-          Send another message
-        </Button>
+          {<T text="Send another message"/>}</Button>
       </div>
     );
   }
 
   return (
     <form onSubmit={submit} className="surface space-y-4 p-5 md:p-6" noValidate>
-      <h2 className="text-lg font-bold">Send us a message</h2>
+      <h2 className="text-lg font-bold">{<T text="Send us a message"/>}</h2>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Input
@@ -110,8 +109,7 @@ export function ContactForm() {
       />
 
       <Button type="submit" size="lg" className="w-full" loading={submitting}>
-        Send message
-      </Button>
+        {<T text="Send message"/>}</Button>
     </form>
   );
 }

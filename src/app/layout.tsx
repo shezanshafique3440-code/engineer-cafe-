@@ -1,3 +1,4 @@
+import { LanguageProvider } from "@/context/language-context";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Toaster } from "sonner";
@@ -48,7 +49,7 @@ export const metadata: Metadata = {
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
   formatDetection: { telephone: true, address: false, email: false },
-  icons: { icon: "/favicon.svg", apple: "/favicon.svg" },
+  icons: { icon: "/favicon.svg", apple: "/app-icon/192" },
   manifest: "/site.webmanifest",
   robots: { index: true, follow: true },
 };
@@ -91,7 +92,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <ThemeAppearanceProvider siteTheme={theme}>
-          {children}
+          <LanguageProvider>{children}</LanguageProvider>
           <Toaster
             position="bottom-right"
             mobileOffset={{ bottom: "calc(6rem + env(safe-area-inset-bottom))", left: 16, right: 16 }}

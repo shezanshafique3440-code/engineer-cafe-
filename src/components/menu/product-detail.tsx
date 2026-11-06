@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import { RememberProduct } from "@/components/storefront/browse-memory";
 import { CompareButton } from "@/components/storefront/compare-controls";
@@ -171,12 +172,11 @@ export function ProductDetail({
                 </div>
               )}
               <div className="absolute inset-x-3 top-3 flex flex-wrap gap-1.5">
-                {product.isPopular && <Badge tone="dark">🔥 Popular</Badge>}
-                {saving && <Badge tone="red">-{saving}% off</Badge>}
+                {product.isPopular && <Badge tone="dark">{<T text="🔥 Popular"/>}</Badge>}
+                {saving && <Badge tone="red">-{saving}{<T text="% off"/>}</Badge>}
                 {product.isVegetarian && (
                   <Badge tone="green">
-                    <Leaf className="h-3 w-3" aria-hidden /> Vegetarian
-                  </Badge>
+                    <Leaf className="h-3 w-3" aria-hidden /> {<T text="Vegetarian"/>}</Badge>
                 )}
               </div>
             </div>
@@ -204,7 +204,7 @@ export function ProductDetail({
                     aria-hidden
                   />
                   <dt className="text-[10px] uppercase tracking-wide text-charcoal-400">
-                    {stat.label}
+                    {<T text={stat.label}/> }
                   </dt>
                   <dd className="text-sm font-bold text-charcoal-900">
                     {stat.value}
@@ -215,9 +215,9 @@ export function ProductDetail({
           </div>
 
           <div>
-            <p className="eyebrow">{product.category.name}</p>
+            <p className="eyebrow">{<T text={product.category.name}/> }</p>
             <h1 className="mt-1.5 text-3xl font-extrabold leading-tight md:text-4xl">
-              {product.name}
+              {<T text={product.name} urdu={product.urduName}/> }
             </h1>
             {product.urduName && (
               <p className="mt-1 text-xl text-charcoal-500" dir="rtl">
@@ -232,12 +232,12 @@ export function ProductDetail({
                 size={16}
               />
               {!product.isAvailable && (
-                <Badge tone="red">Currently unavailable</Badge>
+                <Badge tone="red">{<T text="Currently unavailable"/>}</Badge>
               )}
             </div>
 
             <p className="mt-4 text-base leading-relaxed text-charcoal-600">
-              {product.longDescription || product.description}
+              {<T text={product.longDescription || product.description}/> }
             </p>
 
             <div className="mt-5 flex items-end gap-3">
@@ -254,8 +254,7 @@ export function ProductDetail({
             {product.comboItems && product.comboItems.length > 0 && (
               <div className="mt-5 rounded-xl border border-chai-200 bg-chai-50 p-4">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-chai-700">
-                  What&apos;s in this deal
-                </p>
+                  {<T text="What's in this deal"/>}</p>
                 <ul className="space-y-1.5">
                   {product.comboItems.map((item) => (
                     <li
@@ -266,7 +265,7 @@ export function ProductDetail({
                         className="h-1 w-1 rounded-full bg-chai-500"
                         aria-hidden
                       />
-                      {item.quantity} × {item.productName}
+                      {item.quantity} × {<T text={item.productName}/> }
                     </li>
                   ))}
                 </ul>
@@ -277,7 +276,7 @@ export function ProductDetail({
               <fieldset key={group.id} className="mt-6">
                 <legend className="mb-2.5 flex w-full items-center justify-between gap-2">
                   <span className="text-sm font-bold text-charcoal-900">
-                    {group.name}
+                    {<T text={group.name}/> }
                     {group.isRequired && (
                       <span className="ml-1 text-chilli-500">*</span>
                     )}
@@ -314,7 +313,7 @@ export function ProductDetail({
                             className="h-4 w-4 shrink-0 accent-chai-600"
                           />
                           <span className="truncate font-medium">
-                            {addon.name}
+                            {<T text={addon.name}/> }
                           </span>
                         </span>
                         {addon.price > 0 && (
@@ -331,8 +330,7 @@ export function ProductDetail({
 
             <div className="mt-6">
               <label htmlFor="detail-notes" className="label">
-                Special instructions
-              </label>
+                {<T text="Special instructions"/>}</label>
               <input
                 id="detail-notes"
                 value={notes}
@@ -347,7 +345,7 @@ export function ProductDetail({
                 className="mt-4 text-xs font-medium text-chilli-600"
                 role="alert"
               >
-                Please choose{" "}
+                {<T text="Please choose"/>}{" "}
                 {missingRequired.map((g) => g.name.toLowerCase()).join(" and ")}
                 .
               </p>
@@ -433,28 +431,25 @@ export function ProductDetail({
               }
               onClick={buyNow}
             >
-              <Zap className="h-4 w-4" aria-hidden /> Buy it now
-            </Button>
+              <Zap className="h-4 w-4" aria-hidden /> {<T text="Buy it now"/>}</Button>
 
             {product.ingredients.length > 0 && (
               <div className="mt-8 border-t border-cream-200 pt-6">
                 <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-charcoal-400">
-                  Ingredients
-                </h2>
+                  {<T text="Ingredients"/>}</h2>
                 <div className="flex flex-wrap gap-2">
                   {product.ingredients.map((ingredient) => (
                     <span
                       key={ingredient}
                       className="rounded-full bg-cream-100 px-3 py-1.5 text-xs text-charcoal-600"
                     >
-                      {ingredient}
+                      {<T text={ingredient}/>}
                     </span>
                   ))}
                 </div>
                 {product.calories && (
                   <p className="mt-3 text-xs text-charcoal-400">
-                    Approximately {product.calories} kcal per serving.
-                  </p>
+                    {<T text="Approximately"/>}{product.calories} {<T text="kcal per serving."/>}</p>
                 )}
               </div>
             )}
@@ -518,15 +513,14 @@ function ReviewsSection({
       aria-labelledby="reviews-heading"
     >
       <h2 id="reviews-heading" className="text-xl font-bold md:text-2xl">
-        Reviews ({product.ratingCount})
+        {<T text="Reviews ("/>}{product.ratingCount})
       </h2>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           {reviews.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-cream-300 bg-cream-50 px-5 py-10 text-center text-sm text-charcoal-500">
-              No reviews yet. Order it and be the first to weigh in.
-            </p>
+              {<T text="No reviews yet. Order it and be the first to weigh in."/>}</p>
           ) : (
             <ul className="space-y-4">
               {reviews.map((review) => (
@@ -556,25 +550,22 @@ function ReviewsSection({
 
         <div>
           <div className="surface p-5">
-            <h3 className="text-base font-bold">Write a review</h3>
+            <h3 className="text-base font-bold">{<T text="Write a review"/>}</h3>
             {!user ? (
               <p className="mt-2 text-sm text-charcoal-500">
                 <a
                   href="/login"
                   className="font-semibold text-chai-700 hover:underline"
                 >
-                  Login
-                </a>{" "}
-                to review items you&apos;ve ordered.
-              </p>
+                  {<T text="Login"/>}</a>{" "}
+                {<T text="to review items you've ordered."/>}</p>
             ) : submitted ? (
               <p className="mt-2 text-sm text-circuit-600">
-                Thanks! Your review is awaiting approval.
-              </p>
+                {<T text="Thanks! Your review is awaiting approval."/>}</p>
             ) : (
               <form onSubmit={submit} className="mt-4 space-y-4">
                 <fieldset>
-                  <legend className="label">Your rating</legend>
+                  <legend className="label">{<T text="Your rating"/>}</legend>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((value) => (
                       <button
@@ -611,11 +602,9 @@ function ReviewsSection({
                 />
 
                 <Button type="submit" loading={submitting} className="w-full">
-                  Submit review
-                </Button>
+                  {<T text="Submit review"/>}</Button>
                 <p className="text-[11px] leading-snug text-charcoal-400">
-                  You can review an item once it has been delivered to you.
-                </p>
+                  {<T text="You can review an item once it has been delivered to you."/>}</p>
               </form>
             )}
           </div>

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -56,13 +57,13 @@ export function CafeCollections({ products }: { products: ProductDTO[] }) {
       <div className="cinema-container">
         <div className="cinema-section-heading reveal">
           <div>
-            <p className="cinema-eyebrow">A FEW OF OUR FAVOURITE THINGS</p>
+            <p className="cinema-eyebrow">{<T text="A FEW OF OUR FAVOURITE THINGS"/>}</p>
             <h2>
-              Find your little <em>happiness.</em>
+              {<T text="Find your little"/>}<em>{<T text="happiness."/>}</em>
             </h2>
           </div>
           <Link href="/menu" className="cinema-text-link">
-            The full collection <ArrowUpRight size={16} aria-hidden />
+            {<T text="The full collection"/>}<ArrowUpRight size={16} aria-hidden />
           </Link>
         </div>
         <div className="cinema-collection-grid">
@@ -96,7 +97,7 @@ export function CafeCollections({ products }: { products: ProductDTO[] }) {
                 <h3>{collection.name}</h3>
                 <p>{collection.description}</p>
                 <span>
-                  Featuring {collection.product.name} ·{" "}
+                  {<T text="Featuring"/>}{<T text={collection.product.name}/> } ·{" "}
                   {money(
                     collection.product.discountPrice ??
                       collection.product.price,
@@ -141,33 +142,25 @@ export function CafeStory({ products }: { products: ProductDTO[] }) {
             </div>
           )}
           <span className="cinema-story-seal" aria-hidden>
-            CHAI & GOOD COMPANY <Coffee size={25} /> THE ENGINEER WAY
-          </span>
+            {<T text="CHAI & GOOD COMPANY"/>}<Coffee size={25} /> {<T text="THE ENGINEER WAY"/>}</span>
         </div>
         <div className="cinema-story-copy reveal">
-          <p className="cinema-eyebrow">MORE THAN WHAT’S IN THE CUP</p>
+          <p className="cinema-eyebrow">{<T text="MORE THAN WHAT’S IN THE CUP"/>}</p>
           <h2>
-            A place to pause.
-            <br />A reason to <em>stay.</em>
+            {<T text="A place to pause."/>}<br />{<T text="A reason to"/>}<em>{<T text="stay."/>}</em>
           </h2>
           <p>
-            Some of the best ideas happen over chai. So do the best
-            conversations, the long catch-ups, and the well-deserved breaks.
-          </p>
+            {<T text="Some of the best ideas happen over chai. So do the best conversations, the long catch-ups, and the well-deserved breaks."/>}</p>
           <p>
-            At {settings.cafeName}, it starts with a good cup and something
-            golden from the tawa. The rest is your moment to make.
-          </p>
+            {<T text="At"/>}{settings.cafeName}{<T text=", it starts with a good cup and something golden from the tawa. The rest is your moment to make."/>}</p>
           <Link href="/about" className="cinema-button cinema-button-brown">
-            A little about us <ArrowRight size={15} aria-hidden />
+            {<T text="A little about us"/>}<ArrowRight size={15} aria-hidden />
           </Link>
           <div className="cinema-story-details">
             <span>
-              <Coffee size={17} aria-hidden /> Brewed to order
-            </span>
+              <Coffee size={17} aria-hidden /> {<T text="Brewed to order"/>}</span>
             <span>
-              <Users size={17} aria-hidden /> Better together
-            </span>
+              <Users size={17} aria-hidden /> {<T text="Better together"/>}</span>
           </div>
         </div>
       </div>
@@ -200,13 +193,13 @@ export function SignatureMenu({
       <div className="cinema-container">
         <div className="cinema-section-heading reveal">
           <div>
-            <p className="cinema-eyebrow">FROM OUR KITCHEN, WITH LOVE</p>
+            <p className="cinema-eyebrow">{<T text="FROM OUR KITCHEN, WITH LOVE"/>}</p>
             <h2>
-              The usual? Or a new <em>favourite.</em>
+              {<T text="The usual? Or a new"/>}<em>{<T text="favourite."/>}</em>
             </h2>
           </div>
           <Link href="/menu" className="cinema-text-link">
-            See the whole menu <ArrowUpRight size={16} aria-hidden />
+            {<T text="See the whole menu"/>}<ArrowUpRight size={16} aria-hidden />
           </Link>
         </div>
         <div className="cinema-menu-tabs" aria-label="Filter signature dishes">
@@ -215,8 +208,7 @@ export function SignatureMenu({
             aria-pressed={selected === "all"}
             onClick={() => setSelected("all")}
           >
-            Cafe favourites
-          </button>
+            {<T text="Cafe favourites"/>}</button>
           {tabs.map((category) => (
             <button
               key={category.id}
@@ -224,7 +216,7 @@ export function SignatureMenu({
               aria-pressed={selected === category.slug}
               onClick={() => setSelected(category.slug)}
             >
-              {category.name}
+              {<T text={category.name}/> }
             </button>
           ))}
         </div>
@@ -236,9 +228,7 @@ export function SignatureMenu({
           </div>
         ) : (
           <p className="cinema-empty">
-            The kitchen is refreshing this collection. Explore the menu for
-            available favourites.
-          </p>
+            {<T text="The kitchen is refreshing this collection. Explore the menu for available favourites."/>}</p>
         )}
       </div>
       <div className="cinema-service-choice">
@@ -261,15 +251,13 @@ export function CafeVisit() {
       />
       <div className="cinema-visit-shade" aria-hidden />
       <div className="cinema-container cinema-visit-content reveal">
-        <p className="cinema-eyebrow">THERE’S ALWAYS ROOM FOR ONE MORE</p>
+        <p className="cinema-eyebrow">{<T text="THERE’S ALWAYS ROOM FOR ONE MORE"/>}</p>
         <h2>
-          Good chai.
-          <br />
-          <em>Better company.</em>
+          {<T text="Good chai."/>}<br />
+          <em>{<T text="Better company."/>}</em>
         </h2>
         <p>
-          Leave the rush at the door. Your next favourite moment starts here.
-        </p>
+          {<T text="Leave the rush at the door. Your next favourite moment starts here."/>}</p>
         <div className="cinema-visit-details">
           <span>
             <MapPin size={16} aria-hidden />
@@ -287,16 +275,15 @@ export function CafeVisit() {
             rel="noopener noreferrer"
             className="cinema-button cinema-button-cream"
           >
-            Find our cafe <ArrowUpRight size={16} aria-hidden />
+            {<T text="Find our cafe"/>}<ArrowUpRight size={16} aria-hidden />
           </a>
           <Link href="/menu" className="cinema-button cinema-button-outline">
-            Bring the cafe home <ArrowRight size={15} aria-hidden />
+            {<T text="Bring the cafe home"/>}<ArrowRight size={15} aria-hidden />
           </Link>
         </div>
       </div>
       <span className="cinema-atmosphere-caption">
-        An illustration of the feeling. Visit us for the real thing.
-      </span>
+        {<T text="An illustration of the feeling. Visit us for the real thing."/>}</span>
     </section>
   );
 }
@@ -318,14 +305,13 @@ export function CafeReviews({
       <div className="cinema-container">
         <div className="cinema-section-heading reveal">
           <div>
-            <p className="cinema-eyebrow">THE WORD AROUND THE TABLE</p>
+            <p className="cinema-eyebrow">{<T text="THE WORD AROUND THE TABLE"/>}</p>
             <h2>
-              A few kind <em>words.</em>
+              {<T text="A few kind"/>}<em>{<T text="words."/>}</em>
             </h2>
           </div>
           <span className="cinema-review-note">
-            From approved customer reviews
-          </span>
+            {<T text="From approved customer reviews"/>}</span>
         </div>
         <div className="cinema-review-grid">
           {reviews.map((review) => (
@@ -390,7 +376,7 @@ export function CafeConcierge() {
             >
               <item.icon size={24} strokeWidth={1.25} aria-hidden />
               <p className="cinema-eyebrow">{item.eyebrow}</p>
-              <h2>{item.title}</h2>
+              <h2>{<T text={item.title}/> }</h2>
               <p>{item.copy}</p>
               <span>
                 {item.cta}

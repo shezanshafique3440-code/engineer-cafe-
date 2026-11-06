@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 import { useEffect } from "react";
 import { History } from "lucide-react";
 import { useStorefront } from "@/context/storefront-context";
@@ -25,35 +26,27 @@ export function RecentlyViewed() {
           <div>
             <p className="eyebrow flex items-center gap-2">
               <History className="h-3.5 w-3.5" />
-              Your browsing trail
-            </p>
+              {<T text="Your browsing trail"/>}</p>
             <h2 className="mt-2 text-2xl font-extrabold sm:text-3xl">
-              Still on your mind?
-            </h2>
+              {<T text="Still on your mind?"/>}</h2>
             <p className="mt-2 text-sm text-charcoal-500">
-              Recently viewed on this browser, with current menu prices.
-            </p>
+              {<T text="Recently viewed on this browser, with current menu prices."/>}</p>
           </div>
           <Button variant="ghost" onClick={clearHistory}>
-            Clear history
-          </Button>
+            {<T text="Clear history"/>}</Button>
         </div>
         {error ? (
           <div role="status">
-            <p className="mb-3 text-sm">Your recent items could not refresh.</p>
+            <p className="mb-3 text-sm">{<T text="Your recent items could not refresh."/>}</p>
             <Button variant="secondary" onClick={retry}>
-              Try again
-            </Button>
+              {<T text="Try again"/>}</Button>
           </div>
         ) : loading ? (
           <p role="status" className="py-8 text-sm text-charcoal-500">
-            Refreshing your browsing trail…
-          </p>
+            {<T text="Refreshing your browsing trail…"/>}</p>
         ) : !products.length ? (
           <p className="py-6 text-sm text-charcoal-500">
-            These dishes are no longer available. Discover something new on the
-            menu.
-          </p>
+            {<T text="These dishes are no longer available. Discover something new on the menu."/>}</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {products.slice(0, 4).map((p) => (
@@ -62,9 +55,7 @@ export function RecentlyViewed() {
           </div>
         )}
         <p className="mt-4 text-xs text-charcoal-400">
-          Only product identifiers are saved locally for 14 days. Clear them
-          whenever you like.
-        </p>
+          {<T text="Only product identifiers are saved locally for 14 days. Clear them whenever you like."/>}</p>
       </div>
     </section>
   );

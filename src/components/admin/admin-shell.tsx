@@ -15,6 +15,8 @@ import { useDialogFocus } from "@/hooks/use-dialog-focus";
 import { cn, initials } from "@/lib/utils";
 
 const NAV = [
+  { href: "/admin/pos", label: "Counter POS", icon: ShoppingBag },
+  { href: "/admin/experience", label: "Rewards & scheduling", icon: Sparkles },
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/kitchen", label: "Kitchen live", icon: ChefHat },
   { href: "/admin/insights", label: "Business insights", icon: Sparkles },

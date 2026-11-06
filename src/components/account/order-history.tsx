@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -68,10 +69,9 @@ export function OrderHistory({ orders }: { orders: OrderDTO[] }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-extrabold md:text-3xl">My Orders</h1>
+      <h1 className="text-2xl font-extrabold md:text-3xl">{<T text="My Orders"/>}</h1>
       <p className="mt-1.5 text-sm text-charcoal-500">
-        Every chai break, on record.
-      </p>
+        {<T text="Every chai break, on record."/>}</p>
 
       <div className="no-scrollbar mt-6 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter orders">
         {FILTERS.map((option) => (
@@ -88,7 +88,7 @@ export function OrderHistory({ orders }: { orders: OrderDTO[] }) {
                 : "border-cream-300 bg-surface text-charcoal-600 hover:border-chai-300",
             )}
           >
-            {option.label}
+            {<T text={option.label}/> }
           </button>
         ))}
       </div>
@@ -134,28 +134,26 @@ export function OrderHistory({ orders }: { orders: OrderDTO[] }) {
                           )}
                         </span>
                         <span className="text-xs font-medium text-charcoal-700">
-                          {item.quantity} × {item.productName}
+                          {item.quantity} × {<T text={item.productName}/> }
                         </span>
                       </li>
                     ))}
                     {order.items.length > 4 && (
                       <li className="flex items-center rounded-xl bg-cream-100 px-3 py-1 text-xs font-medium text-charcoal-500">
-                        +{order.items.length - 4} more
-                      </li>
+                        +{order.items.length - 4} {<T text="more"/>}</li>
                     )}
                   </ul>
 
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-cream-200 pt-4">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-charcoal-400">Total</p>
+                      <p className="text-[11px] uppercase tracking-wide text-charcoal-400">{<T text="Total"/>}</p>
                       <p className="text-lg font-extrabold text-charcoal-900">{money(order.total)}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="secondary" size="sm" onClick={() => reorder(order)}>
-                        <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Order Again
-                      </Button>
+                        <RotateCcw className="h-3.5 w-3.5" aria-hidden /> {<T text="Order Again"/>}</Button>
                       <Link href={`/orders/${order.orderNumber}`} className="btn-primary px-3.5 py-2 text-xs">
-                        Track <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+                        {<T text="Track"/>}<ChevronRight className="h-3.5 w-3.5" aria-hidden />
                       </Link>
                     </div>
                   </div>

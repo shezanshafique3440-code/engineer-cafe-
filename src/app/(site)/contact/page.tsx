@@ -1,3 +1,4 @@
+import { T } from "@/context/language-context";
 import type { Metadata } from "next";
 import { MapPin, Phone, Mail, Clock, MessageCircle, Instagram, Facebook } from "lucide-react";
 import { buildMetadata, breadcrumbJsonLd } from "@/lib/seo";
@@ -45,11 +46,9 @@ export default async function ContactPage() {
       <div className="border-b border-cream-200 bg-cream-100">
         <div className="container py-12 md:py-16">
           <p className="eyebrow">{"// get in touch"}</p>
-          <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">Talk to us.</h1>
+          <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">{<T text="Talk to us."/>}</h1>
           <p className="mt-3 max-w-2xl text-sm text-charcoal-600 md:text-base">
-            Orders, group bookings, catering for a hackathon, or feedback on a chai that
-            wasn&apos;t right — all of it reaches the same team.
-          </p>
+            {<T text="Orders, group bookings, catering for a hackathon, or feedback on a chai that wasn&apos;t right — all of it reaches the same team."/>}</p>
         </div>
       </div>
 
@@ -86,14 +85,12 @@ export default async function ContactPage() {
             rel="noopener noreferrer"
             className="btn w-full bg-[#25D366] py-3.5 text-white hover:brightness-105"
           >
-            <MessageCircle className="h-4 w-4" aria-hidden /> Order on WhatsApp
-          </a>
+            <MessageCircle className="h-4 w-4" aria-hidden /> {<T text="Order on WhatsApp"/>}</a>
 
           {(settings.instagramUrl || settings.facebookUrl) && (
             <div className="surface p-4">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-charcoal-400">
-                Follow us
-              </p>
+                {<T text="Follow us"/>}</p>
               <div className="flex gap-2">
                 {settings.instagramUrl && (
                   <a
@@ -102,8 +99,7 @@ export default async function ContactPage() {
                     rel="noopener noreferrer"
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-cream-200 py-2.5 text-sm font-medium text-charcoal-700 transition hover:border-chai-400 hover:text-chai-700"
                   >
-                    <Instagram className="h-4 w-4" aria-hidden /> Instagram
-                  </a>
+                    <Instagram className="h-4 w-4" aria-hidden /> {<T text="Instagram"/>}</a>
                 )}
                 {settings.facebookUrl && (
                   <a
@@ -112,8 +108,7 @@ export default async function ContactPage() {
                     rel="noopener noreferrer"
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-cream-200 py-2.5 text-sm font-medium text-charcoal-700 transition hover:border-chai-400 hover:text-chai-700"
                   >
-                    <Facebook className="h-4 w-4" aria-hidden /> Facebook
-                  </a>
+                    <Facebook className="h-4 w-4" aria-hidden /> {<T text="Facebook"/>}</a>
                 )}
               </div>
             </div>

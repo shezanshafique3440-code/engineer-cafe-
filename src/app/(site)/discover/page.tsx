@@ -1,3 +1,4 @@
+import { T } from "@/context/language-context";
 import type { Metadata } from "next";
 import { getMealCatalog } from "@/server/products";
 import { MoodDiscovery } from "@/components/storefront/discovery";
@@ -14,8 +15,7 @@ export default async function DiscoverPage() {
       <MoodDiscovery products={products} full />
       {truncated && (
         <p className="container pb-5 text-xs text-charcoal-500">
-          Showing discovery picks from the first 200 available products.
-        </p>
+          {<T text="Showing discovery picks from the first 200 available products."/>}</p>
       )}
     </>
   );

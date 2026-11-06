@@ -1,3 +1,4 @@
+import { T } from "@/context/language-context";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ShoppingBag, Heart, MapPin, Wallet, ArrowRight } from "lucide-react";
@@ -63,11 +64,10 @@ export default async function AccountPage() {
   return (
     <div>
       <h1 className="text-2xl font-extrabold md:text-3xl">
-        Salam, {user.name.split(" ")[0]} 👋
+        {<T text="Salam,"/>}{user.name.split(" ")[0]} 👋
       </h1>
       <p className="mt-1.5 text-sm text-charcoal-500">
-        Here&apos;s everything happening on your account.
-      </p>
+        {<T text="Here&apos;s everything happening on your account."/>}</p>
 
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map((stat) => (
@@ -85,7 +85,7 @@ export default async function AccountPage() {
 
       {activeOrders.length > 0 && (
         <section className="mt-8" aria-labelledby="active-heading">
-          <h2 id="active-heading" className="mb-4 text-lg font-bold">Current orders</h2>
+          <h2 id="active-heading" className="mb-4 text-lg font-bold">{<T text="Current orders"/>}</h2>
           <ul className="space-y-3">
             {activeOrders.map((order) => (
               <li key={order.id}>
@@ -96,8 +96,7 @@ export default async function AccountPage() {
                   <div className="min-w-0">
                     <p className="font-mono text-sm font-bold text-chai-800">#{order.orderNumber}</p>
                     <p className="mt-0.5 text-xs text-charcoal-600">
-                      {ORDER_STATUS_LABEL[order.status]} · ~{order.estimatedMinutes} min
-                    </p>
+                      {ORDER_STATUS_LABEL[order.status]} · ~{order.estimatedMinutes} {<T text="min"/>}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="text-sm font-bold">{money(order.total)}</span>
@@ -112,10 +111,9 @@ export default async function AccountPage() {
 
       <section className="mt-8" aria-labelledby="recent-heading">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 id="recent-heading" className="text-lg font-bold">Recent orders</h2>
+          <h2 id="recent-heading" className="text-lg font-bold">{<T text="Recent orders"/>}</h2>
           <Link href="/account/orders" className="text-sm font-semibold text-chai-700 hover:underline">
-            View all
-          </Link>
+            {<T text="View all"/>}</Link>
         </div>
 
         {orders.length === 0 ? (
@@ -137,8 +135,7 @@ export default async function AccountPage() {
                   <div className="min-w-0">
                     <p className="font-mono text-sm font-bold text-charcoal-900">#{order.orderNumber}</p>
                     <p className="mt-0.5 text-xs text-charcoal-500">
-                      {formatDate(order.createdAt)} · {order._count.items} item
-                      {order._count.items === 1 ? "" : "s"}
+                      {formatDate(order.createdAt)} · {order._count.items} {<T text="item"/>}{order._count.items === 1 ? "" : "s"}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">

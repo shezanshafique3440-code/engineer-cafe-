@@ -1,0 +1,7 @@
+/* Only the offline page is cached. Private pages, APIs, carts and orders always use the network. */
+const CACHE='cafe-shell-v1';
+self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.add('/offline.html')));self.skipWaiting()});
+self.addEventListener('activate',event=>{event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('cafe-shell-')&&k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()]))});
+self.addEventListener('fetch',event=>{if(event.request.mode==='navigate'&&event.request.method==='GET'&&new URL(event.request.url).origin===self.location.origin)event.respondWith(fetch(event.request).catch(()=>caches.match('/offline.html')))});
+self.addEventListener('push',event=>{let data;try{data=event.data.json()}catch{return}event.waitUntil(self.registration.showNotification(data.title||'Engineer Cafe',{body:data.body||'New kitchen ticket',icon:'/app-icon/192',badge:'/app-icon/192',tag:data.tag||'cafe-order',data:{url:data.url==='/admin/orders'?data.url:'/admin/orders'}}))});
+self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{const list=await self.clients.matchAll({type:'window',includeUncontrolled:true});const url=new URL('/admin/orders',self.location.origin).href;const client=list.find(c=>c.url.startsWith(self.location.origin+'/admin'));if(client){await client.navigate(url);return client.focus()}return self.clients.openWindow(url)})())});

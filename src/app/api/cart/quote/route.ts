@@ -18,6 +18,7 @@ export const POST = handle(async (request: Request) => {
       couponCode: data.couponCode || null,
       orderType: data.orderType,
       userId: user?.id ?? null,
+      redeemReward: data.redeemReward,
     },
     settings,
   );

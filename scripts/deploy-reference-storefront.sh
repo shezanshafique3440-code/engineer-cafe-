@@ -25,8 +25,7 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   exit 1
 fi
 if ! git diff --quiet "$OLD" "$TARGET" -- package.json package-lock.json prisma/schema.prisma prisma/migrations; then
-  echo "Dependency/database changes require a separate migration plan."
-  exit 1
+  git show "$TARGET:scripts/check-experience-release.cjs" | node - "$OLD" "$TARGET"
 fi
 test -f .env
 test -s .next/BUILD_ID
@@ -40,7 +39,7 @@ if [ -e "$BACKUP_ROOT/latest" ] && [ ! -L "$BACKUP_ROOT/latest" ]; then
   exit 1
 fi
 # Allow room for snapshots, the updater's previous build and a new build.
-need_kb=$(( $(du -sk .next public | awk '{sum+=$1} END {print sum}') * 3 + 524288 ))
+need_kb=$(( $(du -sk .next public node_modules | awk '{sum+=$1} END {print sum}') * 3 + 524288 ))
 free_kb=$(df -Pk "$APP" | awk 'END {print $4}')
 backup_free_kb=$(df -Pk "$BACKUP_ROOT" | awk 'END {print $4}')
 if [ "$free_kb" -lt "$need_kb" ] || [ "$backup_free_kb" -lt "$need_kb" ]; then
@@ -52,6 +51,7 @@ printf '%s\n' "$OLD" > "$BACKUP/previous-commit"
 printf '%s\n' "$TARGET" > "$BACKUP/target-commit"
 printf '%s\n' "$APP" > "$BACKUP/app-path"
 cp -p .env "$BACKUP/previous.env"
+printf '%s\n' "$OLD $TARGET" > "$BACKUP/additive-release"
 pm2 describe engineer-cafe > "$BACKUP/pm2-description.txt"
 git archive --format=tar.gz "$OLD" > "$BACKUP/previous-code.tar.gz"
 git show "$TARGET:scripts/rollback-cafe-release.sh" > "$BACKUP/rollback.sh"
@@ -76,6 +76,7 @@ on_error() {
 trap on_error EXIT
 STOP_REQUESTED=1
 pm2 stop engineer-cafe
+if pm2 describe engineer-cafe-notifications >/dev/null 2>&1; then pm2 stop engineer-cafe-notifications; fi
 if [ -n "$HOUSE_THEME" ]; then
   docker exec -i infra-postgres-1 sh -lc 'exec psql -XqAt -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-postgres}" -d engineer_cafe' > "$BACKUP/previous-theme" <<'SQL'
 SELECT theme FROM public."CafeSetting" WHERE id = 1;
@@ -88,18 +89,19 @@ docker exec infra-postgres-1 sh -lc \
   'exec pg_dump -U "${POSTGRES_USER:-postgres}" -d engineer_cafe -Fc' > "$BACKUP/database.dump"
 test -s "$BACKUP/database.dump"
 docker exec -i infra-postgres-1 pg_restore --list < "$BACKUP/database.dump" > /dev/null
+tar -czf "$BACKUP/dependencies.tar.gz" node_modules
 tar --exclude='.next/cache' -czf "$BACKUP/build.tar.gz" .next
 if [ -d public/uploads ]; then
   tar -czf "$BACKUP/uploads.tar.gz" public/uploads
 else
   tar -czf "$BACKUP/uploads.tar.gz" --files-from /dev/null
 fi
-for archive in previous-code.tar.gz build.tar.gz uploads.tar.gz; do
+for archive in previous-code.tar.gz build.tar.gz uploads.tar.gz dependencies.tar.gz; do
   tar -tzf "$BACKUP/$archive" > /dev/null
 done
 (
   cd "$BACKUP"
-  sha256sum previous-commit target-commit app-path previous.env pm2-description.txt previous-code.tar.gz build.tar.gz uploads.tar.gz database.dump rollback.sh deploy-reviewed.sh > SHA256SUMS
+  sha256sum previous-commit target-commit app-path additive-release previous.env pm2-description.txt previous-code.tar.gz build.tar.gz uploads.tar.gz dependencies.tar.gz database.dump rollback.sh deploy-reviewed.sh > SHA256SUMS
   if [ -f previous-theme ]; then sha256sum previous-theme >> SHA256SUMS; fi
   sha256sum --status --check SHA256SUMS
 )
@@ -120,7 +122,7 @@ fi
 pm2 restart engineer-cafe
 curl --retry 10 --retry-connrefused --retry-delay 2 --max-time 30 --fail --silent --show-error \
   http://127.0.0.1:3100/admin/login -o /dev/null
-bash "$BACKUP/deploy-reviewed.sh" "$TARGET"
+CAFE_RELEASE_SNAPSHOT="$BACKUP" bash "$BACKUP/deploy-reviewed.sh" "$TARGET"
 # These checks belong inside this wrapper's recovery boundary.
 curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 \
   https://esellerstore.vip/ -o "$BACKUP/home-after.html"

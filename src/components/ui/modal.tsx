@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage,T } from "@/context/language-context";
 import { useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
@@ -19,6 +20,7 @@ export function Modal({
   children: ReactNode;
   size?: "md" | "lg";
 }) {
+  const {t}=useLanguage();
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogFocus(open, dialogRef, onClose);
 
@@ -36,19 +38,19 @@ export function Modal({
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={t(title)}
         className={cn(
           "relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-surface shadow-lift sm:my-4 sm:rounded-2xl",
           size === "lg" ? "max-w-3xl" : "max-w-xl",
         )}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-cream-200 px-4 py-3 sm:px-5 sm:py-4">
-          <h2 className="text-lg font-bold">{title}</h2>
+          <h2 className="text-lg font-bold">{<T text={title}/>}</h2>
           <button
             type="button"
             onClick={onClose}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-charcoal-500 transition hover:bg-cream-100"
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             <X className="h-4 w-4" />
           </button>

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import Image from "next/image";
 import { useState } from "react";
@@ -22,21 +23,19 @@ export function DishIngredients({
   return (
     <Modal open={open} onClose={onClose} title={`${product.name} ingredients`}>
       <p className="mb-5 text-sm text-charcoal-500">
-        From this item’s current menu recipe.
-      </p>
+        {<T text="From this item’s current menu recipe."/>}</p>
       {profile.ingredients.length ? (
         <ul className="dish-full-recipe">
           {profile.ingredients.map((ingredient) => (
             <li key={ingredient.label}>
               <IngredientSprite ingredient={ingredient} />
-              <span>{ingredient.label}</span>
+              <span>{<T text={ingredient.label}/> }</span>
             </li>
           ))}
         </ul>
       ) : (
         <p className="rounded-xl bg-cream-100 p-4 text-sm text-charcoal-600">
-          The cafe hasn’t added an ingredient list for this item yet.
-        </p>
+          {<T text="The cafe hasn’t added an ingredient list for this item yet."/>}</p>
       )}
     </Modal>
   );
@@ -69,12 +68,10 @@ export function DishChooser({
       size="lg"
     >
       <p className="mb-4 text-sm text-charcoal-500">
-        Choose any available dish to bring its photo and ingredients to the
-        stage.
-      </p>
+        {<T text="Choose any available dish to bring its photo and ingredients to the stage."/>}</p>
       <label className="dish-chooser-search">
         <Search size={17} aria-hidden />
-        <span className="sr-only">Find a menu item</span>
+        <span className="sr-only">{<T text="Find a menu item"/>}</span>
         <input
           type="search"
           value={query}
@@ -83,7 +80,7 @@ export function DishChooser({
         />
       </label>
       <p role="status" className="my-3 text-xs text-charcoal-500">
-        {shown.length} available {shown.length === 1 ? "dish" : "dishes"}
+        {shown.length} {<T text="available"/>}{shown.length === 1 ? "dish" : "dishes"}
       </p>
       <div className="dish-chooser-grid">
         {shown.map((product) => (
@@ -109,8 +106,8 @@ export function DishChooser({
               )}
             </span>
             <span className="dish-chooser-copy">
-              <strong>{product.name}</strong>
-              <small>{product.category.name}</small>
+              <strong>{<T text={product.name}/> }</strong>
+              <small>{<T text={product.category.name}/> }</small>
               <span>{money(product.discountPrice ?? product.price)}</span>
             </span>
             <ArrowRight size={16} aria-hidden />
@@ -119,8 +116,7 @@ export function DishChooser({
       </div>
       {!shown.length && (
         <p className="py-7 text-center text-sm text-charcoal-500">
-          No matching dishes. Try a different name or ingredient.
-        </p>
+          {<T text="No matching dishes. Try a different name or ingredient."/>}</p>
       )}
     </Modal>
   );

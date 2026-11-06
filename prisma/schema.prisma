@@ -89,6 +89,8 @@ model User {
   orders    Order[]
   reviews   Review[]
   favorites Favorite[]
+  loyaltyEntries LoyaltyEntry[]
+  pushSubscriptions PushSubscription[]
 
   @@index([role])
   @@index([createdAt])
@@ -265,6 +267,15 @@ model Order {
   paymentMethod PaymentMethod @default(CASH_ON_DELIVERY)
   paymentStatus PaymentStatus @default(UNPAID)
   paymentRef    String?
+  channel       String @default("WEB")
+  requestKey    String? @unique
+  requestHash   String?
+  scheduledAt   DateTime?
+  cashReceived  Int?
+  cashChange    Int?
+  loyaltyPointsUsed Int @default(0)
+  loyaltyDiscount Int @default(0)
+  loyaltyPointsEarned Int @default(0)
 
   addressLine  String?
   area         String?
@@ -297,6 +308,7 @@ model Order {
   @@index([status])
   @@index([createdAt])
   @@index([orderNumber])
+  @@index([scheduledAt, status])
 }
 
 model OrderItem {
@@ -422,5 +434,52 @@ model CafeSetting {
   onlinePaymentEnabled Boolean @default(false)
   isAcceptingOrders    Boolean @default(true)
 
+  loyaltyEnabled Boolean @default(true)
+  loyaltyEarnEvery Int @default(100)
+  loyaltyRewardPoints Int @default(100)
+  loyaltyRewardValue Int @default(100)
+  schedulingEnabled Boolean @default(true)
+  scheduleLeadMinutes Int @default(30)
+  scheduleDaysAhead Int @default(7)
+  scheduleOpenMinute Int @default(480)
+  scheduleCloseMinute Int @default(120)
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+// Ledgers deliberately retain the order key after an admin deletes an order.
+model LoyaltyEntry {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderKey String
+  kind String
+  points Int
+  createdAt DateTime @default(now())
+  @@unique([orderKey, kind])
+  @@index([userId, createdAt])
+}
+model PushSubscription {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint String @unique
+  p256dh String
+  auth String
+  createdAt DateTime @default(now())
+}
+model NotificationJob {
+  id String @id @default(cuid())
+  eventKey String @unique
+  title String
+  body String
+  url String
+  attempts Int @default(0)
+  availableAt DateTime @default(now())
+  deliveredAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([deliveredAt, availableAt])
+}
+model OrderCounter {
+  id Int @id @default(1)
+  value Int @default(999)
 }

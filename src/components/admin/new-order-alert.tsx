@@ -218,6 +218,7 @@ export function NewOrderAlert() {
             {pending} orders need confirmation
           </p>
           <div className="flex flex-wrap gap-2">
+            <Link href="/admin/experience" className="btn-secondary text-xs" onClick={()=>setOpen(false)}>Background alerts</Link>
             <Button
               variant="secondary"
               size="sm"

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
 import type { SessionUser } from "@/lib/types";
 
 type SessionValue = {
@@ -40,6 +40,9 @@ export function SessionProvider({
   }, []);
 
   const logout = useCallback(async () => {
+    if ('serviceWorker' in navigator) {
+      try { const reg=await navigator.serviceWorker.getRegistration();const sub=await reg?.pushManager?.getSubscription();if(sub){await apiDelete('/api/admin/push',{endpoint:sub.endpoint});await sub.unsubscribe();}} catch {/* Logging out must remain available. */}
+    }
     await apiPost("/api/auth/logout").catch(() => undefined);
     setUser(null);
   }, []);

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -169,8 +170,7 @@ export function MenuBrowser({
             )}
           >
             <SlidersHorizontal className="h-4 w-4" aria-hidden />
-            Filters
-            {activeCount > 0 && (
+            {<T text="Filters"/>}{activeCount > 0 && (
               <span className="ml-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-chai-600 px-1 text-[10px] font-bold text-cream-50">
                 {activeCount}
               </span>
@@ -184,7 +184,7 @@ export function MenuBrowser({
               aria-label="Sort products"
             >
               {SORTS.map((sort) => (
-                <option key={sort.value} value={sort.value}>{sort.label}</option>
+                <option key={sort.value} value={sort.value}>{<T text={sort.label}/> }</option>
               ))}
             </Select>
           </div>
@@ -199,7 +199,7 @@ export function MenuBrowser({
                   value={filters.category}
                   onChange={(e) => update("category", e.target.value)}
                 >
-                  <option value="">All categories</option>
+                  <option value="">{<T text="All categories"/>}</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.slug}>{c.name}</option>
                   ))}
@@ -212,7 +212,7 @@ export function MenuBrowser({
                 onChange={(e) => update("maxPrice", e.target.value)}
               >
                 {PRICE_CAPS.map((cap) => (
-                  <option key={cap.value} value={cap.value}>{cap.label}</option>
+                  <option key={cap.value} value={cap.value}>{<T text={cap.label}/> }</option>
                 ))}
               </Select>
 
@@ -221,13 +221,13 @@ export function MenuBrowser({
                 value={filters.minRating}
                 onChange={(e) => update("minRating", e.target.value)}
               >
-                <option value="">Any rating</option>
-                <option value="4">4★ and above</option>
-                <option value="4.5">4.5★ and above</option>
+                <option value="">{<T text="Any rating"/>}</option>
+                <option value="4">{<T text="4★ and above"/>}</option>
+                <option value="4.5">{<T text="4.5★ and above"/>}</option>
               </Select>
 
               <div>
-                <span className="label">Quick filters</span>
+                <span className="label">{<T text="Quick filters"/>}</span>
                 <div className="flex flex-wrap gap-2">
                   {([
                     ["vegetarian", "🌱 Veg"],
@@ -246,7 +246,7 @@ export function MenuBrowser({
                           : "border-cream-300 text-charcoal-600 hover:border-chai-300",
                       )}
                     >
-                      {label}
+                      {<T text={label}/> }
                     </button>
                   ))}
                 </div>
@@ -259,8 +259,7 @@ export function MenuBrowser({
                 onClick={reset}
                 className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-chilli-600 hover:underline"
               >
-                <X className="h-3.5 w-3.5" aria-hidden /> Clear all filters
-              </button>
+                <X className="h-3.5 w-3.5" aria-hidden /> {<T text="Clear all filters"/>}</button>
             )}
           </div>
         )}
@@ -311,8 +310,7 @@ export function MenuBrowser({
                   void load(next, true);
                 }}
               >
-                Load more ({total - products.length} left)
-              </Button>
+                {<T text="Load more ("/>}{total - products.length} {<T text="left)"/>}</Button>
             </div>
           )}
         </>

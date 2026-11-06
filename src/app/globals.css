@@ -526,3 +526,17 @@
   --c-cafe-masthead: var(--c-cream-200);
   --c-cafe-stage: var(--c-cream-300);
 }
+
+/* Clear focus, comfortable touch targets and predictable motion on small screens. */
+:focus-visible { outline: 3px solid rgb(var(--c-chai-500)); outline-offset: 3px; }
+[dir="rtl"] { text-align: start; }
+[dir="rtl"] .text-left { text-align: start; }
+[dir="rtl"] .text-right { text-align: end; }
+[dir="rtl"] input[type="tel"], [dir="rtl"] input[type="email"], [dir="rtl"] input[type="datetime-local"] { direction: ltr; text-align: end; }
+@media (max-width: 640px) { input, select, textarea { font-size: 16px !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+@media (min-width: 360px) and (max-width: 419px) {
+  .cinema-navigation .cinema-wordmark > span { font-size: 22px; }
+  .cinema-navigation nav > div:last-child { gap: 0; }
+}

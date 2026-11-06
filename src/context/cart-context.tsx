@@ -1,8 +1,17 @@
 "use client";
 
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
 } from "react";
+import { useSession } from "@/context/session-context";
+import { useLanguage } from "@/context/language-context";
 import { toast } from "sonner";
 import { apiPost, ApiError } from "@/lib/api-client";
 import type { CartLine, ProductDTO } from "@/lib/types";
@@ -19,6 +28,9 @@ export type ServerQuote = {
     quantity: number;
     lineTotal: number;
   }[];
+  loyaltyDiscount: number;
+  loyaltyPointsUsed: number;
+  loyaltyPointsEarned: number;
   subtotal: number;
   discount: number;
   deliveryFee: number;
@@ -40,12 +52,22 @@ type CartValue = {
   quote: ServerQuote | null;
   quoting: boolean;
   quoteError: string | null;
+  redeemReward: boolean;
+  setRedeemReward: (value: boolean) => void;
   couponCode: string;
   orderType: "DELIVERY" | "PICKUP";
   hydrated: boolean;
   addItem: (
-    product: Pick<ProductDTO, "id" | "name" | "slug" | "image" | "price" | "discountPrice"> & { category?: { slug: string } },
-    options?: { addons?: CartLine["addons"]; quantity?: number; notes?: string; silent?: boolean },
+    product: Pick<
+      ProductDTO,
+      "id" | "name" | "slug" | "image" | "price" | "discountPrice"
+    > & { category?: { slug: string } },
+    options?: {
+      addons?: CartLine["addons"];
+      quantity?: number;
+      notes?: string;
+      silent?: boolean;
+    },
   ) => void;
   setQuantity: (key: string, quantity: number) => void;
   increment: (key: string) => void;
@@ -55,36 +77,64 @@ type CartValue = {
   setCouponCode: (code: string) => void;
   setOrderType: (type: "DELIVERY" | "PICKUP") => void;
   refreshQuote: () => Promise<void>;
-  toCartLinesPayload: () => { productId: string; quantity: number; addonIds: string[]; notes?: string }[];
+  toCartLinesPayload: () => {
+    productId: string;
+    quantity: number;
+    addonIds: string[];
+    notes?: string;
+  }[];
 };
 
 const CartContext = createContext<CartValue | null>(null);
 
-function lineKey(productId: string, addons: CartLine["addons"], notes?: string): string {
-  const ids = addons.map((a) => a.id).sort().join("|");
+function lineKey(
+  productId: string,
+  addons: CartLine["addons"],
+  notes?: string,
+): string {
+  const ids = addons
+    .map((a) => a.id)
+    .sort()
+    .join("|");
   return `${productId}::${ids}::${notes ?? ""}`;
 }
 
-function readStored(): CartLine[] {
+function readStored(storageKey: string): CartLine[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(storageKey);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(
       (l): l is CartLine =>
-        typeof l?.productId === "string" && typeof l?.quantity === "number" && Array.isArray(l?.addons),
+        typeof l?.productId === "string" &&
+        typeof l?.quantity === "number" &&
+        Array.isArray(l?.addons),
     );
   } catch {
     return [];
   }
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({
+  children,
+  scope = "storefront",
+}: {
+  children: ReactNode;
+  scope?: "storefront" | "pos";
+}) {
+  const storageKey = scope === "pos" ? "engineer-cafe-pos-v1" : STORAGE_KEY;
+  const couponKey =
+    scope === "pos" ? "engineer-cafe-pos-coupon-v1" : COUPON_KEY;
+  const serviceKey =
+    scope === "pos" ? "ec-pos-service" : "ec-service-preference";
+  const { t } = useLanguage();
+  const { user } = useSession();
   const [lines, setLines] = useState<CartLine[]>([]);
   const [couponCode, setCouponCodeState] = useState("");
   const [orderType, setOrderType] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
+  const [redeemReward, setRedeemReward] = useState(false);
   const [quote, setQuote] = useState<ServerQuote | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
@@ -93,34 +143,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Restore the cart after mount so server and client markup match.
   useEffect(() => {
-    setLines(readStored());
+    setLines(readStored(storageKey));
     try {
-      setCouponCodeState(window.localStorage.getItem(COUPON_KEY) ?? "");
-      const service=window.localStorage.getItem("ec-service-preference");
-      if(service==="PICKUP"||service==="DELIVERY")setOrderType(service);
+      setCouponCodeState(window.localStorage.getItem(couponKey) ?? "");
+      const service = window.localStorage.getItem(serviceKey);
+      if (service === "PICKUP" || service === "DELIVERY") setOrderType(service);
     } catch {
       /* storage unavailable — carry on with an empty coupon */
     }
     setHydrated(true);
-  }, []);
+  }, [storageKey, couponKey, serviceKey]);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
+      window.localStorage.setItem(storageKey, JSON.stringify(lines));
     } catch {
       /* quota or private mode — the cart still works for this session */
     }
-  }, [lines, hydrated]);
+  }, [lines, hydrated, storageKey]);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
-      window.localStorage.setItem(COUPON_KEY, couponCode);
+      window.localStorage.setItem(couponKey, couponCode);
     } catch {
       /* ignore */
     }
-  }, [couponCode, hydrated]);
+  }, [couponCode, hydrated, couponKey]);
 
   const toCartLinesPayload = useCallback(
     () =>
@@ -151,6 +201,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         lines: toCartLinesPayload(),
         couponCode: couponCode || undefined,
         orderType,
+        redeemReward,
       });
       if (id !== requestId.current) return;
       setQuote(data.quote);
@@ -159,77 +210,112 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (id !== requestId.current) return;
       setQuote(null);
       setQuoteError(
-        error instanceof ApiError ? error.message : "We couldn't price your cart. Please try again.",
+        error instanceof ApiError
+          ? error.message
+          : "We couldn't price your cart. Please try again.",
       );
     } finally {
       if (id === requestId.current) setQuoting(false);
     }
-  }, [lines, couponCode, orderType, hydrated, toCartLinesPayload]);
+  }, [
+    lines,
+    couponCode,
+    orderType,
+    redeemReward,
+    hydrated,
+    toCartLinesPayload,
+  ]);
 
-  useEffect(()=>{if(!hydrated)return;try{window.localStorage.setItem("ec-service-preference",orderType);}catch{/* Preference remains available for this visit. */}},[hydrated,orderType]);
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(serviceKey, orderType);
+    } catch {
+      /* Preference remains available for this visit. */
+    }
+  }, [hydrated, orderType, serviceKey]);
 
   // Debounce so rapid quantity taps produce one request.
   useEffect(() => {
     if (!hydrated) return;
+    if (lines.length) setQuoting(true);
     const timer = setTimeout(() => {
       void refreshQuote();
     }, 250);
     return () => clearTimeout(timer);
-  }, [refreshQuote, hydrated]);
+  }, [refreshQuote, hydrated, lines.length, user?.id]);
 
-  const addItem: CartValue["addItem"] = useCallback((product, options) => {
-    const addons = options?.addons ?? [];
-    const quantity = Math.max(1, options?.quantity ?? 1);
-    const notes = options?.notes?.trim() || undefined;
-    const key = lineKey(product.id, addons, notes);
-    const unitPrice =
-      product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price
-        ? product.discountPrice
-        : product.price;
+  const addItem: CartValue["addItem"] = useCallback(
+    (product, options) => {
+      const addons = options?.addons ?? [];
+      const quantity = Math.max(1, options?.quantity ?? 1);
+      const notes = options?.notes?.trim() || undefined;
+      const key = lineKey(product.id, addons, notes);
+      const unitPrice =
+        product.discountPrice &&
+        product.discountPrice > 0 &&
+        product.discountPrice < product.price
+          ? product.discountPrice
+          : product.price;
 
-    setLines((current) => {
-      const existing = current.find((l) => l.key === key);
-      if (existing) {
-        return current.map((l) =>
-          l.key === key ? { ...l, quantity: Math.min(50, l.quantity + quantity) } : l,
-        );
-      }
-      return [
-        ...current,
-        {
-          key,
-          productId: product.id,
-          name: product.name,
-          slug: product.slug,
-          categorySlug: product.category?.slug,
-          image: product.image,
-          unitPrice,
-          addons,
-          quantity,
-          notes,
-        },
-      ];
-    });
+      setLines((current) => {
+        const existing = current.find((l) => l.key === key);
+        if (existing) {
+          return current.map((l) =>
+            l.key === key
+              ? { ...l, quantity: Math.min(50, l.quantity + quantity) }
+              : l,
+          );
+        }
+        return [
+          ...current,
+          {
+            key,
+            productId: product.id,
+            name: product.name,
+            slug: product.slug,
+            categorySlug: product.category?.slug,
+            image: product.image,
+            unitPrice,
+            addons,
+            quantity,
+            notes,
+          },
+        ];
+      });
 
-    if (!options?.silent) toast.success(`${product.name} added to cart`);
-  }, []);
+      if (!options?.silent)
+        toast.success(`${t(product.name)} ${t("added to cart")}`);
+    },
+    [t],
+  );
 
   const setQuantity = useCallback((key: string, quantity: number) => {
     setLines((current) =>
       quantity <= 0
         ? current.filter((l) => l.key !== key)
-        : current.map((l) => (l.key === key ? { ...l, quantity: Math.min(50, quantity) } : l)),
+        : current.map((l) =>
+            l.key === key ? { ...l, quantity: Math.min(50, quantity) } : l,
+          ),
     );
   }, []);
 
   const increment = useCallback((key: string) => {
-    setLines((c) => c.map((l) => (l.key === key ? { ...l, quantity: Math.min(50, l.quantity + 1) } : l)));
+    setLines((c) =>
+      c.map((l) =>
+        l.key === key ? { ...l, quantity: Math.min(50, l.quantity + 1) } : l,
+      ),
+    );
   }, []);
 
   const decrement = useCallback((key: string) => {
     setLines((c) =>
       c.flatMap((l) =>
-        l.key === key ? (l.quantity <= 1 ? [] : [{ ...l, quantity: l.quantity - 1 }]) : [l],
+        l.key === key
+          ? l.quantity <= 1
+            ? []
+            : [{ ...l, quantity: l.quantity - 1 }]
+          : [l],
       ),
     );
   }, []);
@@ -244,18 +330,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback((options?: { silent?: boolean }) => {
     setLines([]);
+    setRedeemReward(false);
     setCouponCodeState("");
     setQuote(null);
     if (!options?.silent) toast("Cart cleared");
   }, []);
 
-  const setCouponCode = useCallback((code: string) => setCouponCodeState(code.trim().toUpperCase()), []);
+  const setCouponCode = useCallback(
+    (code: string) => setCouponCodeState(code.trim().toUpperCase()),
+    [],
+  );
 
-  const itemCount = useMemo(() => lines.reduce((sum, l) => sum + l.quantity, 0), [lines]);
+  const itemCount = useMemo(
+    () => lines.reduce((sum, l) => sum + l.quantity, 0),
+    [lines],
+  );
   const localSubtotal = useMemo(
     () =>
       lines.reduce(
-        (sum, l) => sum + (l.unitPrice + l.addons.reduce((s, a) => s + a.price, 0)) * l.quantity,
+        (sum, l) =>
+          sum +
+          (l.unitPrice + l.addons.reduce((s, a) => s + a.price, 0)) *
+            l.quantity,
         0,
       ),
     [lines],
@@ -263,14 +359,49 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<CartValue>(
     () => ({
-      lines, itemCount, localSubtotal, quote, quoting, quoteError, couponCode, orderType, hydrated,
-      addItem, setQuantity, increment, decrement, removeItem, clear, setCouponCode, setOrderType,
-      refreshQuote, toCartLinesPayload,
+      lines,
+      itemCount,
+      localSubtotal,
+      quote,
+      quoting,
+      quoteError,
+      couponCode,
+      orderType,
+      redeemReward,
+      setRedeemReward,
+      hydrated,
+      addItem,
+      setQuantity,
+      increment,
+      decrement,
+      removeItem,
+      clear,
+      setCouponCode,
+      setOrderType,
+      refreshQuote,
+      toCartLinesPayload,
     }),
     [
-      lines, itemCount, localSubtotal, quote, quoting, quoteError, couponCode, orderType, hydrated,
-      addItem, setQuantity, increment, decrement, removeItem, clear, setCouponCode,
-      refreshQuote, toCartLinesPayload,
+      lines,
+      itemCount,
+      localSubtotal,
+      quote,
+      quoting,
+      quoteError,
+      couponCode,
+      orderType,
+      redeemReward,
+      setRedeemReward,
+      hydrated,
+      addItem,
+      setQuantity,
+      increment,
+      decrement,
+      removeItem,
+      clear,
+      setCouponCode,
+      refreshQuote,
+      toCartLinesPayload,
     ],
   );
 

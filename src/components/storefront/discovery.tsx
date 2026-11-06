@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -75,17 +76,15 @@ export function SignatureCollections({ products }: { products: ProductDTO[] }) {
       <div className="container">
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="eyebrow">Good company starts here</p>
+            <p className="eyebrow">{<T text="Good company starts here"/>}</p>
             <h2 className="mt-3 max-w-xl text-3xl font-extrabold sm:text-4xl">
-              A little ritual.
-              <br />A lot of flavour.
-            </h2>
+              {<T text="A little ritual."/>}<br />{<T text="A lot of flavour."/>}</h2>
           </div>
           <Link
             className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-chai-700"
             href="/discover"
           >
-            Find your next favourite <ArrowRight className="h-4 w-4" />
+            {<T text="Find your next favourite"/>}<ArrowRight className="h-4 w-4" />
           </Link>
         </div>
         <div className="grid gap-5 md:grid-cols-2">
@@ -110,14 +109,14 @@ export function SignatureCollections({ products }: { products: ProductDTO[] }) {
               />
               <div className="relative z-10 w-full">
                 <p className="mb-3 inline-block rounded-full border border-white/30 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-white">
-                  Featuring {c.product!.name} · {money(basePrice(c.product!))}
+                  {<T text="Featuring"/>}{c.product!.name} · {money(basePrice(c.product!))}
                 </p>
                 <h3 className="text-3xl font-extrabold text-white sm:text-4xl">
                   {c.label}
                 </h3>
                 <p className="mt-2 text-sm text-white/80">{c.description}</p>
                 <span className="mt-5 inline-flex items-center gap-3 text-sm font-bold text-white">
-                  Explore the collection{" "}
+                  {<T text="Explore the collection"/>}{" "}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </span>
               </div>
@@ -148,20 +147,16 @@ export function MoodDiscovery({
     >
       <div className={full ? "" : "container"}>
         <div className="max-w-2xl">
-          <p className="eyebrow">Let your cravings lead</p>
+          <p className="eyebrow">{<T text="Let your cravings lead"/>}</p>
           {full ? (
             <h1 className="mt-3 text-4xl font-extrabold sm:text-5xl">
-              What’s your kind of delicious?
-            </h1>
+              {<T text="What’s your kind of delicious?"/>}</h1>
           ) : (
             <h2 className="mt-3 text-3xl font-extrabold sm:text-4xl">
-              A menu that meets your mood.
-            </h2>
+              {<T text="A menu that meets your mood."/>}</h2>
           )}
           <p className="mt-4 text-sm leading-relaxed text-charcoal-600 sm:text-base">
-            A quick route to the right dish. Choose a mood, compare your
-            shortlist, then make it your own.
-          </p>
+            {<T text="A quick route to the right dish. Choose a mood, compare your shortlist, then make it your own."/>}</p>
         </div>
         <div
           className="no-scrollbar my-7 flex gap-2 overflow-x-auto pb-2"
@@ -198,9 +193,7 @@ export function MoodDiscovery({
         </div>
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-charcoal-500">
-            Base prices shown. Options, delivery and tax are confirmed in your
-            cart.
-          </p>
+            {<T text="Base prices shown. Options, delivery and tax are confirmed in your cart."/>}</p>
           <Link
             href={full ? "/meal-finder" : "/discover"}
             className="btn-secondary"

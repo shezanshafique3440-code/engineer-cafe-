@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import { useState } from "react";
 import { toast } from "sonner";
@@ -121,15 +122,13 @@ export function AddressesView({ initialAddresses }: { initialAddresses: Address[
     <div>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold md:text-3xl">Saved Addresses</h1>
+          <h1 className="text-2xl font-extrabold md:text-3xl">{<T text="Saved Addresses"/>}</h1>
           <p className="mt-1.5 text-sm text-charcoal-500">
-            Delivery details that autofill at checkout.
-          </p>
+            {<T text="Delivery details that autofill at checkout."/>}</p>
         </div>
         {!creating && (
           <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" aria-hidden /> Add address
-          </Button>
+            <Plus className="h-4 w-4" aria-hidden /> {<T text="Add address"/>}</Button>
         )}
       </div>
 
@@ -158,7 +157,7 @@ export function AddressesView({ initialAddresses }: { initialAddresses: Address[
 
           <div className="flex gap-2">
             <Button type="submit" loading={saving}>{editing ? "Save changes" : "Add address"}</Button>
-            <Button type="button" variant="ghost" onClick={close}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={close}>{<T text="Cancel"/>}</Button>
           </div>
         </form>
       )}
@@ -188,8 +187,7 @@ export function AddressesView({ initialAddresses }: { initialAddresses: Address[
                       {address.label}
                       {address.isDefault && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-chai-100 px-2 py-0.5 text-[10px] font-bold text-chai-700">
-                          <Star className="h-2.5 w-2.5 fill-current" aria-hidden /> Default
-                        </span>
+                          <Star className="h-2.5 w-2.5 fill-current" aria-hidden /> {<T text="Default"/>}</span>
                       )}
                     </p>
                     <p className="mt-1.5 text-sm text-charcoal-600">{address.fullName}</p>

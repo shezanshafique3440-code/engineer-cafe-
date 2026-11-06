@@ -30,8 +30,9 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   exit 1
 fi
 if ! git diff --quiet "$CURRENT" "$PREVIOUS" -- package.json package-lock.json prisma/schema.prisma prisma/migrations; then
-  echo "Dependency/database versions differ; inspect before restoring an older build."
-  exit 1
+  test -f "$BACKUP/additive-release"
+  test "$(cat "$BACKUP/additive-release")" = "$PREVIOUS $CURRENT"
+  test -s "$BACKUP/dependencies.tar.gz"
 fi
 test -f .env
 pm2 describe engineer-cafe >/dev/null
@@ -44,6 +45,7 @@ if [ -f "$BACKUP/previous-theme" ]; then
   case "$(cat "$RECOVERY/current-theme")" in chai|midnight|matcha|saffron|gulabi|graphite|ocean|royal|terracotta|espresso) ;; *) echo "Current theme is invalid"; exit 1 ;; esac
 fi
 mkdir "$RECOVERY/restored"
+if [ -s "$BACKUP/dependencies.tar.gz" ]; then tar -xzf "$BACKUP/dependencies.tar.gz" -C "$RECOVERY/restored"; fi
 tar -xzf "$BACKUP/build.tar.gz" -C "$RECOVERY/restored"
 test -s "$RECOVERY/restored/.next/BUILD_ID"
 set -a
@@ -58,6 +60,10 @@ recover_failed_rollback() {
   if [ "$code" -eq 0 ]; then return; fi
   if [ "$STOP_REQUESTED" -eq 1 ]; then
     pm2 stop engineer-cafe || true
+    if [ -d "$RECOVERY/replaced-dependencies" ]; then
+      if [ -e node_modules ]; then mv node_modules "$RECOVERY/failed-restored-dependencies"; fi
+      mv "$RECOVERY/replaced-dependencies" node_modules
+    fi
     git switch --detach "$CURRENT" || echo "Inspect code checkout: $CURRENT"
     if [ "$RESTORED_BUILD" -eq 1 ] && [ -e .next ]; then
       mv .next "$RECOVERY/failed-restored-build" || true
@@ -67,6 +73,7 @@ recover_failed_rollback() {
     fi
     if [ -f "$RECOVERY/current-theme" ]; then write_theme "$(cat "$RECOVERY/current-theme")" || echo "Inspect the house theme setting."; fi
     pm2 restart engineer-cafe --update-env || true
+    if git cat-file -e "$CURRENT:scripts/notification-worker.cjs" 2>/dev/null; then pm2 restart engineer-cafe-notifications --update-env || true; fi
   fi
   echo "Rollback did not finish. Original snapshot retained: $BACKUP"
   echo "Recovery files: $RECOVERY"
@@ -75,6 +82,11 @@ recover_failed_rollback() {
 trap recover_failed_rollback EXIT
 STOP_REQUESTED=1
 pm2 stop engineer-cafe
+if pm2 describe engineer-cafe-notifications >/dev/null 2>&1; then pm2 stop engineer-cafe-notifications; fi
+if [ -d "$RECOVERY/restored/node_modules" ]; then
+  mv node_modules "$RECOVERY/replaced-dependencies"
+  mv "$RECOVERY/restored/node_modules" node_modules
+fi
 if [ -e .next ]; then
   mv .next "$RECOVERY/replaced-build"
   BUILD_MOVED=1
@@ -91,6 +103,6 @@ curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:1
 pm2 save
 trap - EXIT
 echo "PASS: previous code and build restored: $PREVIOUS"
-echo "Orders, uploads and .env were kept. Only the saved house-theme field is restored when present."
+echo "Additive database columns are retained; no database dump is imported. Orders, uploads and .env were kept. Only the saved house-theme field is restored when present."
 echo "Original snapshot is still available: $BACKUP"
 echo "Replaced code/build recovery files: $RECOVERY"

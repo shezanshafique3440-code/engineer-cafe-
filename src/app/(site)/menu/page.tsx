@@ -1,3 +1,4 @@
+import { T } from "@/context/language-context";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -36,13 +37,11 @@ export default async function MenuPage() {
       <div className="border-b border-cream-200 bg-cream-100">
         <div className="container py-10 md:py-14">
           <p className="eyebrow">{"// the full menu"}</p>
-          <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">Compile your cravings.</h1>
+          <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">{<T text="Compile your cravings."/>}</h1>
           <p className="mt-3 max-w-2xl text-sm text-charcoal-600 md:text-base">
-            Everything we serve, priced in rupees and updated live from the kitchen. Filter by
-            category, price or spice, then customise before it goes in your cart.
-          </p>
+            {<T text="Everything we serve, priced in rupees and updated live from the kitchen. Filter by category, price or spice, then customise before it goes in your cart."/>}</p>
 
-          <Link href="/meal-finder" className="btn-primary mt-5">Find a meal for my budget →</Link>
+          <Link href="/meal-finder" className="btn-primary mt-5">{<T text="Find a meal for my budget →"/>}</Link>
           <nav aria-label="Menu categories" className="no-scrollbar mt-7 flex gap-2 overflow-x-auto pb-1">
             {categories.map((category) => (
               <Link

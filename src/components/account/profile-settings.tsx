@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import { useState } from "react";
 import { toast } from "sonner";
@@ -58,12 +59,12 @@ export function ProfileSettings({ initialPhone }: { initialPhone: string }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-extrabold md:text-3xl">Account Settings</h1>
-      <p className="mt-1.5 text-sm text-charcoal-500">Update your profile and password.</p>
+      <h1 className="text-2xl font-extrabold md:text-3xl">{<T text="Account Settings"/>}</h1>
+      <p className="mt-1.5 text-sm text-charcoal-500">{<T text="Update your profile and password."/>}</p>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <form onSubmit={saveProfile} className="surface space-y-4 p-5" noValidate>
-          <h2 className="text-lg font-bold">Profile</h2>
+          <h2 className="text-lg font-bold">{<T text="Profile"/>}</h2>
           <Input
             label="Full name"
             name="name"
@@ -84,11 +85,11 @@ export function ProfileSettings({ initialPhone }: { initialPhone: string }) {
             placeholder="03001234567"
           />
           <Input label="Email" value={user?.email ?? ""} disabled hint="Contact us to change your email." />
-          <Button type="submit" loading={savingProfile}>Save changes</Button>
+          <Button type="submit" loading={savingProfile}>{<T text="Save changes"/>}</Button>
         </form>
 
         <form onSubmit={savePassword} className="surface space-y-4 p-5" noValidate>
-          <h2 className="text-lg font-bold">Change password</h2>
+          <h2 className="text-lg font-bold">{<T text="Change password"/>}</h2>
           <Input
             label="Current password"
             name="currentPassword"
@@ -110,7 +111,7 @@ export function ProfileSettings({ initialPhone }: { initialPhone: string }) {
             hint="At least 8 characters."
             required
           />
-          <Button type="submit" loading={savingPassword}>Change password</Button>
+          <Button type="submit" loading={savingPassword}>{<T text="Change password"/>}</Button>
         </form>
       </div>
     </div>

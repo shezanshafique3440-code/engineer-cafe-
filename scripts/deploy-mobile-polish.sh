@@ -15,9 +15,14 @@ fi
 OLD=$(git rev-parse HEAD)
 if [ "$OLD" = "$TARGET" ]; then echo "This code commit is already checked out; inspect PM2 and build before redeploying."; exit 1; fi
 if ! git diff --quiet "$OLD" "$TARGET" -- package.json package-lock.json prisma/schema.prisma prisma/migrations; then
-  echo "Dependency or database changes detected. This updater requires a separate dependency/database migration plan."
+  git show "$TARGET:scripts/check-experience-release.cjs" | node - "$OLD" "$TARGET"
+fi
+# The wrapper owns dependency recovery as well as the saved production build.
+if [ -z "${CAFE_RELEASE_SNAPSHOT:-}" ] || [ ! -f "$CAFE_RELEASE_SNAPSHOT/backup-complete" ]; then
+  echo "Run deploy-reference-storefront.sh so a verified full backup is available first."
   exit 1
 fi
+(cd "$CAFE_RELEASE_SNAPSHOT" && sha256sum --status --check SHA256SUMS)
 pm2 describe engineer-cafe >/dev/null
 test -f .env
 test -f .next/BUILD_ID
@@ -49,6 +54,19 @@ trap rollback EXIT
 mv .next "$BACKUP/previous-build"
 BUILD_MOVED=1
 git switch --detach "$TARGET"
+npm ci --no-audit --no-fund
+npm run db:deploy
+# Private VAPID keys stay on this VPS and are retained across deployments.
+if [ -z "${VAPID_PRIVATE_KEY:-}" ] || [ -z "${VAPID_PUBLIC_KEY:-}" ]; then
+  node <<'KEYS'
+const fs=require('node:fs');const {publicKey,privateKey}=require('web-push').generateVAPIDKeys();
+fs.writeFileSync('.env',fs.readFileSync('.env','utf8').split('\n').filter(line=>!/^VAPID_(PUBLIC_KEY|PRIVATE_KEY|SUBJECT)=/.test(line)).join('\n'));
+fs.appendFileSync('.env',`\nVAPID_PUBLIC_KEY="${publicKey}"\nVAPID_PRIVATE_KEY="${privateKey}"\nVAPID_SUBJECT="https://esellerstore.vip"\n`);
+KEYS
+fi
+set -a
+source .env
+set +a
 npm run typecheck
 npm run lint
 node --import tsx src/lib/__tests__/mobile-utils.test.ts
@@ -59,6 +77,7 @@ node --import tsx src/lib/__tests__/hero-catalog.test.ts
 node --import tsx src/lib/__tests__/dish-experience.test.ts
 node --import tsx src/lib/__tests__/local-uploads.test.ts
 node --import tsx src/lib/__tests__/themes.test.ts
+node --import tsx src/lib/__tests__/experience.test.ts
 NODE_OPTIONS="--max-old-space-size=2048" npm run build
 pm2 restart engineer-cafe --update-env
 curl --retry 10 --retry-connrefused --retry-delay 2 --max-time 30 --fail --silent --show-error \
@@ -110,6 +129,11 @@ for route in /api/admin/kitchen /api/admin/insights; do
   fi
 done
 echo "PASS: kitchen and customer insights require authentication."
+if pm2 describe engineer-cafe-notifications >/dev/null 2>&1; then
+  pm2 restart engineer-cafe-notifications --update-env
+else
+  pm2 start scripts/notification-worker.cjs --name engineer-cafe-notifications --cwd "$APP"
+fi
 pm2 save
 trap - EXIT
 echo "PASS: premium cafe upgrade deployed; production build, login, HTTPS and premium route checks passed."

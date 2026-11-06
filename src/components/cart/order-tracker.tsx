@@ -1,4 +1,6 @@
 "use client";
+import { pakistanTime } from "@/lib/experience";
+import { T } from "@/context/language-context";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -133,6 +135,7 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
 
   return (
     <div className="container py-8 md:py-12">
+      {order.scheduledAt&&<div className="surface mb-5 p-4"><strong><T text="Scheduled for"/>: {pakistanTime(order.scheduledAt)}</strong></div>}
       {justPlaced && !cancelled && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -141,11 +144,9 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
         >
           <span className="text-4xl" aria-hidden>☕</span>
           <h1 className="mt-3 text-2xl font-extrabold text-charcoal-900 md:text-3xl">
-            Order Confirmed!
-          </h1>
+            {<T text="Order Confirmed!"/>}</h1>
           <p className="mt-2 text-sm text-charcoal-600">
-            Thanks {order.customerName.split(" ")[0]} — the kitchen has your order.
-          </p>
+            {<T text="Thanks"/>}{order.customerName.split(" ")[0]} {<T text="— the kitchen has your order."/>}</p>
           <p className="mt-3 font-mono text-lg font-bold text-chai-700">#{order.orderNumber}</p>
 
           {/* The counter case: staff ring the order up and hand over a slip
@@ -157,11 +158,9 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
                 loading={printing}
                 onClick={() => void printReceipt()}
               >
-                <Printer className="h-4 w-4" aria-hidden /> Print receipt
-              </Button>
+                <Printer className="h-4 w-4" aria-hidden /> {<T text="Print receipt"/>}</Button>
               <p className="mt-2 text-xs text-charcoal-500">
-                80mm slip with a QR code the customer can scan to track this order.
-              </p>
+                {<T text="80mm slip with a QR code the customer can scan to track this order."/>}</p>
             </>
           )}
         </motion.div>
@@ -171,10 +170,10 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
         <div>
           {!justPlaced && <p className="eyebrow">{"// order tracking"}</p>}
           <h1 className={cn("font-extrabold", justPlaced ? "text-xl" : "mt-1.5 text-3xl md:text-4xl")}>
-            Order #{order.orderNumber}
+            {<T text="Order #"/>}{order.orderNumber}
           </h1>
           <p className="mt-1.5 text-sm text-charcoal-500">
-            Placed {formatDate(order.placedAt, true)} · {ORDER_TYPE_LABEL[order.orderType]}
+            {<T text="Placed"/>}{formatDate(order.placedAt, true)} · {ORDER_TYPE_LABEL[order.orderType]}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -196,12 +195,11 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
         <div className="space-y-5">
           <section className="surface p-5" aria-labelledby="progress-heading">
             <div className="mb-5 flex items-center justify-between gap-3">
-              <h2 id="progress-heading" className="text-lg font-bold">Progress</h2>
+              <h2 id="progress-heading" className="text-lg font-bold">{<T text="Progress"/>}</h2>
               {!cancelled && order.status !== "DELIVERED" && (
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-cream-100 px-3 py-1.5 text-xs font-semibold text-charcoal-700">
                   <Clock className="h-3.5 w-3.5" aria-hidden />
-                  ~{order.estimatedMinutes} min
-                </span>
+                  ~{order.estimatedMinutes} {<T text="min"/>}</span>
               )}
             </div>
 
@@ -209,7 +207,7 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
               <div className="flex items-start gap-3 rounded-xl bg-chilli-400/10 p-4">
                 <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-chilli-500" aria-hidden />
                 <div>
-                  <p className="text-sm font-bold text-chilli-600">This order was cancelled.</p>
+                  <p className="text-sm font-bold text-chilli-600">{<T text="This order was cancelled."/>}</p>
                   {order.cancelReason && (
                     <p className="mt-0.5 text-xs text-charcoal-600">{order.cancelReason}</p>
                   )}
@@ -264,7 +262,7 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
 
           <section className="surface p-5" aria-labelledby="items-heading">
             <h2 id="items-heading" className="mb-4 text-lg font-bold">
-              Items ({order.items.length})
+              {<T text="Items ("/>}{order.items.length})
             </h2>
             <ul className="space-y-3">
               {order.items.map((item) => (
@@ -276,7 +274,7 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
                   </span>
                   <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-charcoal-900">{item.productName}</p>
+                      <p className="truncate text-sm font-bold text-charcoal-900">{<T text={item.productName}/> }</p>
                       <p className="text-xs text-charcoal-400">
                         {item.quantity} × {money(item.unitPrice)}
                       </p>
@@ -299,32 +297,32 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
 
         <div className="space-y-5 lg:sticky lg:top-24 lg:self-start">
           <div className="surface p-5">
-            <h2 className="text-lg font-bold">Summary</h2>
+            <h2 className="text-lg font-bold">{<T text="Summary"/>}</h2>
             <dl className="mt-4 space-y-2.5 text-sm">
               <div className="flex justify-between">
-                <dt className="text-charcoal-500">Subtotal</dt>
+                <dt className="text-charcoal-500">{<T text="Subtotal"/>}</dt>
                 <dd className="font-semibold">{money(order.subtotal)}</dd>
               </div>
               {order.discount > 0 && (
                 <div className="flex justify-between">
-                  <dt className="text-charcoal-500">Discount {order.couponCode ? `(${order.couponCode})` : ""}</dt>
+                  <dt className="text-charcoal-500">{<T text="Discount"/>}{order.couponCode ? `(${order.couponCode})` : ""}</dt>
                   <dd className="font-semibold text-circuit-600">− {money(order.discount)}</dd>
                 </div>
               )}
               {order.deliveryFee > 0 && (
                 <div className="flex justify-between">
-                  <dt className="text-charcoal-500">Delivery fee</dt>
+                  <dt className="text-charcoal-500">{<T text="Delivery fee"/>}</dt>
                   <dd className="font-semibold">{money(order.deliveryFee)}</dd>
                 </div>
               )}
               {order.tax > 0 && (
                 <div className="flex justify-between">
-                  <dt className="text-charcoal-500">Tax</dt>
+                  <dt className="text-charcoal-500">{<T text="Tax"/>}</dt>
                   <dd className="font-semibold">{money(order.tax)}</dd>
                 </div>
               )}
               <div className="flex justify-between border-t border-cream-200 pt-3 text-base">
-                <dt className="font-bold">Total</dt>
+                <dt className="font-bold">{<T text="Total"/>}</dt>
                 <dd className="font-extrabold">{money(order.total)}</dd>
               </div>
             </dl>
@@ -359,7 +357,7 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
               <div className="mt-3 flex gap-3">
                 <Store className="mt-0.5 h-4 w-4 shrink-0 text-chai-600" aria-hidden />
                 <div className="text-sm">
-                  <p className="font-semibold text-charcoal-900">Pickup from {settings.cafeName}</p>
+                  <p className="font-semibold text-charcoal-900">{<T text="Pickup from"/>}{settings.cafeName}</p>
                   <p className="mt-0.5 text-charcoal-600">{settings.address}</p>
                   <p className="mt-1 text-xs text-charcoal-400">{settings.openingHours}</p>
                 </div>
@@ -368,15 +366,14 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
 
             {order.instructions && (
               <p className="mt-4 rounded-lg bg-cream-100 px-3 py-2.5 text-xs text-charcoal-600">
-                <strong className="font-semibold">Note:</strong> {order.instructions}
+                <strong className="font-semibold">{<T text="Note:"/>}</strong> {order.instructions}
               </p>
             )}
           </div>
 
           <div className="space-y-2">
             <Button variant="secondary" className="w-full" onClick={reorder}>
-              <ShoppingBag className="h-4 w-4" aria-hidden /> Order Again
-            </Button>
+              <ShoppingBag className="h-4 w-4" aria-hidden /> {<T text="Order Again"/>}</Button>
             {isStaff && (
               <Button
                 variant="ghost"
@@ -384,15 +381,13 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
                 loading={printing}
                 onClick={() => void printReceipt()}
               >
-                <Printer className="h-4 w-4" aria-hidden /> Print receipt
-              </Button>
+                <Printer className="h-4 w-4" aria-hidden /> {<T text="Print receipt"/>}</Button>
             )}
             {canCancel && (
               <Button variant="danger" className="w-full" loading={cancelling} onClick={() => void cancel()}>
-                Cancel order
-              </Button>
+                {<T text="Cancel order"/>}</Button>
             )}
-            <Link href="/menu" className="btn-ghost w-full">Continue Shopping</Link>
+            <Link href="/menu" className="btn-ghost w-full">{<T text="Continue Shopping"/>}</Link>
           </div>
 
           <a
@@ -403,8 +398,7 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
             rel="noopener noreferrer"
             className="block rounded-xl border border-cream-200 bg-surface p-4 text-center text-sm font-semibold text-charcoal-700 transition hover:border-circuit-400 hover:text-circuit-600"
           >
-            Need help with this order? Message us
-          </a>
+            {<T text="Need help with this order? Message us"/>}</a>
         </div>
       </div>
     </div>

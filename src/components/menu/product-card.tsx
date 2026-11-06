@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import { CompareButton } from "@/components/storefront/compare-controls";
 import Image from "next/image";
@@ -70,12 +71,12 @@ export function ProductCard({
             )}
 
             <div className="pointer-events-none absolute inset-x-2 top-2 flex flex-wrap items-start gap-1.5">
-              {product.isPopular && <Badge tone="dark">🔥 Popular</Badge>}
+              {product.isPopular && <Badge tone="dark">{<T text="🔥 Popular"/>}</Badge>}
               {saving && <Badge tone="red">-{saving}%</Badge>}
               {product.isVegetarian && (
                 <Badge tone="green" className="ml-auto">
                   <Leaf className="h-3 w-3" aria-hidden />
-                  <span className="sr-only">Vegetarian</span>
+                  <span className="sr-only">{<T text="Vegetarian"/>}</span>
                 </Badge>
               )}
             </div>
@@ -95,8 +96,7 @@ export function ProductCard({
             {!product.isAvailable && (
               <div className="absolute inset-0 flex items-center justify-center bg-charcoal-900/55">
                 <span className="rounded-lg bg-cream-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-charcoal-800">
-                  Sold out
-                </span>
+                  {<T text="Sold out"/>}</span>
               </div>
             )}
           </Link>
@@ -116,7 +116,7 @@ export function ProductCard({
           <div className="mb-1.5 flex items-start justify-between gap-2">
             <Link href={href} className="min-w-0">
               <h3 className="truncate text-[15px] font-bold leading-snug text-charcoal-900 transition-colors group-hover:text-chai-700">
-                {product.name}
+                {<T text={product.name} urdu={product.urduName}/> }
               </h3>
               {product.urduName && (
                 <p className="truncate text-[13px] leading-tight text-charcoal-400" dir="rtl">
@@ -136,7 +136,7 @@ export function ProductCard({
           </div>
 
           <p className="line-clamp-1 text-[13px] leading-snug text-charcoal-500">
-            {product.description}
+            {<T text={product.description}/> }
           </p>
 
           <div className="mt-2 flex items-center gap-3">

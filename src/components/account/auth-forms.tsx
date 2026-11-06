@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -164,11 +165,10 @@ export function RegisterForm() {
         required
       />
       <Button type="submit" className="w-full" size="lg" loading={submitting}>
-        Create account
-      </Button>
+        {<T text="Create account"/>}</Button>
       <p className="text-center text-xs text-charcoal-400">
-        Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-chai-700 hover:underline">Login</Link>
+        {<T text="Already have an account?"/>}{" "}
+        <Link href="/login" className="font-semibold text-chai-700 hover:underline">{<T text="Login"/>}</Link>
       </p>
     </form>
   );

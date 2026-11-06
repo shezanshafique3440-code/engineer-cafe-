@@ -1,0 +1,14 @@
+{
+  "baseline": {
+    "package.json": "d754f0d87ffcb02cbce4bbd2a0ceb3ecffe5c7350e32b20b0da05d3ee21abdca",
+    "package-lock.json": "d707f68889feaee0ed8f470aabe858bb9d89729fd125b96d53c641d8cfd2ecb3",
+    "prisma/schema.prisma": "1f46aaca5735df263f46cc036533672defa79cfd0747743c35fb05afa225a014"
+  },
+  "upgrade": {
+    "package.json": "9a9f5f73e0e7527fe2701a9c61f408f16f2926e08f223756122066e983237671",
+    "package-lock.json": "f7828c6ef19412c2322469d8fd5ebce384fdadf2a463998a724c9ea65ec696f6",
+    "prisma/schema.prisma": "ed4ad0dd33b64cff9f76a5dbca15e8b8bcb88958186a0c752f6d4537f1c4d6f2",
+    "prisma/migrations/20261106120000_cafe_experience/migration.sql": "8b892aaa2297d5a5ec6d7bdf6d7934422cb5fbee91d4222d00a564a840e08c73"
+  },
+  "baselineCommit": "9c0c8157293610749ff66b57181a78549b453c42"
+}

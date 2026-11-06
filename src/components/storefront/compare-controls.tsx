@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 import Link from "next/link";
 import { ArrowRight, GitCompareArrows, X } from "lucide-react";
 import { toast } from "sonner";
@@ -50,11 +51,10 @@ export function ComparisonDock() {
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-chai-300 bg-chai-50 p-3">
         <p className="flex items-center gap-2 text-sm font-semibold text-chai-800">
           <GitCompareArrows className="h-4 w-4" />
-          {compared.length}/3 dishes shortlisted
-        </p>
+          {compared.length}{<T text="/3 dishes shortlisted"/>}</p>
         <div className="flex items-center gap-2">
           <Link href="/compare" className="btn-primary px-3 py-2 text-xs">
-            Compare dishes <ArrowRight className="h-3.5 w-3.5" />
+            {<T text="Compare dishes"/>}<ArrowRight className="h-3.5 w-3.5" />
           </Link>
           <button
             type="button"

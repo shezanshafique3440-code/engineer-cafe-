@@ -1,3 +1,4 @@
+import { T } from "@/context/language-context";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -72,9 +73,9 @@ export default async function CategoryPage({
       <div className="border-b border-cream-200 bg-cream-100">
         <div className="container py-10 md:py-14">
           <nav aria-label="Breadcrumb" className="mb-4 text-xs text-charcoal-500">
-            <Link href="/" className="hover:text-chai-700">Home</Link>
+            <Link href="/" className="hover:text-chai-700">{<T text="Home"/>}</Link>
             <span className="mx-1.5" aria-hidden>/</span>
-            <Link href="/menu" className="hover:text-chai-700">Menu</Link>
+            <Link href="/menu" className="hover:text-chai-700">{<T text="Menu"/>}</Link>
             <span className="mx-1.5" aria-hidden>/</span>
             <span className="text-charcoal-800">{category.name}</span>
           </nav>
@@ -87,8 +88,7 @@ export default async function CategoryPage({
             </p>
           )}
           <p className="mt-2 text-xs text-charcoal-400">
-            {category._count.products} item{category._count.products === 1 ? "" : "s"} available
-          </p>
+            {category._count.products} {<T text="item"/>}{category._count.products === 1 ? "" : "s"} {<T text="available"/>}</p>
         </div>
       </div>
 

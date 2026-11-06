@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -154,18 +155,15 @@ export function Hero({
           <div className="cinema-hero-copy">
             <p className="cinema-eyebrow cinema-hero-eyebrow">
               <span />
-              CHAI, PARATHA & A LITTLE THEATRE
-            </p>
+              {<T text="CHAI, PARATHA & A LITTLE THEATRE"/>}</p>
             <h1 className="cinema-hero-title">
-              Made to savour.<em>Worth slowing down.</em>
+              {<T text="Made to savour."/>}<em>{<T text="Worth slowing down."/>}</em>
             </h1>
             <p className="cinema-hero-description">
-              Every dish has a little story. Choose a favourite and watch its
-              ingredients come alive.
-            </p>
+              {<T text="Every dish has a little story. Choose a favourite and watch its ingredients come alive."/>}</p>
             <div className="cinema-hero-actions">
               <Link href="/menu" className="cinema-button cinema-button-cream">
-                Explore the menu <ArrowRight size={16} aria-hidden />
+                {<T text="Explore the menu"/>}<ArrowRight size={16} aria-hidden />
               </Link>
               <button
                 type="button"
@@ -173,11 +171,11 @@ export function Hero({
                 onClick={() => setChooserOpen(true)}
                 aria-haspopup="dialog"
               >
-                Choose a dish <ArrowRight size={14} aria-hidden />
+                {<T text="Choose a dish"/>}<ArrowRight size={14} aria-hidden />
               </button>
             </div>
             <p className="cinema-hero-location">
-              BREWED WITH HEART <span aria-hidden>·</span> {settings.city}
+              {<T text="BREWED WITH HEART"/>}<span aria-hidden>·</span> {settings.city}
             </p>
           </div>
 
@@ -195,7 +193,7 @@ export function Hero({
               ) : (
                 <div className="dish-empty-stage">
                   <Coffee size={72} aria-hidden />
-                  <p>Explore today’s menu</p>
+                  <p>{<T text="Explore today’s menu"/>}</p>
                 </div>
               )}
             </motion.div>
@@ -227,7 +225,7 @@ export function Hero({
                       <Coffee size={28} aria-hidden />
                     )}
                   </span>
-                  <span className="hero-orbit-label">{product.name}</span>
+                  <span className="hero-orbit-label">{<T text={product.name}/> }</span>
                 </button>
               ))}
             </div>
@@ -255,13 +253,13 @@ export function Hero({
                 onClick={() => setIngredientsOpen(true)}
                 aria-haspopup="dialog"
               >
-                View ingredients <span>{profile?.ingredients.length ?? 0}</span>
+                {<T text="View ingredients"/>}<span>{profile?.ingredients.length ?? 0}</span>
               </button>
             )}
             {featured && (
               <p className="cinema-feature-price">
                 {money(featured.discountPrice ?? featured.price)}{" "}
-                <span>base price</span>
+                <span>{<T text="base price"/>}</span>
               </p>
             )}
             <Link
@@ -291,8 +289,7 @@ export function Hero({
             <span>
               <ArrowDown size={16} aria-hidden />
             </span>
-            Scroll to savour the moment
-          </Link>
+            {<T text="Scroll to savour the moment"/>}</Link>
           <div
             className="cinema-scene-controls"
             aria-label="Featured product controls"
@@ -358,8 +355,7 @@ export function Hero({
             </button>
           </div>
           <p className="cinema-prep-note">
-            Made to order <span aria-hidden>·</span> {prepMinutes} min avg. prep
-          </p>
+            {<T text="Made to order"/>}<span aria-hidden>·</span> {prepMinutes} {<T text="min avg. prep"/>}</p>
         </div>
         <div className="cinema-service-strip">
           <div className="cinema-container">
@@ -369,10 +365,10 @@ export function Hero({
                 ? "Accepting online orders"
                 : "Online ordering paused"}
             </span>
-            <span>Fresh from the tawa</span>
-            <span>Minimum order {money(settings.minOrderAmount)}</span>
+            <span>{<T text="Fresh from the tawa"/>}</span>
+            <span>{<T text="Minimum order"/>}{money(settings.minOrderAmount)}</span>
             <Link href="/contact">
-              A table. A takeaway. Your call.{" "}
+              {<T text="A table. A takeaway. Your call."/>}{" "}
               <ArrowRight size={13} aria-hidden />
             </Link>
           </div>

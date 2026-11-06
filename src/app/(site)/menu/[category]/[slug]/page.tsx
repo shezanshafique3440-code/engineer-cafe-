@@ -1,3 +1,4 @@
+import { T } from "@/context/language-context";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -118,9 +119,9 @@ export default async function ProductPage({
       <div className="border-b border-cream-200 bg-cream-100">
         <div className="container py-4">
           <nav aria-label="Breadcrumb" className="text-xs text-charcoal-500">
-            <Link href="/" className="hover:text-chai-700">Home</Link>
+            <Link href="/" className="hover:text-chai-700">{<T text="Home"/>}</Link>
             <span className="mx-1.5" aria-hidden>/</span>
-            <Link href="/menu" className="hover:text-chai-700">Menu</Link>
+            <Link href="/menu" className="hover:text-chai-700">{<T text="Menu"/>}</Link>
             <span className="mx-1.5" aria-hidden>/</span>
             <Link href={`/menu/${product.category.slug}`} className="hover:text-chai-700">
               {product.category.name}

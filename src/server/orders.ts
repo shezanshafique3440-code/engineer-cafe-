@@ -2,7 +2,7 @@ import "server-only";
 import type { Order, OrderStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { HttpError } from "./api";
-import { generateOrderNumber } from "./pricing";
+import { settleLoyalty } from "./loyalty";
 
 /** Allocates the next EC#### order number inside the transaction. */
 export async function nextOrderNumber(
@@ -10,25 +10,18 @@ export async function nextOrderNumber(
 ): Promise<string> {
   // Serialize allocation until commit so two checkouts cannot claim the same number.
   await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(73019301)`;
-  const last = await tx.order.findFirst({
-    orderBy: { createdAt: "desc" },
-    select: { orderNumber: true },
+  // Persistent counter prevents reuse after deletion of the newest receipt.
+  const max = await tx.$queryRaw<
+    { value: number }[]
+  >`SELECT GREATEST(999, COALESCE(MAX(CASE WHEN "orderNumber" ~ '^EC[0-9]{1,9}$' THEN SUBSTRING("orderNumber" FROM 3)::INTEGER END),999))::INTEGER AS value FROM "Order"`;
+  const counter = await tx.orderCounter.upsert({
+    where: { id: 1 },
+    create: { id: 1, value: max[0].value },
+    update: {},
   });
-  const lastSequence = last
-    ? Number(last.orderNumber.replace(/\D/g, "")) - 1000
-    : -1;
-  const sequence = Number.isFinite(lastSequence) ? lastSequence + 1 : 0;
-
-  // Guard against gaps/collisions from concurrent checkouts.
-  for (let attempt = 0; attempt < 25; attempt += 1) {
-    const candidate = generateOrderNumber(sequence + attempt);
-    const clash = await tx.order.findUnique({
-      where: { orderNumber: candidate },
-      select: { id: true },
-    });
-    if (!clash) return candidate;
-  }
-  return `EC${Date.now().toString().slice(-6)}`;
+  const next = Math.max(counter.value, max[0].value) + 1;
+  await tx.orderCounter.update({ where: { id: 1 }, data: { value: next } });
+  return `EC${next}`;
 }
 
 const orderInclude = {
@@ -48,6 +41,13 @@ export function serializeOrder(order: FullOrder) {
     orderType: order.orderType,
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,
+    channel: order.channel,
+    scheduledAt: order.scheduledAt?.toISOString() ?? null,
+    cashReceived: order.cashReceived,
+    cashChange: order.cashChange,
+    loyaltyPointsUsed: order.loyaltyPointsUsed,
+    loyaltyDiscount: order.loyaltyDiscount,
+    loyaltyPointsEarned: order.loyaltyPointsEarned,
     customerName: order.customerName,
     customerPhone: order.customerPhone,
     customerEmail: order.customerEmail,
@@ -125,6 +125,10 @@ export async function deleteOrder(
         "This order changed on another screen. Refresh and review it before deleting.",
       );
 
+    // Match checkout lock order: customer before order/stock, avoiding a cancellation deadlock.
+    if (order.userId)
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${order.userId} FOR UPDATE`;
+
     // The delete predicate serializes deletion against another delete or status
     // transition. Cascades remove items, add-ons and timeline in this transaction.
     const removed = await tx.order.deleteMany({
@@ -140,6 +144,8 @@ export async function deleteOrder(
         "This order changed on another screen. Refresh and try again.",
       );
 
+    if (order.status !== "DELIVERED" && order.status !== "CANCELLED")
+      await settleLoyalty(tx, order, true);
     // Delivered food was consumed; cancelled reservations were already released.
     if (order.status !== "DELIVERED" && order.status !== "CANCELLED") {
       for (const item of order.items) {
@@ -177,6 +183,15 @@ export async function transitionOrder(
     order.paymentStatus !== "PAID"
   )
     throw new HttpError(400, "Confirm online payment before handover.");
+  if (
+    order.scheduledAt &&
+    ["PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"].includes(status) &&
+    order.scheduledAt.getTime() > Date.now() + order.estimatedMinutes * 60000
+  )
+    throw new HttpError(
+      400,
+      "Scheduled ticket is not due for preparation yet.",
+    );
   const data: Prisma.OrderUpdateManyMutationInput = { status };
   const now = new Date();
 
@@ -192,6 +207,8 @@ export async function transitionOrder(
   }
 
   return prisma.$transaction(async (tx) => {
+    if (order.userId)
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${order.userId} FOR UPDATE`;
     const updated = await tx.order.updateMany({
       where: { id: order.id, status: order.status, updatedAt: order.updatedAt },
       data,
@@ -219,6 +236,9 @@ export async function transitionOrder(
           "updatedAt" = NOW() WHERE "id" = ${order.couponId}`;
       }
     }
+
+    if (status === "DELIVERED" || status === "CANCELLED")
+      await settleLoyalty(tx, order, status === "CANCELLED");
 
     await tx.orderEvent.create({
       data: { orderId: order.id, status, note: note || null },

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -45,7 +46,7 @@ export function BottomNav() {
                     </span>
                   )}
                 </span>
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className="text-[10px] font-medium">{<T text={item.label}/>}</span>
               </>
             );
 

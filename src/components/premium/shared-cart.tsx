@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Copy, Share2, ShoppingBag, AlertCircle, Check } from "lucide-react";
@@ -49,8 +50,7 @@ export function ShareCartButton() {
       title="Share up to 20 configured items; excludes personal notes and coupons"
     >
       <Share2 className="h-4 w-4" />
-      Share cart
-    </Button>
+      {<T text="Share cart"/>}</Button>
   );
 }
 type Resolved = {
@@ -190,25 +190,20 @@ export function SharedCartPreview() {
   };
   return (
     <div className="container max-w-3xl py-10 md:py-16">
-      <p className="eyebrow">Better when shared</p>
+      <p className="eyebrow">{<T text="Better when shared"/>}</p>
       <h1 className="mt-3 text-3xl font-extrabold sm:text-4xl">
-        Someone saved you a seat.
-      </h1>
+        {<T text="Someone saved you a seat."/>}</h1>
       <p className="mt-4 text-sm text-charcoal-600">
-        Review their meal with today’s prices and availability. Nothing is
-        ordered or added until you choose.
-      </p>
+        {<T text="Review their meal with today’s prices and availability. Nothing is ordered or added until you choose."/>}</p>
       {loading ? (
         <p role="status" className="py-12 text-center">
-          Checking the current menu and options…
-        </p>
+          {<T text="Checking the current menu and options…"/>}</p>
       ) : error ? (
         <div role="alert" className="surface mt-7 p-6">
           <AlertCircle className="h-6 w-6 text-chilli-500" />
           <p className="mt-3">{error}</p>
           <Link href="/menu" className="btn-primary mt-5">
-            Open the menu
-          </Link>
+            {<T text="Open the menu"/>}</Link>
         </div>
       ) : (
         <>
@@ -239,16 +234,14 @@ export function SharedCartPreview() {
                 </div>
                 {row.error && (
                   <p role="status" className="mt-2 text-sm text-chilli-600">
-                    {row.error} This item will not be added.
-                  </p>
+                    {row.error} {<T text="This item will not be added."/>}</p>
                 )}
                 {row.product && (
                   <Link
                     className="mt-2 inline-block text-xs font-semibold text-chai-700 underline"
                     href={`/menu/${row.product.category.slug}/${row.product.slug}`}
                   >
-                    View item
-                  </Link>
+                    {<T text="View item"/>}</Link>
                 )}
               </li>
             ))}
@@ -256,15 +249,11 @@ export function SharedCartPreview() {
           <div className="surface mt-6 p-5">
             <div className="flex justify-between gap-3">
               <span className="font-semibold">
-                Available items · food estimate
-              </span>
+                {<T text="Available items · food estimate"/>}</span>
               <strong>{money(total)}</strong>
             </div>
             <p className="my-3 text-xs leading-relaxed text-charcoal-500">
-              Personal notes, addresses, coupons and payment details are never
-              shared. Options are checked again; delivery, discounts and tax are
-              calculated in your cart.
-            </p>
+              {<T text="Personal notes, addresses, coupons and payment details are never shared. Options are checked again; delivery, discounts and tax are calculated in your cart."/>}</p>
             <div className="flex flex-wrap gap-3">
               <Button
                 disabled={!ready.length || added || !hydrated}
@@ -280,8 +269,7 @@ export function SharedCartPreview() {
                   : `Add ${ready.length} ready item${ready.length === 1 ? "" : "s"}`}
               </Button>
               <Link className="btn-secondary" href="/cart">
-                Review my cart
-              </Link>
+                {<T text="Review my cart"/>}</Link>
               <Button
                 variant="ghost"
                 onClick={async () => {
@@ -294,8 +282,7 @@ export function SharedCartPreview() {
                 }}
               >
                 <Copy className="h-4 w-4" />
-                Copy link
-              </Button>
+                {<T text="Copy link"/>}</Button>
             </div>
           </div>
         </>

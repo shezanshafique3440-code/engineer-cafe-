@@ -283,6 +283,8 @@ export async function buildReceiptHtml(
 
   <hr class="dash">
 
+  ${order.scheduledAt ? `<p>Scheduled: ${escapeHtml(new Intl.DateTimeFormat("en-PK",{timeZone:"Asia/Karachi",dateStyle:"medium",timeStyle:"short"}).format(new Date(order.scheduledAt)))}</p>` : ""}
+  ${order.cashReceived !== null ? `${line("Cash received",money(order.cashReceived))}${line("Change",money(order.cashChange??0))}` : ""}
   <div class="who">
     <div class="name">${escapeHtml(order.customerName)}</div>
     <div class="line">${escapeHtml(order.customerPhone)}</div>

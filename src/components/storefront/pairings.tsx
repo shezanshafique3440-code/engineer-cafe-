@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Plus, ArrowRight } from "lucide-react";
@@ -49,16 +50,15 @@ export function PairingSuggestions({
     <section className="mt-8 border-t border-cream-200 pt-7">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="eyebrow">The perfect company</p>
+          <p className="eyebrow">{<T text="The perfect company"/>}</p>
           <h2 className="mt-2 text-xl font-bold">
-            Good on its own. Better together.
-          </h2>
+            {<T text="Good on its own. Better together."/>}</h2>
         </div>
         <Link
           href="/meal-finder"
           className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-chai-700"
         >
-          Plan a meal <ArrowRight className="h-3.5 w-3.5" />
+          {<T text="Plan a meal"/>}<ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
@@ -75,11 +75,10 @@ export function PairingSuggestions({
                 />
               )}
             </div>
-            <h3 className="text-sm font-bold">{p.name}</h3>
+            <h3 className="text-sm font-bold">{<T text={p.name}/> }</h3>
             <p className="mb-3 mt-1 text-xs text-charcoal-500">
               {p.hasOptions ? "From " : ""}
-              {money(basePrice(p))} · {p.prepTimeMinutes} min prep
-            </p>
+              {money(basePrice(p))} · {p.prepTimeMinutes} {<T text="min prep"/>}</p>
             <Button
               size="sm"
               variant="secondary"

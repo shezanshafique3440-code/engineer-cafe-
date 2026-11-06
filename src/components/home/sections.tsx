@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -25,7 +26,7 @@ export function PopularCategories({ categories }: { categories: CategoryDTO[] })
           description={`${categories.length} categories, one very consistent chai standard.`}
           action={
             <Link href="/menu" className="btn-secondary hidden sm:inline-flex">
-              Full Menu <ArrowRight className="h-4 w-4" aria-hidden />
+              {<T text="Full Menu"/>}<ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           }
         />
@@ -58,10 +59,10 @@ export function PopularCategories({ categories }: { categories: CategoryDTO[] })
                 </div>
                 <div className="p-3">
                   <h3 className="truncate text-sm font-bold text-charcoal-900 transition-colors group-hover:text-chai-700">
-                    {category.name}
+                    {<T text={category.name}/> }
                   </h3>
                   <p className="mt-0.5 text-[11px] text-charcoal-400">
-                    {category.productCount} item{category.productCount === 1 ? "" : "s"}
+                    {category.productCount} {<T text="item"/>}{category.productCount === 1 ? "" : "s"}
                   </p>
                 </div>
               </Link>
@@ -101,7 +102,7 @@ export function ProductRail({
           description={description}
           action={
             <Link href={href} className="btn-secondary hidden sm:inline-flex">
-              See all <ArrowRight className="h-4 w-4" aria-hidden />
+              {<T text="See all"/>}<ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           }
         />
@@ -111,7 +112,7 @@ export function ProductRail({
           ))}
         </div>
         <Link href={href} className="btn-secondary mt-6 w-full sm:hidden">
-          See all <ArrowRight className="h-4 w-4" aria-hidden />
+          {<T text="See all"/>}<ArrowRight className="h-4 w-4" aria-hidden />
         </Link>
       </div>
     </section>
@@ -135,11 +136,9 @@ export function EngineerDeals({ deals }: { deals: ProductDTO[] }) {
             {"// engineer's deals"}
           </p>
           <h2 className="mt-2 text-2xl font-bold text-cream-50 md:text-3xl">
-            Combos that compile on the first try.
-          </h2>
+            {<T text="Combos that compile on the first try."/>}</h2>
           <p className="mt-2 text-sm text-charcoal-300 md:text-base">
-            Bundled chai and parathas at prices built for student budgets. Managed live from the cafe.
-          </p>
+            {<T text="Bundled chai and parathas at prices built for student budgets. Managed live from the cafe."/>}</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -168,7 +167,7 @@ export function EngineerDeals({ deals }: { deals: ProductDTO[] }) {
                   )}
                   {saving > 0 && (
                     <span className="absolute right-3 top-3 rounded-lg bg-chilli-500 px-2.5 py-1 text-xs font-bold text-white">
-                      Save {money(saving)}
+                      {<T text="Save"/>}{money(saving)}
                     </span>
                   )}
                 </Link>
@@ -182,7 +181,7 @@ export function EngineerDeals({ deals }: { deals: ProductDTO[] }) {
                       {deal.comboItems.map((item) => (
                         <li key={item.productName} className="flex items-center gap-2 text-xs text-charcoal-300">
                           <span className="h-1 w-1 rounded-full bg-chai-400" aria-hidden />
-                          {item.quantity} × {item.productName}
+                          {item.quantity} × {<T text={item.productName}/> }
                         </li>
                       ))}
                     </ul>
@@ -202,8 +201,7 @@ export function EngineerDeals({ deals }: { deals: ProductDTO[] }) {
                       className="bg-chai-500 hover:bg-chai-400"
                       aria-label={`Add ${deal.name} to cart`}
                     >
-                      Add Deal
-                    </Button>
+                      {<T text="Add Deal"/>}</Button>
                   </div>
                 </div>
               </motion.article>
@@ -248,7 +246,7 @@ export function WhyEngineerCafe() {
               <span className="mb-3.5 flex h-10 w-10 items-center justify-center rounded-xl bg-chai-100 text-chai-600">
                 <item.icon className="h-[18px] w-[18px]" aria-hidden />
               </span>
-              <h3 className="text-base font-bold text-charcoal-900">{item.title}</h3>
+              <h3 className="text-base font-bold text-charcoal-900">{<T text={item.title}/> }</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-charcoal-500">{item.body}</p>
             </motion.div>
           ))}
@@ -292,7 +290,7 @@ export function CustomerReviews({
               <figcaption className="mt-4 flex items-center justify-between gap-3 border-t border-cream-200 pt-4">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-charcoal-900">{review.author}</p>
-                  <p className="truncate text-xs text-charcoal-400">on {review.productName}</p>
+                  <p className="truncate text-xs text-charcoal-400">{<T text="on"/>}{review.productName}</p>
                 </div>
                 <Rating value={review.rating} size={12} />
               </figcaption>
@@ -330,14 +328,9 @@ export function CafeExperience() {
         <div>
           <p className="eyebrow">{"// the cafe experience"}</p>
           <h2 className="mt-2 text-2xl font-bold md:text-3xl">
-            A table that doesn&apos;t ask you to leave.
-          </h2>
+            {<T text="A table that doesn't ask you to leave."/>}</h2>
           <p className="mt-4 text-sm leading-relaxed text-charcoal-600 md:text-base">
-            Engineer Cafe was built around the way students and engineers actually work — long
-            sittings, half-finished assignments, group debates, and a chai order roughly every
-            ninety minutes. Sockets at every table, Wi-Fi that survives a video call, and a kitchen
-            that stays open until 2 AM.
-          </p>
+            {<T text="Engineer Cafe was built around the way students and engineers actually work — long sittings, half-finished assignments, group debates, and a chai order roughly every ninety minutes. Sockets at every table, Wi-Fi that survives a video call, and a kitchen that stays open until 2 AM."/>}</p>
           <ul className="mt-6 space-y-3">
             {[
               "Power socket and lamp at every table",
@@ -352,7 +345,7 @@ export function CafeExperience() {
             ))}
           </ul>
           <Link href="/about" className="btn-secondary mt-7">
-            Read our story <ArrowRight className="h-4 w-4" aria-hidden />
+            {<T text="Read our story"/>}<ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>
       </div>
@@ -388,8 +381,7 @@ export function SocialSection() {
                 rel="noopener noreferrer"
                 className="btn-secondary hidden sm:inline-flex"
               >
-                <Instagram className="h-4 w-4" aria-hidden /> Follow us
-              </a>
+                <Instagram className="h-4 w-4" aria-hidden /> {<T text="Follow us"/>}</a>
             ) : undefined
           }
         />
@@ -437,7 +429,7 @@ export function LocationSection() {
                   <item.icon className="h-4 w-4" aria-hidden />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-charcoal-400">{item.label}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-charcoal-400">{<T text={item.label}/>}</p>
                   {item.href ? (
                     <a
                       href={item.href}
@@ -482,18 +474,14 @@ export function FinalCta() {
           {"// ready when you are"}
         </p>
         <h2 className="mx-auto mt-3 max-w-2xl text-2xl font-extrabold text-cream-50 md:text-4xl">
-          Low battery? Recharge with chai.
-        </h2>
+          {<T text="Low battery? Recharge with chai."/>}</h2>
         <p className="mx-auto mt-3 max-w-lg text-sm text-chai-100 md:text-base">
-          Delivery across {settings.city} in about 30 minutes, or pick up at the counter in 15.
-        </p>
+          {<T text="Delivery across"/>}{settings.city} {<T text="in about 30 minutes, or pick up at the counter in 15."/>}</p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link href="/menu" className="btn bg-cream-50 px-6 py-3.5 text-base text-charcoal-900 hover:bg-surface">
-            Order Now
-          </Link>
+            {<T text="Order Now"/>}</Link>
           <Link href="/menu/combos" className="btn border border-cream-50/40 px-6 py-3.5 text-base text-cream-50 hover:bg-cream-50/10">
-            See Combos
-          </Link>
+            {<T text="See Combos"/>}</Link>
         </div>
       </div>
     </section>

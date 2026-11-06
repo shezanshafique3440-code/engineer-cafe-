@@ -1,5 +1,6 @@
 "use client";
 
+import { T,useLanguage } from "@/context/language-context";
 import Link from "next/link";
 import { useId, useState, forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { Eye, EyeOff, Loader2, Star } from "lucide-react";
@@ -36,7 +37,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...props}
     >
       {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-      {children}
+      {typeof children==="string"?<T text={children}/>:children}
     </button>
   );
 });
@@ -50,15 +51,15 @@ export function FieldWrap({ label, error, hint, required, children, htmlFor }: F
     <div className="min-w-0">
       {label && (
         <label className="label" htmlFor={htmlFor}>
-          {label}
+          {typeof label==="string"?<T text={label}/>: label}
           {required && <span className="ml-0.5 text-chilli-500" aria-hidden>*</span>}
         </label>
       )}
       {children}
-      {hint && !error && <p className="mt-1 text-xs text-charcoal-500">{hint}</p>}
+      {hint && !error && <p className="mt-1 text-xs text-charcoal-500">{typeof hint==="string"?<T text={hint}/>: hint}</p>}
       {error && (
         <p id={htmlFor ? `${htmlFor}-error` : undefined} className="mt-1 text-xs font-medium text-chilli-600" role="alert">
-          {error}
+          {typeof error==="string"?<T text={error}/>: error}
         </p>
       )}
     </div>
@@ -71,6 +72,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { label, error, hint, className, id, required, ...props },
   ref,
 ) {
+  const {t}=useLanguage();
   const generatedId = useId();
   const fieldId = id ?? props.name ?? generatedId;
   return (
@@ -83,6 +85,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         aria-describedby={error ? `${fieldId}-error` : undefined}
         required={required}
         {...props}
+        placeholder={props.placeholder?t(props.placeholder):undefined}
       />
     </FieldWrap>
   );
@@ -112,6 +115,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   { label, error, hint, className, id, required, ...props },
   ref,
 ) {
+  const {t}=useLanguage();
   const generatedId = useId();
   const fieldId = id ?? props.name ?? generatedId;
   return (
@@ -124,6 +128,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
         aria-invalid={error ? true : undefined}
         required={required}
         {...props}
+        placeholder={props.placeholder?t(props.placeholder):undefined}
       />
     </FieldWrap>
   );
@@ -180,8 +185,8 @@ export function Checkbox({
         {...props}
       />
       <span className="min-w-0">
-        <span className="block text-sm font-medium text-charcoal-800">{label}</span>
-        {description && <span className="block text-xs text-charcoal-500">{description}</span>}
+        <span className="block text-sm font-medium text-charcoal-800">{typeof label==="string"?<T text={label}/>: label}</span>
+        {description && <span className="block text-xs text-charcoal-500">{typeof description==="string"?<T text={description}/>: description}</span>}
       </span>
     </label>
   );
@@ -265,16 +270,16 @@ export function EmptyState({
           {icon}
         </div>
       )}
-      <h3 className="text-lg font-semibold text-charcoal-900">{title}</h3>
-      {description && <p className="mt-1.5 max-w-sm text-sm text-charcoal-500">{description}</p>}
+      <h3 className="text-lg font-semibold text-charcoal-900">{typeof title==="string"?<T text={title}/>: title}</h3>
+      {description && <p className="mt-1.5 max-w-sm text-sm text-charcoal-500">{typeof description==="string"?<T text={description}/>: description}</p>}
       {actionLabel && actionHref && (
         <Link href={actionHref} className="btn-primary mt-6">
-          {actionLabel}
+          {typeof actionLabel==="string"?<T text={actionLabel}/>: actionLabel}
         </Link>
       )}
       {actionLabel && !actionHref && onAction && (
         <Button className="mt-6" onClick={onAction}>
-          {actionLabel}
+          {typeof actionLabel==="string"?<T text={actionLabel}/>: actionLabel}
         </Button>
       )}
     </div>
@@ -292,8 +297,8 @@ export function ErrorState({
 }) {
   return (
     <div className="rounded-2xl border border-chilli-400/30 bg-chilli-400/5 px-6 py-10 text-center">
-      <h3 className="text-base font-semibold text-chilli-600">{title}</h3>
-      <p className="mt-1 text-sm text-charcoal-600">{description}</p>
+      <h3 className="text-base font-semibold text-chilli-600">{typeof title==="string"?<T text={title}/>: title}</h3>
+      <p className="mt-1 text-sm text-charcoal-600">{typeof description==="string"?<T text={description}/>: description}</p>
       {onRetry && (
         <Button variant="secondary" className="mt-5" onClick={onRetry}>
           Try again
@@ -332,8 +337,8 @@ export function SectionHeading({
     >
       <div className="max-w-2xl">
         {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
-        <h2 className="text-2xl font-bold md:text-3xl">{title}</h2>
-        {description && <p className="mt-2 text-sm text-charcoal-500 md:text-base">{description}</p>}
+        <h2 className="text-2xl font-bold md:text-3xl">{typeof title==="string"?<T text={title}/>: title}</h2>
+        {description && <p className="mt-2 text-sm text-charcoal-500 md:text-base">{typeof description==="string"?<T text={description}/>: description}</p>}
       </div>
       {action}
     </div>

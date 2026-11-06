@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 import Link from "next/link";
 import { Truck, Store, Check, ShieldCheck } from "lucide-react";
 import { useCart } from "@/context/cart-context";
@@ -12,11 +13,9 @@ export function ServiceChoice() {
     <section className="container py-5">
       <div className="surface flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
         <div>
-          <p className="text-sm font-bold">Make this your kind of break.</p>
+          <p className="text-sm font-bold">{<T text="Make this your kind of break."/>}</p>
           <p className="mt-1 text-xs text-charcoal-500">
-            Choose how you’ll enjoy it. Your cart updates with your service
-            choice.
-          </p>
+            {<T text="Choose how you’ll enjoy it. Your cart updates with your service choice."/>}</p>
         </div>
         <div className="flex gap-2" aria-label="Choose service type">
           {[
@@ -47,7 +46,7 @@ export function ServiceChoice() {
               )}
             >
               <option.icon className="h-4 w-4" />
-              {option.label}
+              {<T text={option.label}/> }
             </button>
           ))}
         </div>
@@ -63,12 +62,11 @@ export function CartGuidance() {
   if (quoting)
     return (
       <p role="status" className="my-4 text-xs text-charcoal-500">
-        Refreshing your order milestones…
-      </p>
+        {<T text="Refreshing your order milestones…"/>}</p>
     );
   const state = cartMilestones(
     quote.subtotal,
-    quote.discount,
+    quote.discount + (quote.loyaltyDiscount??0),
     quote.minOrderAmount,
     s.freeDeliveryOver,
   );
@@ -141,16 +139,13 @@ export function ServiceRibbon() {
             )}
             aria-hidden
           />
-          {isAcceptingOrders
-            ? "Accepting online orders"
-            : "Online ordering is paused"}
+          {<T text={isAcceptingOrders ? "Accepting online orders" : "Kitchen is taking a break"}/>}
         </span>
         <span className="text-charcoal-500">
-          Made to order · Minimum {money(minOrderAmount)}
+          {<T text="Made to order · Minimum"/>}{money(minOrderAmount)}
         </span>
         <Link href="/contact" className="font-semibold text-chai-700">
-          Questions? Talk to the cafe →
-        </Link>
+          {<T text="Questions? Talk to the cafe →"/>}</Link>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -21,44 +22,35 @@ export function ProductComparison() {
     <div className="container py-10 md:py-16">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">The delicious details</p>
+          <p className="eyebrow">{<T text="The delicious details"/>}</p>
           <h1 className="mt-3 text-3xl font-extrabold sm:text-5xl">
-            Choose with confidence.
-          </h1>
+            {<T text="Choose with confidence."/>}</h1>
           <p className="mt-4 max-w-xl text-sm text-charcoal-500">
-            Compare up to three dishes, side by side. Prices and availability
-            are refreshed from the menu.
-          </p>
+            {<T text="Compare up to three dishes, side by side. Prices and availability are refreshed from the menu."/>}</p>
         </div>
         {!!compared.length && (
           <Button variant="ghost" onClick={clearCompare}>
-            Clear shortlist
-          </Button>
+            {<T text="Clear shortlist"/>}</Button>
         )}
       </div>
       {!ready || loading ? (
         <p role="status" className="py-14 text-center">
-          Refreshing your shortlist…
-        </p>
+          {<T text="Refreshing your shortlist…"/>}</p>
       ) : error ? (
         <div className="surface p-8">
-          <p>Comparison could not load.</p>
+          <p>{<T text="Comparison could not load."/>}</p>
           <Button onClick={retry} className="mt-4">
-            Try again
-          </Button>
+            {<T text="Try again"/>}</Button>
         </div>
       ) : !compared.length ? (
         <div className="surface p-10 text-center">
           <GitCompareArrows className="mx-auto h-8 w-8 text-chai-500" />
           <h2 className="mt-4 text-xl font-bold">
-            Your shortlist starts with a craving.
-          </h2>
+            {<T text="Your shortlist starts with a craving."/>}</h2>
           <p className="mt-2 text-sm text-charcoal-500">
-            Tap Compare on any dish to add it here.
-          </p>
+            {<T text="Tap Compare on any dish to add it here."/>}</p>
           <Link className="btn-primary mt-5" href="/discover">
-            Find something delicious
-          </Link>
+            {<T text="Find something delicious"/>}</Link>
         </div>
       ) : (
         <>
@@ -67,9 +59,7 @@ export function ProductComparison() {
               role="status"
               className="mb-5 rounded-xl bg-amber-50 p-3 text-sm text-amber-900"
             >
-              Some shortlisted dishes are no longer available. Clear your
-              shortlist to start fresh.
-            </p>
+              {<T text="Some shortlisted dishes are no longer available. Clear your shortlist to start fresh."/>}</p>
           )}
           <div className="grid items-start gap-5 md:grid-cols-3">
             {products.map((product) => (
@@ -97,17 +87,16 @@ export function ProductComparison() {
                   </button>
                 </div>
                 <div className="p-5">
-                  <p className="eyebrow">{product.category.name}</p>
-                  <h2 className="mt-2 text-xl font-bold">{product.name}</h2>
+                  <p className="eyebrow">{<T text={product.category.name}/> }</p>
+                  <h2 className="mt-2 text-xl font-bold">{<T text={product.name}/> }</h2>
                   <p className="mt-2 min-h-10 text-sm text-charcoal-500">
-                    {product.description}
+                    {<T text={product.description}/> }
                   </p>
                   <p className="my-5 text-2xl font-extrabold text-chai-700">
                     {money(basePrice(product))}
                     {product.hasOptions && (
                       <span className="ml-1 text-xs font-normal text-charcoal-500">
-                        base price
-                      </span>
+                        {<T text="base price"/>}</span>
                     )}
                   </p>
                   <dl className="divide-y divide-cream-200 text-sm">
@@ -139,7 +128,7 @@ export function ProductComparison() {
                         className="flex justify-between gap-3 py-3"
                         key={label}
                       >
-                        <dt className="text-charcoal-500">{label}</dt>
+                        <dt className="text-charcoal-500">{<T text={label}/> }</dt>
                         <dd className="text-right font-semibold">{value}</dd>
                       </div>
                     ))}
@@ -159,16 +148,13 @@ export function ProductComparison() {
                     className="btn-ghost mt-2 w-full"
                     href={`/menu/${product.category.slug}/${product.slug}`}
                   >
-                    View full details
-                  </Link>
+                    {<T text="View full details"/>}</Link>
                 </div>
               </article>
             ))}
           </div>
           <p className="mt-5 text-xs text-charcoal-500">
-            Dietary labels and calorie estimates are provided by the cafe. Ask
-            staff about allergens. Preparation excludes delivery time.
-          </p>
+            {<T text="Dietary labels and calorie estimates are provided by the cafe. Ask staff about allergens. Preparation excludes delivery time."/>}</p>
         </>
       )}
       {customise && (

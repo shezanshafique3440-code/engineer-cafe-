@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import { CartGuidance } from "@/components/storefront/order-guidance";
 import { PairingSuggestions } from "@/components/storefront/pairings";
@@ -33,7 +34,7 @@ export function CartView() {
   if (lines.length === 0) {
     return (
       <div className="container py-14 md:py-20">
-        <h1 className="mb-8 text-3xl font-extrabold md:text-4xl">Your Cart</h1>
+        <h1 className="mb-8 text-3xl font-extrabold md:text-4xl">{<T text="Your Cart"/>}</h1>
         <EmptyState
           icon={<ShoppingBag className="h-6 w-6" />}
           title="Your engineering masterpiece needs some Chai."
@@ -59,10 +60,9 @@ export function CartView() {
     <div className="container py-8 md:py-12">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold md:text-4xl">Your Cart</h1>
+          <h1 className="text-3xl font-extrabold md:text-4xl">{<T text="Your Cart"/>}</h1>
           <p className="mt-1.5 text-sm text-charcoal-500">
-            {itemCount} item{itemCount === 1 ? "" : "s"} ready to go.
-          </p>
+            {itemCount} {<T text="item"/>}{itemCount === 1 ? "" : "s"} {<T text="ready to go."/>}</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
         <ShareCartButton />
@@ -71,8 +71,7 @@ export function CartView() {
           onClick={() => clear()}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-chilli-600 hover:underline"
         >
-          <Trash2 className="h-4 w-4" aria-hidden /> Clear cart
-        </button>
+          <Trash2 className="h-4 w-4" aria-hidden /> {<T text="Clear cart"/>}</button>
         </div>
       </div>
 
@@ -97,9 +96,9 @@ export function CartView() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h2 className="truncate text-sm font-bold text-charcoal-900 sm:text-base">
-                        {line.name}
+                        {<T text={line.name}/> }
                       </h2>
-                      <p className="text-xs text-charcoal-400">{money(line.unitPrice)} each</p>
+                      <p className="text-xs text-charcoal-400">{money(line.unitPrice)} {<T text="each"/>}</p>
                     </div>
                     <button
                       type="button"
@@ -118,7 +117,7 @@ export function CartView() {
                           key={addon.id}
                           className="rounded-full bg-cream-100 px-2 py-0.5 text-[11px] text-charcoal-500"
                         >
-                          {addon.name}
+                          {<T text={addon.name}/> }
                           {addon.price > 0 && <span className="ml-1 font-semibold text-chai-600">+{money(addon.price)}</span>}
                         </li>
                       ))}
@@ -161,7 +160,7 @@ export function CartView() {
 
         <div className="lg:sticky lg:top-24 lg:self-start">
           <div className="surface p-5">
-            <h2 className="text-lg font-bold">Order summary</h2>
+            <h2 className="text-lg font-bold">{<T text="Order summary"/>}</h2>
 
             <div className="mt-4 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Order type">
               {([
@@ -182,13 +181,13 @@ export function CartView() {
                   )}
                 >
                   <Icon className="h-4 w-4" aria-hidden />
-                  {label}
+                  {<T text={label}/> }
                 </button>
               ))}
             </div>
 
             <div className="mt-5">
-              <label htmlFor="coupon" className="label">Promo code</label>
+              <label htmlFor="coupon" className="label">{<T text="Promo code"/>}</label>
               <div className="flex gap-2">
                 <input
                   id="coupon"
@@ -199,23 +198,21 @@ export function CartView() {
                   className="field font-mono uppercase"
                 />
                 <Button variant="secondary" onClick={applyCoupon} className="shrink-0">
-                  Apply
-                </Button>
+                  {<T text="Apply"/>}</Button>
               </div>
 
               {quote?.coupon && (
                 <div className="mt-2.5 flex items-center justify-between gap-2 rounded-lg bg-circuit-400/10 px-3 py-2">
                   <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-circuit-600">
                     <Tag className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    <span className="truncate">{quote.coupon.code} applied</span>
+                    <span className="truncate">{quote.coupon.code} {<T text="applied"/>}</span>
                   </span>
                   <button
                     type="button"
                     onClick={removeCoupon}
                     className="shrink-0 text-xs font-semibold text-charcoal-500 hover:text-chilli-600"
                   >
-                    Remove
-                  </button>
+                    {<T text="Remove"/>}</button>
                 </div>
               )}
 
@@ -259,7 +256,7 @@ export function CartView() {
                   <Row label={`Tax (${settings.taxPercent}%)`} value={money(quote?.tax ?? 0)} />
                 )}
                 <div className="flex items-center justify-between border-t border-cream-200 pt-3 text-base">
-                  <dt className="font-bold text-charcoal-900">Grand Total</dt>
+                  <dt className="font-bold text-charcoal-900">{<T text="Grand Total"/>}</dt>
                   <dd className="flex items-center gap-2 font-extrabold text-charcoal-900">
                     {quoting && <Loader2 className="h-3.5 w-3.5 animate-spin text-chai-500" aria-hidden />}
                     {money(quote?.total ?? 0)}
@@ -271,9 +268,8 @@ export function CartView() {
             <CartGuidance/>
             {quote?.belowMinimum && (
               <p className="mt-4 rounded-lg bg-chai-50 px-3 py-2.5 text-xs font-medium text-chai-800" role="alert">
-                Minimum order is {money(quote.minOrderAmount)}. Add{" "}
-                {money(quote.minOrderAmount - quote.subtotal)} more to check out.
-              </p>
+                {<T text="Minimum order is"/>}{money(quote.minOrderAmount)}{<T text=". Add"/>}{" "}
+                {money(quote.minOrderAmount - quote.subtotal)} {<T text="more to check out."/>}</p>
             )}
 
             {orderType === "DELIVERY" &&
@@ -281,8 +277,7 @@ export function CartView() {
               quote &&
               quote.deliveryFee > 0 && (
                 <p className="mt-3 text-xs text-charcoal-500">
-                  Add {money(settings.freeDeliveryOver - (quote.subtotal - quote.discount))} more for free delivery.
-                </p>
+                  {<T text="Add"/>}{money(settings.freeDeliveryOver - (quote.subtotal - quote.discount))} {<T text="more for free delivery."/>}</p>
               )}
 
             <Link
@@ -293,13 +288,11 @@ export function CartView() {
                 (quote?.belowMinimum || !quote) && "pointer-events-none opacity-50",
               )}
             >
-              Proceed to Checkout
-              <ArrowRight className="h-4 w-4" aria-hidden />
+              {<T text="Proceed to Checkout"/>}<ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
 
             <Link href="/menu" className="btn-ghost mt-2 w-full">
-              Continue shopping
-            </Link>
+              {<T text="Continue shopping"/>}</Link>
 
             <p className="mt-4 text-center font-mono text-[11px] text-charcoal-300">
               {"// totals verified server-side at checkout"}
@@ -325,7 +318,7 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <dt className="text-charcoal-500">{label}</dt>
+      <dt className="text-charcoal-500">{<T text={label}/> }</dt>
       <dd className={cn("font-semibold", tone === "green" ? "text-circuit-600" : "text-charcoal-800")}>
         {loading ? <span className="skeleton inline-block h-4 w-16 align-middle" /> : value}
       </dd>

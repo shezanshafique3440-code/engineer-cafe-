@@ -64,9 +64,14 @@ export const quoteSchema = z.object({
   lines: z.array(cartLineSchema).max(60),
   couponCode: z.string().trim().max(32).optional().or(z.literal("")),
   orderType: z.enum(["DELIVERY", "PICKUP"]).default("DELIVERY"),
+  redeemReward: z.boolean().default(false),
 });
 
 export const checkoutSchema = z.object({
+  requestId: z.string().uuid().optional(),
+  expectedTotal: z.number().int().min(0).max(10000000).optional(),
+  scheduledAt: z.string().datetime().nullable().optional(),
+  redeemReward: z.boolean().default(false),
   lines: z.array(cartLineSchema).min(1, "Your cart is empty.").max(60),
   couponCode: z.string().trim().max(32).optional().or(z.literal("")),
   orderType: z.enum(["DELIVERY", "PICKUP"]),

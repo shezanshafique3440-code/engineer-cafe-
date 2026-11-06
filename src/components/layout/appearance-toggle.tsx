@@ -1,5 +1,6 @@
 "use client";
 
+import { useLanguage } from "@/context/language-context";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useThemeAppearance } from "@/context/theme-appearance-context";
 import { isDarkTheme, type Appearance } from "@/lib/themes";
@@ -13,6 +14,7 @@ const OPTIONS: { value: Appearance; label: string; icon: typeof Sun }[] = [
 
 /** Personal reading controls; the admin's brand palette stays in effect. */
 export function AppearanceToggle({ className }: { className?: string }) {
+  const {t}=useLanguage();
   const { preference, siteTheme, ready, setAppearance } = useThemeAppearance();
   if (!ready) return null;
   const selectedMode =
@@ -20,7 +22,7 @@ export function AppearanceToggle({ className }: { className?: string }) {
   return (
     <div
       role="radiogroup"
-      aria-label="Appearance"
+      aria-label={t("Appearance")}
       className={cn(
         "inline-flex items-center gap-0.5 rounded-full border border-cream-300 bg-cream-100 p-0.5",
         className,
@@ -32,8 +34,8 @@ export function AppearanceToggle({ className }: { className?: string }) {
           type="button"
           role="radio"
           aria-checked={selectedMode === option.value}
-          aria-label={option.label}
-          title={option.label}
+          aria-label={t(option.label)}
+          title={t(option.label)}
           onClick={() => setAppearance(option.value)}
           className={cn(
             "rounded-full p-1.5 transition",

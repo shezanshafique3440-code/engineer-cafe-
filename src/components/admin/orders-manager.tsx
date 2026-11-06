@@ -1,4 +1,5 @@
 "use client";
+import { pakistanTime } from "@/lib/experience";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -331,7 +332,7 @@ function OrdersManagerInner() {
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium text-charcoal-800">{order.customerName}</p>
-                    <p className="text-xs text-charcoal-400">{order.customerPhone}</p>
+                    <p className="text-xs text-charcoal-400">{order.customerPhone}</p>{order.scheduledAt&&<p className="mt-1 text-xs font-semibold text-chai-700">Due {pakistanTime(order.scheduledAt)}</p>}{order.channel==="POS"&&<span className="text-xs text-circuit-600">Counter sale</span>}
                   </td>
                   <td className="px-4 py-3 text-charcoal-500">{order.items.length}</td>
                   <td className="whitespace-nowrap px-4 py-3 font-bold text-charcoal-900">

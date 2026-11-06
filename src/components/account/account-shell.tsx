@@ -1,12 +1,14 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, ShoppingBag, Heart, MapPin, Settings, LogOut } from "lucide-react";
+import { User, ShoppingBag, Heart, MapPin, Settings, Star, LogOut } from "lucide-react";
 import { useSession } from "@/context/session-context";
 import { cn, initials } from "@/lib/utils";
 
 const NAV = [
+  { href: "/account/rewards", label: "Cafe rewards", icon: Star },
   { href: "/account", label: "Overview", icon: User },
   { href: "/account/orders", label: "My Orders", icon: ShoppingBag },
   { href: "/account/favorites", label: "Favorites", icon: Heart },
@@ -50,7 +52,7 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
                   )}
                 >
                   <item.icon className="h-4 w-4 shrink-0" aria-hidden />
-                  {item.label}
+                  {<T text={item.label}/>}
                 </Link>
               );
             })}
@@ -60,8 +62,7 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
               className="flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium text-chilli-600 transition hover:bg-chilli-400/10"
             >
               <LogOut className="h-4 w-4 shrink-0" aria-hidden />
-              Logout
-            </button>
+              {<T text="Logout"/>}</button>
           </nav>
         </aside>
 

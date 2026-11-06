@@ -1,5 +1,8 @@
 "use client";
 
+import { URDU } from "./urdu";
+function localMessage(value:string){try{return window.localStorage.getItem("ec-language")==="ur"&&!window.location.pathname.startsWith("/admin")?(URDU[value]??value):value}catch{return value}}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -37,7 +40,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const message =
       (payload && typeof payload.error === "string" && payload.error) ||
       "Something went wrong. Please try again.";
-    throw new ApiError(response.status, message, payload?.fields);
+    throw new ApiError(response.status, localMessage(message), payload?.fields);
   }
 
   return payload as T;

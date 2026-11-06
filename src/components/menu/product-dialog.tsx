@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import { createPortal } from "react-dom";
 import { useDialogFocus } from "@/hooks/use-dialog-focus";
@@ -240,11 +241,10 @@ export function ProductDialog({
                     />
                   )}
                   <div className="absolute inset-x-3 top-3 flex flex-wrap gap-1.5">
-                    {product.isPopular && <Badge tone="dark">🔥 Popular</Badge>}
+                    {product.isPopular && <Badge tone="dark">{<T text="🔥 Popular"/>}</Badge>}
                     {product.isVegetarian && (
                       <Badge tone="green">
-                        <Leaf className="h-3 w-3" aria-hidden /> Veg
-                      </Badge>
+                        <Leaf className="h-3 w-3" aria-hidden /> {<T text="Veg"/>}</Badge>
                     )}
                     {product.spiceLevel !== "NONE" && (
                       <Badge tone="red">
@@ -259,7 +259,7 @@ export function ProductDialog({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h2 className="text-xl font-bold leading-tight">
-                        {product.name}
+                        {<T text={product.name} urdu={product.urduName}/> }
                       </h2>
                       {product.urduName && (
                         <p
@@ -274,7 +274,7 @@ export function ProductDialog({
                         onClick={onClose}
                         className="mt-0.5 inline-block text-xs font-medium text-chai-600 hover:underline"
                       >
-                        {product.category.name}
+                        {<T text={product.category.name}/> }
                       </Link>
                     </div>
                     <button
@@ -306,31 +306,28 @@ export function ProductDialog({
                     />
                     <span className="inline-flex items-center gap-1 text-xs text-charcoal-500">
                       <Clock className="h-3.5 w-3.5" aria-hidden />{" "}
-                      {product.prepTimeMinutes} min
-                    </span>
+                      {product.prepTimeMinutes} {<T text="min"/>}</span>
                     {product.calories && (
                       <span className="text-xs text-charcoal-500">
-                        {product.calories} kcal
-                      </span>
+                        {product.calories} {<T text="kcal"/>}</span>
                     )}
                   </div>
 
                   <p className="mt-3 text-sm leading-relaxed text-charcoal-600">
-                    {product.longDescription || product.description}
+                    {<T text={product.longDescription || product.description}/> }
                   </p>
 
                   {product.comboItems && product.comboItems.length > 0 && (
                     <div className="mt-4 rounded-xl border border-chai-200 bg-chai-50 p-3.5">
                       <p className="mb-2 text-xs font-bold uppercase tracking-wide text-chai-700">
-                        What&apos;s in this deal
-                      </p>
+                        {<T text="What's in this deal"/>}</p>
                       <ul className="space-y-1">
                         {product.comboItems.map((item) => (
                           <li
                             key={item.productName}
                             className="text-sm text-charcoal-700"
                           >
-                            {item.quantity} × {item.productName}
+                            {item.quantity} × {<T text={item.productName}/> }
                           </li>
                         ))}
                       </ul>
@@ -340,15 +337,14 @@ export function ProductDialog({
                   {product.ingredients.length > 0 && (
                     <div className="mt-4">
                       <p className="mb-2 text-xs font-bold uppercase tracking-wide text-charcoal-400">
-                        Ingredients
-                      </p>
+                        {<T text="Ingredients"/>}</p>
                       <div className="flex flex-wrap gap-1.5">
                         {product.ingredients.map((ingredient) => (
                           <span
                             key={ingredient}
                             className="rounded-full bg-cream-100 px-2.5 py-1 text-xs text-charcoal-600"
                           >
-                            {ingredient}
+                            {<T text={ingredient}/>}
                           </span>
                         ))}
                       </div>
@@ -361,7 +357,7 @@ export function ProductDialog({
                       <fieldset key={group.id} className="mt-6">
                         <legend className="mb-2.5 flex w-full items-center justify-between gap-2">
                           <span className="text-sm font-bold text-charcoal-900">
-                            {group.name}
+                            {<T text={group.name}/> }
                             {group.isRequired && (
                               <span className="ml-1 text-chilli-500">*</span>
                             )}
@@ -399,7 +395,7 @@ export function ProductDialog({
                                     className="h-4 w-4 shrink-0 accent-chai-600"
                                   />
                                   <span className="truncate font-medium">
-                                    {addon.name}
+                                    {<T text={addon.name}/> }
                                   </span>
                                 </span>
                                 {addon.price > 0 && (
@@ -417,8 +413,7 @@ export function ProductDialog({
 
                   <div className="mt-6">
                     <label htmlFor="item-notes" className="label">
-                      Special instructions
-                    </label>
+                      {<T text="Special instructions"/>}</label>
                     <input
                       id="item-notes"
                       value={notes}
@@ -435,7 +430,7 @@ export function ProductDialog({
                       className="mb-2.5 text-xs font-medium text-chilli-600"
                       role="alert"
                     >
-                      Please choose{" "}
+                      {<T text="Please choose"/>}{" "}
                       {missingRequired
                         .map((g) => g.name.toLowerCase())
                         .join(" and ")}
@@ -497,8 +492,7 @@ export function ProductDialog({
                     className="mt-3 w-full"
                     size="lg"
                   >
-                    <Zap className="h-4 w-4" aria-hidden /> Buy it now
-                  </Button>
+                    <Zap className="h-4 w-4" aria-hidden /> {<T text="Buy it now"/>}</Button>
                 </div>
               </>
             )}

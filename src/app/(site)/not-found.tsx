@@ -1,3 +1,4 @@
+import { T } from "@/context/language-context";
 import Link from "next/link";
 
 /**
@@ -9,16 +10,13 @@ export default function SiteNotFound() {
   return (
     <div className="container flex flex-col items-center justify-center py-20 text-center md:py-28">
       <p className="font-mono text-sm font-bold uppercase tracking-[0.2em] text-chai-600">
-        Error 404
-      </p>
-      <h1 className="mt-4 text-4xl font-extrabold md:text-5xl">Chai Not Found.</h1>
+        {<T text="Error 404"/>}</p>
+      <h1 className="mt-4 text-4xl font-extrabold md:text-5xl">{<T text="Chai Not Found."/>}</h1>
       <p className="mx-auto mt-4 max-w-md text-sm text-charcoal-600 md:text-base">
-        Ye item ya page menu par nahi hai — shayad hata diya gaya ho. Neeche se
-        poora menu dekh lein.
-      </p>
+        {<T text="Ye item ya page menu par nahi hai — shayad hata diya gaya ho. Neeche se poora menu dekh lein."/>}</p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Link href="/menu" className="btn-primary px-6 py-3">Browse the menu</Link>
-        <Link href="/" className="btn-secondary px-6 py-3">Back home</Link>
+        <Link href="/menu" className="btn-primary px-6 py-3">{<T text="Browse the menu"/>}</Link>
+        <Link href="/" className="btn-secondary px-6 py-3">{<T text="Back home"/>}</Link>
       </div>
     </div>
   );

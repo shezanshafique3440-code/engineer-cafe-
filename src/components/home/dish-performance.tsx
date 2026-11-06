@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import Image from "next/image";
 import { useEffect, useId, useState, type CSSProperties } from "react";
@@ -106,7 +107,7 @@ export function DishPerformance({
         ) : (
           <div className="dish-photo-fallback">
             <UtensilsCrossed size={80} aria-hidden />
-            <span>{product.name}</span>
+            <span>{<T text={product.name}/> }</span>
           </div>
         )}
         {!profile.hasIce && (
@@ -243,7 +244,7 @@ export function DishPerformance({
             <span className="dish-ingredient-object">
               <IngredientSprite ingredient={ingredient} />
             </span>
-            <span className="dish-ingredient-label">{ingredient.label}</span>
+            <span className="dish-ingredient-label">{<T text={ingredient.label}/> }</span>
           </li>
         ))}
       </ul>

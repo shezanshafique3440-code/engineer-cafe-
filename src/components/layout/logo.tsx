@@ -52,7 +52,7 @@ export function Logo({
       </span>
 
       {!compact && (
-        <span className={cn("flex-col leading-none", responsive ? "hidden min-[360px]:flex" : "flex")}>
+        <span className={cn("flex-col leading-none", responsive ? "hidden min-[390px]:flex" : "flex")}>
           <span
             className={cn(
               "font-display text-lg font-extrabold tracking-tight",

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -119,8 +120,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
               {term.trim().length < 2 ? (
                 <div className="p-5">
                   <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-charcoal-400">
-                    Try searching
-                  </p>
+                    {<T text="Try searching"/>}</p>
                   <div className="flex flex-wrap gap-2">
                     {SUGGESTIONS.map((s) => (
                       <button
@@ -139,15 +139,14 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                 </div>
               ) : failed ? (
                 <div className="px-5 py-8 text-center" role="status">
-                  <p className="text-sm text-charcoal-600">Search could not load. Check your connection or browse the menu.</p>
-                  <Link href="/menu" onClick={onClose} className="btn-secondary mt-4">Browse menu</Link>
+                  <p className="text-sm text-charcoal-600">{<T text="Search could not load. Check your connection or browse the menu."/>}</p>
+                  <Link href="/menu" onClick={onClose} className="btn-secondary mt-4">{<T text="Browse menu"/>}</Link>
                 </div>
               ) : results.length === 0 && searched && !loading ? (
                 <div className="px-5 py-10 text-center">
-                  <p className="font-mono text-sm font-semibold text-charcoal-700">404: Chai Not Found.</p>
+                  <p className="font-mono text-sm font-semibold text-charcoal-700">{<T text="404: Chai Not Found."/>}</p>
                   <p className="mt-1 text-sm text-charcoal-500">
-                    Nothing matched “{term}”. Try “chai”, “paratha” or “cheese”.
-                  </p>
+                    {<T text="Nothing matched “"/>}{term}{<T text="”. Try “chai”, “paratha” or “cheese”."/>}</p>
                 </div>
               ) : (
                 <ul className="p-2">
@@ -171,7 +170,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-semibold text-charcoal-900">
-                            {product.name}
+                            {<T text={product.name} urdu={product.urduName}/> }
                             {product.urduName && (
                               <span className="ml-2 font-normal text-charcoal-400" dir="rtl">
                                 {product.urduName}
@@ -179,7 +178,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                             )}
                           </span>
                           <span className="block truncate text-xs text-charcoal-500">
-                            {product.category.name} · {product.description}
+                            {<T text={product.category.name}/> } · {<T text={product.description}/> }
                           </span>
                         </span>
                         <span className="shrink-0 text-sm font-bold text-chai-700">
@@ -195,7 +194,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                         onClick={onClose}
                         className="block rounded-xl bg-cream-100 px-4 py-2.5 text-center text-sm font-semibold text-chai-700 transition hover:bg-cream-200"
                       >
-                        See all results for “{term.trim()}”
+                        {<T text="See all results for “"/>}{term.trim()}”
                       </Link>
                     </li>
                   )}

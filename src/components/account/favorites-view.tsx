@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import { Heart } from "lucide-react";
 import { useFavorites } from "@/context/favorites-context";
@@ -14,10 +15,9 @@ export function FavoritesView({ initialProducts }: { initialProducts: ProductDTO
 
   return (
     <div>
-      <h1 className="text-2xl font-extrabold md:text-3xl">My Favorites</h1>
+      <h1 className="text-2xl font-extrabold md:text-3xl">{<T text="My Favorites"/>}</h1>
       <p className="mt-1.5 text-sm text-charcoal-500">
-        Everything you&apos;ve saved, one tap from the cart.
-      </p>
+        {<T text="Everything you've saved, one tap from the cart."/>}</p>
 
       <div className="mt-6">
         {loading && initialProducts.length === 0 ? (

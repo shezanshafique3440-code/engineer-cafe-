@@ -1,5 +1,7 @@
 "use client";
+import { T } from "@/context/language-context";
 
+import { LanguageSwitch } from "@/context/language-context";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -95,10 +97,9 @@ export function Navbar() {
     <>
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-charcoal-900 focus:px-4 focus:py-2 focus:text-sm focus:text-cream-50"
+        className="sr-only start-0 top-0 focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-charcoal-900 focus:px-4 focus:py-2 focus:text-sm focus:text-cream-50"
       >
-        Skip to content
-      </a>
+        {<T text="Skip to content"/>}</a>
 
       <header
         className={cn(
@@ -121,7 +122,7 @@ export function Navbar() {
                 aria-label={`${settings.cafeName} home`}
               >
                 <span>{settings.cafeName}</span>
-                <small>CHAI · PARATHA · CONVERSATION</small>
+                <small>{<T text="CHAI · PARATHA · CONVERSATION"/>}</small>
               </Link>
             ) : (
               <Logo src={settings.logoUrl} responsive onDark={cinematic} />
@@ -133,13 +134,13 @@ export function Navbar() {
                     href={link.href}
                     aria-current={isActive(link.href) ? "page" : undefined}
                     className={cn(
-                      "relative rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      "relative whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium transition-colors",
                       isActive(link.href)
                         ? "text-chai-700"
                         : "text-charcoal-600 hover:bg-cream-100 hover:text-charcoal-900",
                     )}
                   >
-                    {link.label}
+                    {<T text={link.label}/>}
                     {isActive(link.href) && (
                       <motion.span
                         layoutId="nav-underline"
@@ -158,7 +159,7 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            <AppearanceToggle className="hidden sm:inline-flex" />
+            <LanguageSwitch/><AppearanceToggle className="hidden sm:inline-flex" />
 
             <button
               type="button"
@@ -211,27 +212,23 @@ export function Navbar() {
                             href="/account"
                             icon={<LayoutDashboard className="h-4 w-4" />}
                           >
-                            My Account
-                          </MenuLink>
+                            {<T text="My Account"/>}</MenuLink>
                           <MenuLink
                             href="/account/orders"
                             icon={<ShoppingBag className="h-4 w-4" />}
                           >
-                            My Orders
-                          </MenuLink>
+                            {<T text="My Orders"/>}</MenuLink>
                           <MenuLink
                             href="/account/favorites"
                             icon={<Heart className="h-4 w-4" />}
                           >
-                            Favorites
-                          </MenuLink>
+                            {<T text="Favorites"/>}</MenuLink>
                           {(user.role === "ADMIN" || user.role === "STAFF") && (
                             <MenuLink
                               href="/admin"
                               icon={<LayoutDashboard className="h-4 w-4" />}
                             >
-                              Admin Panel
-                            </MenuLink>
+                              {<T text="Admin Panel"/>}</MenuLink>
                           )}
                           <hr className="my-1 border-cream-200" />
                           <button
@@ -244,8 +241,7 @@ export function Navbar() {
                             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-chilli-600 transition hover:bg-chilli-400/10"
                           >
                             <LogOut className="h-4 w-4" />
-                            Logout
-                          </button>
+                            {<T text="Logout"/>}</button>
                         </>
                       ) : (
                         <>
@@ -253,14 +249,12 @@ export function Navbar() {
                             href="/login"
                             icon={<User className="h-4 w-4" />}
                           >
-                            Login
-                          </MenuLink>
+                            {<T text="Login"/>}</MenuLink>
                           <MenuLink
                             href="/register"
                             icon={<User className="h-4 w-4" />}
                           >
-                            Create account
-                          </MenuLink>
+                            {<T text="Create account"/>}</MenuLink>
                         </>
                       )}
                     </motion.div>
@@ -291,8 +285,7 @@ export function Navbar() {
               href="/menu"
               className="btn-primary ml-1 hidden md:inline-flex"
             >
-              Order Now
-            </Link>
+              {<T text="Order Now"/>}</Link>
 
             <button
               type="button"
@@ -357,7 +350,7 @@ export function Navbar() {
                             : "text-charcoal-700 hover:bg-cream-100",
                         )}
                       >
-                        {link.label}
+                        {<T text={link.label}/>}
                       </Link>
                     </li>
                   ))}
@@ -369,8 +362,7 @@ export function Navbar() {
                   href="/admin/login"
                   className="mb-2 block min-h-11 rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
                 >
-                  Staff login
-                </Link>
+                  {<T text="Staff login"/>}</Link>
                 <ul className="space-y-1">
                   {user ? (
                     <>
@@ -379,24 +371,21 @@ export function Navbar() {
                           href="/account"
                           className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
                         >
-                          My Account
-                        </Link>
+                          {<T text="My Account"/>}</Link>
                       </li>
                       <li>
                         <Link
                           href="/account/orders"
                           className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
                         >
-                          My Orders
-                        </Link>
+                          {<T text="My Orders"/>}</Link>
                       </li>
                       <li>
                         <Link
                           href="/account/favorites"
                           className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
                         >
-                          Favorites
-                        </Link>
+                          {<T text="Favorites"/>}</Link>
                       </li>
                       {(user.role === "ADMIN" || user.role === "STAFF") && (
                         <li>
@@ -404,8 +393,7 @@ export function Navbar() {
                             href="/admin"
                             className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
                           >
-                            Admin Panel
-                          </Link>
+                            {<T text="Admin Panel"/>}</Link>
                         </li>
                       )}
                       <li>
@@ -414,8 +402,7 @@ export function Navbar() {
                           onClick={() => void logout()}
                           className="w-full rounded-xl px-4 py-3 text-left text-base font-medium text-chilli-600 hover:bg-chilli-400/10"
                         >
-                          Logout
-                        </button>
+                          {<T text="Logout"/>}</button>
                       </li>
                     </>
                   ) : (
@@ -425,16 +412,14 @@ export function Navbar() {
                           href="/login"
                           className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
                         >
-                          Login
-                        </Link>
+                          {<T text="Login"/>}</Link>
                       </li>
                       <li>
                         <Link
                           href="/register"
                           className="block rounded-xl px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-cream-100"
                         >
-                          Create account
-                        </Link>
+                          {<T text="Create account"/>}</Link>
                       </li>
                     </>
                   )}
@@ -443,12 +428,11 @@ export function Navbar() {
 
               <div className="border-t border-cream-200 p-4">
                 <div className="mb-3 flex items-center justify-between gap-2 sm:hidden">
-                  <span className="text-xs font-semibold text-charcoal-600">Appearance</span>
-                  <AppearanceToggle className="[&_button]:h-11 [&_button]:w-11" />
+                  <span className="text-xs font-semibold text-charcoal-600">{<T text="Appearance"/>}</span>
+                  <LanguageSwitch/><AppearanceToggle className="[&_button]:h-11 [&_button]:w-11" />
                 </div>
                 <Link href="/menu" className="btn-primary w-full">
-                  Order Now
-                </Link>
+                  {<T text="Order Now"/>}</Link>
               </div>
             </motion.div>
           </motion.div>

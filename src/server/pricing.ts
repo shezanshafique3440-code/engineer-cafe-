@@ -1,6 +1,8 @@
 import "server-only";
 import type { CafeSetting, OrderType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { loyaltyBalance } from "./loyalty";
+import { loyaltyReward } from "@/lib/experience";
 import { badRequest } from "./api";
 
 export type QuoteLineInput = {
@@ -42,6 +44,9 @@ export type Quote = {
   couponError: string | null;
   belowMinimum: boolean;
   minOrderAmount: number;
+  loyaltyDiscount: number;
+  loyaltyPointsUsed: number;
+  loyaltyPointsEarned: number;
 };
 
 /**
@@ -55,6 +60,7 @@ export async function priceCart(
     couponCode?: string | null;
     orderType: OrderType;
     userId?: string | null;
+    redeemReward?: boolean;
   },
   settings: CafeSetting,
   db: Prisma.TransactionClient = prisma,
@@ -189,7 +195,13 @@ export async function priceCart(
     db,
   );
 
-  const discountedSubtotal = Math.max(0, subtotal - discount);
+  let reward = { points: 0, discount: 0 };
+  if (input.redeemReward) {
+    if (!settings.loyaltyEnabled || !input.userId) throw badRequest("Login to redeem an available loyalty reward.");
+    reward = loyaltyReward(await loyaltyBalance(db, input.userId), subtotal - discount, settings.loyaltyRewardPoints, settings.loyaltyRewardValue);
+    if (!reward.points) throw badRequest("Not enough points or eligible items for this reward.");
+  }
+  const discountedSubtotal = Math.max(0, subtotal - discount - reward.discount);
 
   let deliveryFee = 0;
   if (input.orderType === "DELIVERY" && subtotal > 0) {
@@ -230,6 +242,9 @@ export async function priceCart(
     couponError,
     belowMinimum: subtotal > 0 && subtotal < settings.minOrderAmount,
     minOrderAmount: settings.minOrderAmount,
+    loyaltyDiscount: reward.discount,
+    loyaltyPointsUsed: reward.points,
+    loyaltyPointsEarned: settings.loyaltyEnabled && input.userId ? Math.floor(discountedSubtotal / settings.loyaltyEarnEvery) : 0,
   };
 }
 

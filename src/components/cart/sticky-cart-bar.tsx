@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -35,12 +36,12 @@ export function StickyCartBar() {
             <span className="flex items-center gap-2.5">
               <ShoppingBag className="h-[18px] w-[18px]" aria-hidden />
               <span className="text-sm font-semibold">
-                {itemCount} item{itemCount === 1 ? "" : "s"}
+                {itemCount} {<T text="item"/>}{itemCount === 1 ? "" : "s"}
                 <span className="mx-1.5 text-charcoal-500">•</span>
                 {money(quote?.total ?? localSubtotal)}
               </span>
             </span>
-            <span className="rounded-lg bg-chai-500 px-3 py-1.5 text-xs font-bold">View Cart</span>
+            <span className="rounded-lg bg-chai-500 px-3 py-1.5 text-xs font-bold">{<T text="View Cart"/>}</span>
           </Link>
         </motion.div>
       )}

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/context/language-context";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -79,15 +80,11 @@ export function MealFinder() {
   return (
     <div className="container py-8 md:py-14">
       <div className="max-w-2xl">
-        <p className="eyebrow">Your next chai break, figured out</p>
+        <p className="eyebrow">{<T text="Your next chai break, figured out"/>}</p>
         <h1 className="mt-3 text-3xl font-extrabold sm:text-5xl">
-          Good taste. Your budget.
-        </h1>
+          {<T text="Good taste. Your budget."/>}</h1>
         <p className="mt-4 text-charcoal-600">
-          Tell us your group size and food budget. We’ll match a main and
-          optional drink per person from the live menu, including required
-          options.
-        </p>
+          {<T text="Tell us your group size and food budget. We’ll match a main and optional drink per person from the live menu, including required options."/>}</p>
       </div>
       <div className="surface mt-7 grid gap-4 p-4 sm:grid-cols-2 sm:p-6 lg:grid-cols-3">
         <Input
@@ -118,8 +115,7 @@ export function MealFinder() {
           <Wallet className="h-5 w-5 shrink-0" />
           <span>
             {money(Math.floor(preferences.budget / preferences.people) || 0)}{" "}
-            per person
-          </span>
+            {<T text="per person"/>}</span>
         </div>
         <Checkbox
           label="Vegetarian options"
@@ -145,14 +141,10 @@ export function MealFinder() {
         />
       </div>
       <p className="mt-3 text-xs text-charcoal-500">
-        Cafe minimum: {money(settings.minOrderAmount)} before discounts. Food
-        estimate only. Delivery, tax and coupons are recalculated at checkout.
-        Dietary labels come from the cafe; contact staff about allergies.
-      </p>
+        {<T text="Cafe minimum:"/>}{money(settings.minOrderAmount)} {<T text="before discounts. Food estimate only. Delivery, tax and coupons are recalculated at checkout. Dietary labels come from the cafe; contact staff about allergies."/>}</p>
       {truncated && (
         <p className="mt-3 text-sm text-amber-700">
-          Suggestions use the first 200 available menu products.
-        </p>
+          {<T text="Suggestions use the first 200 available menu products."/>}</p>
       )}
       {error ? (
         <div className="mt-8">
@@ -163,21 +155,16 @@ export function MealFinder() {
         </div>
       ) : !catalog ? (
         <p role="status" className="py-14 text-center text-charcoal-500">
-          Finding your next favourite…
-        </p>
+          {<T text="Finding your next favourite…"/>}</p>
       ) : !meals.length ? (
         <div className="surface mt-8 p-8 text-center">
           <Sparkles className="mx-auto h-7 w-7 text-chai-500" />
           <h2 className="mt-4 text-xl font-bold">
-            Let’s try another combination.
-          </h2>
+            {<T text="Let’s try another combination."/>}</h2>
           <p className="mt-2 text-sm text-charcoal-500">
-            No complete meal fits these choices. Raise your budget, remove the
-            drink or change the dietary filters.
-          </p>
+            {<T text="No complete meal fits these choices. Raise your budget, remove the drink or change the dietary filters."/>}</p>
           <Link href="/menu" className="btn-secondary mt-5">
-            Browse the full menu
-          </Link>
+            {<T text="Browse the full menu"/>}</Link>
         </div>
       ) : (
         <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -222,8 +209,7 @@ export function MealFinder() {
                         className="mt-1 inline-block text-xs font-semibold text-chai-700 underline"
                         href={`/menu/${row.product.category.slug}/${row.product.slug}`}
                       >
-                        View & customise
-                      </Link>
+                        {<T text="View & customise"/>}</Link>
                     </div>
                   </li>
                 ))}
@@ -232,9 +218,7 @@ export function MealFinder() {
                 <div className="mb-3 flex justify-between gap-3">
                   <span className="text-xl font-bold">{money(meal.total)}</span>
                   <span className="self-center text-xs text-charcoal-500">
-                    {money(Math.max(0, preferences.budget - meal.total))} under
-                    budget
-                  </span>
+                    {money(Math.max(0, preferences.budget - meal.total))} {<T text="under budget"/>}</span>
                 </div>
                 <Button className="w-full" onClick={() => add(meal)}>
                   {added === meal.key ? (
@@ -250,9 +234,7 @@ export function MealFinder() {
         </div>
       )}
       <p className="mt-7 text-center text-xs text-charcoal-500">
-        Matches use availability, your preferences and menu popularity. This is
-        a rules-based planner, not a nutrition or allergy guarantee.
-      </p>
+        {<T text="Matches use availability, your preferences and menu popularity. This is a rules-based planner, not a nutrition or allergy guarantee."/>}</p>
     </div>
   );
 }

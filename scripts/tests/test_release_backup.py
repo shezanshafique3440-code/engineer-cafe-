@@ -3,6 +3,7 @@
 No VPS, Docker daemon or production data is accessed.
 """
 import os
+import json
 from pathlib import Path
 import subprocess
 import tarfile
@@ -33,9 +34,10 @@ class ReleaseBackupTests(unittest.TestCase):
         self.env = dict(os.environ, CAFE_APP_DIR=str(self.app), CAFE_BACKUP_ROOT=str(self.backups),
                         QA_APP=str(self.app), QA_PM2_LOG=str(self.pm2log), QA_DOCKER_LOG=str(self.dockerlog),
                         QA_STATE=str(self.state), QA_THEME=str(self.theme), PATH=str(self.bin) + ':' + os.environ['PATH'])
-        self.write('.gitignore', '.env\n.next\npublic/uploads/\n')
+        self.write('.gitignore', '.env\n.next\npublic/uploads/\nnode_modules/\n')
         self.write('package.json', '{"name":"release-fixture"}\n')
         self.write('index.txt', 'old design')
+        self.write('node_modules/fixture.txt', 'old dependencies')
         self.write('.env', 'DATABASE_URL="postgresql://fixture:fixture@127.0.0.1:5432/engineer_cafe"\n')
         self.write('.next/BUILD_ID', 'old-build')
         self.write('.next/server/app.js', 'old compiled app')
@@ -162,6 +164,7 @@ if '-w' in args:sys.stdout.write('200')
         backup = self.snapshot()
         self.assertTrue((backup / 'backup-complete').exists())
         self.assertEqual(self.archive_file(backup / 'build.tar.gz', '.next/BUILD_ID'), b'old-build')
+        self.assertEqual(self.archive_file(backup / 'dependencies.tar.gz', 'node_modules/fixture.txt'), b'old dependencies')
         self.assertEqual(self.archive_file(backup / 'previous-code.tar.gz', 'index.txt'), b'old design')
         self.assertEqual(self.archive_file(backup / 'uploads.tar.gz', 'public/uploads/menu.png'), b'original menu photo')
         with tarfile.open(backup / 'build.tar.gz') as archive:
@@ -172,12 +175,14 @@ if '-w' in args:sys.stdout.write('200')
         original_archive = (backup / 'build.tar.gz').read_bytes()
         self.write('public/uploads/new-menu-photo.png', 'new photo after release')
         self.write('new-order.txt', 'new order after release')
+        self.write('node_modules/fixture.txt', 'new dependencies')
         self.write('.env', (self.app / '.env').read_text() + 'AFTER_RELEASE_SETTING=keep\n')
         db_calls = self.dockerlog.read_text()
         rollback = self.run_script(backup / 'rollback.sh')
         self.assertEqual(rollback.returncode, 0, rollback.stdout + rollback.stderr)
         self.assert_old_running()
         self.assertEqual((self.app / 'new-order.txt').read_text(), 'new order after release')
+        self.assertEqual((self.app / 'node_modules/fixture.txt').read_text(), 'old dependencies')
         self.assertEqual((self.app / 'public/uploads/new-menu-photo.png').read_text(), 'new photo after release')
         self.assertIn('AFTER_RELEASE_SETTING=keep', (self.app / '.env').read_text())
         self.assertEqual(self.dockerlog.read_text(), db_calls, 'Rollback must never restore the database')
@@ -286,6 +291,40 @@ if '-w' in args:sys.stdout.write('200')
         self.assertEqual((self.app / 'index.txt').read_text(), 'local edit to preserve')
         self.assertEqual(self.state.read_text(), 'running')
         self.assertFalse(self.pm2log.exists())
+
+    def test_additive_policy_accepts_reviewed_upgrade_and_rejects_extra_migration(self):
+        self.git('switch', '--detach', self.old)
+        files = ['package.json', 'package-lock.json', 'prisma/schema.prisma']
+        baseline_ref = json.loads((ROOT / 'scripts/experience-release-policy.json').read_text())['baselineCommit']
+        existing = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', baseline_ref, 'prisma/migrations'], cwd=ROOT, text=True).splitlines()
+        for file in files + existing:
+            self.write(file, subprocess.check_output(['git', 'show', baseline_ref + ':' + file], cwd=ROOT, text=True))
+        self.git('add', '.')
+        self.git('commit', '-qm', 'real baseline fixture')
+        baseline = self.git('rev-parse', 'HEAD').strip()
+        for file in files + ['scripts/experience-release-policy.json', 'prisma/migrations/20261106120000_cafe_experience/migration.sql']:
+            self.write(file, (ROOT / file).read_text())
+        self.git('add', '.')
+        self.git('commit', '-qm', 'reviewed additive fixture')
+        upgraded = self.git('rev-parse', 'HEAD').strip()
+        command = ['node', str(ROOT / 'scripts/check-experience-release.cjs'), baseline, upgraded]
+        accepted = subprocess.run(command, cwd=self.app, capture_output=True, text=True)
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+        self.write('prisma/migrations/extra/migration.sql', 'DROP TABLE "Order";')
+        self.git('add', '.')
+        self.git('commit', '-qm', 'unreviewed fixture migration')
+        command[-1] = self.git('rev-parse', 'HEAD').strip()
+        rejected = subprocess.run(command, cwd=self.app, capture_output=True, text=True)
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn('Unexpected migration set', rejected.stderr)
+        self.git('switch', '--detach', upgraded)
+        self.write('prisma/migrations/20261106120000_cafe_experience/migration.sql', 'DROP TABLE "Order";')
+        self.git('add', '.')
+        self.git('commit', '-qm', 'tampered reviewed migration')
+        command[-1] = self.git('rev-parse', 'HEAD').strip()
+        tampered = subprocess.run(command, cwd=self.app, capture_output=True, text=True)
+        self.assertNotEqual(tampered.returncode, 0)
+        self.assertIn('Unreviewed upgrade content', tampered.stderr)
 
 
 if __name__ == '__main__':
