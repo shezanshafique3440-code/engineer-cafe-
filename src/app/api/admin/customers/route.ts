@@ -34,7 +34,7 @@ export const GET = handle(async (request: Request) => {
       take: q.perPage,
       select: {
         id: true, name: true, email: true, phone: true, role: true, isActive: true,
-        createdAt: true, lastLoginAt: true,
+        createdAt: true, lastLoginAt: true, updatedAt: true,
         _count: { select: { orders: true } },
       },
     }),
@@ -61,6 +61,7 @@ export const GET = handle(async (request: Request) => {
       lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
       orderCount: u._count.orders,
       totalSpent: spendMap.get(u.id) ?? 0,
+      version: u.updatedAt.toISOString(),
     })),
     total,
     page: q.page,

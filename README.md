@@ -352,6 +352,26 @@ cascades, stock/coupon effects, a forced SQL failure, receipt printing, detail
 and row confirmations, pagination, notification refresh and four layouts from
 320 to 1440px. Production orders were not used in these checks.
 
+### Deleting a customer account
+
+Admins have a trash button beside Activate/Deactivate for **Customer** accounts.
+The confirmation names the customer and email and explains what is removed.
+Staff/admin accounts and the signed-in admin cannot be deleted here. Only an
+admin may change account roles/status or delete accounts; staff retain read-only
+access to the list.
+
+The delete request requires the displayed email and current account version.
+Concurrent edits or a role change prevent stale deletion. The transaction removes
+the account, saved addresses, favourites and reviews, and refreshes the affected
+product ratings. Existing orders, receipt details, payment states and sales remain;
+their account link becomes null. Existing sessions no longer authenticate because
+every privileged request checks that the user still exists. A failed update rolls
+the entire deletion back.
+
+The account count and pagination refresh after deletion. Activation/role responses
+include the new version so an immediate delete uses the current snapshot. No
+database migration or dependency change is required.
+
 ### Counter sales complete themselves
 
 A pickup order paid with Cash at Counter is created **already Delivered and

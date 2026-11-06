@@ -230,13 +230,13 @@ export async function listCategories(
 }
 
 /** Recomputes a product's rating aggregates from its approved reviews. */
-export async function refreshProductRating(productId: string) {
-  const agg = await prisma.review.aggregate({
+export async function refreshProductRating(productId: string, client: Prisma.TransactionClient = prisma) {
+  const agg = await client.review.aggregate({
     where: { productId, status: "APPROVED" },
     _avg: { rating: true },
     _count: { rating: true },
   });
-  await prisma.product.update({
+  await client.product.update({
     where: { id: productId },
     data: {
       ratingAverage: Math.round((agg._avg.rating ?? 0) * 10) / 10,
