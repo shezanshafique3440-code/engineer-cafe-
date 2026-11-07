@@ -1,8 +1,15 @@
 import { z } from "zod";
+import { audit, businessTx } from "@/server/business/core";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { productSchema } from "@/lib/validation";
-import { handle, json, parseBody, parseQuery, requireAdmin } from "@/server/api";
+import {
+  handle,
+  json,
+  parseBody,
+  parseQuery,
+  requireAdmin,
+} from "@/server/api";
 
 const querySchema = z.object({
   search: z.string().max(80).optional(),
@@ -18,7 +25,12 @@ export const GET = handle(async (request: Request) => {
 
   const where = {
     ...(q.search
-      ? { OR: [{ name: { contains: q.search, mode: "insensitive" as const } }, { slug: { contains: q.search, mode: "insensitive" as const } }] }
+      ? {
+          OR: [
+            { name: { contains: q.search, mode: "insensitive" as const } },
+            { slug: { contains: q.search, mode: "insensitive" as const } },
+          ],
+        }
       : {}),
     ...(q.category ? { category: { slug: q.category } } : {}),
     ...(q.status === "available" ? { isAvailable: true } : {}),
@@ -28,7 +40,11 @@ export const GET = handle(async (request: Request) => {
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
+      orderBy: [
+        { category: { sortOrder: "asc" } },
+        { sortOrder: "asc" },
+        { name: "asc" },
+      ],
       skip: (q.page - 1) * q.perPage,
       take: q.perPage,
       include: {
@@ -54,37 +70,49 @@ export const GET = handle(async (request: Request) => {
 });
 
 export const POST = handle(async (request: Request) => {
-  await requireAdmin("catalog");
+  const actor = await requireAdmin("catalog");
   const data = await parseBody(request, productSchema);
   const slug = slugify(data.slug || data.name);
 
-  const product = await prisma.product.create({
-    data: {
-      name: data.name,
-      urduName: data.urduName || null,
-      slug,
-      description: data.description,
-      longDescription: data.longDescription || null,
-      categoryId: data.categoryId,
-      price: data.price,
-      discountPrice: data.discountPrice || null,
-      image: data.image || null,
-      isAvailable: data.isAvailable,
-      isFeatured: data.isFeatured,
-      isPopular: data.isPopular,
-      isVegetarian: data.isVegetarian,
-      spiceLevel: data.spiceLevel,
-      prepTimeMinutes: data.prepTimeMinutes,
-      ingredients: data.ingredients,
-      calories: data.calories ?? null,
-      stock: data.stock ?? null,
-      sortOrder: data.sortOrder,
-      addonGroups: {
-        create: data.addonGroupIds.map((addonGroupId, index) => ({ addonGroupId, sortOrder: index })),
+  const product = await businessTx(async (tx) => {
+    const created = await tx.product.create({
+      data: {
+        name: data.name,
+        urduName: data.urduName || null,
+        slug,
+        description: data.description,
+        longDescription: data.longDescription || null,
+        categoryId: data.categoryId,
+        price: data.price,
+        discountPrice: data.discountPrice || null,
+        image: data.image || null,
+        isAvailable: data.isAvailable,
+        isFeatured: data.isFeatured,
+        isPopular: data.isPopular,
+        isVegetarian: data.isVegetarian,
+        spiceLevel: data.spiceLevel,
+        prepTimeMinutes: data.prepTimeMinutes,
+        ingredients: data.ingredients,
+        calories: data.calories ?? null,
+        stock: data.stock ?? null,
+        sortOrder: data.sortOrder,
+        addonGroups: {
+          create: data.addonGroupIds.map((addonGroupId, index) => ({
+            addonGroupId,
+            sortOrder: index,
+          })),
+        },
       },
-    },
-    include: { category: true },
-  });
+      include: { category: true },
+    });
 
+    await audit(tx, actor, "CREATE_PRODUCT", "Product", created.id, {
+      name: created.name,
+      price: created.price,
+      discountPrice: created.discountPrice,
+      available: created.isAvailable,
+    });
+    return created;
+  });
   return json({ product }, 201);
 });

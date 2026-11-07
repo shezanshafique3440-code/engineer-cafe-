@@ -1,5 +1,6 @@
 import { dateValue } from "@/lib/business-math";
 import { z } from "zod";
+import { cartLineSchema } from "@/lib/validation";
 export const money = z
   .string()
   .regex(
@@ -202,12 +203,114 @@ export const schemas = {
   ]),
   cash: z.object({
     ...base,
-    action: z.enum(["OPEN", "CLOSE"]),
+    action: z.enum(["OPEN", "CLOSE", "REVIEW"]),
     drawerId: z.string().optional(),
     shiftId: z.string().optional(),
     amount: money,
     note: z.string().max(300).default(""),
+    denominations: z
+      .array(
+        z.object({
+          value: z.enum([
+            "5000",
+            "1000",
+            "500",
+            "100",
+            "50",
+            "20",
+            "10",
+            "5",
+            "2",
+            "1",
+            "0.5",
+          ]),
+          count: z.number().int().min(0).max(100000),
+        }),
+      )
+      .max(11)
+      .optional(),
   }),
+  procurement: z.discriminatedUnion("action", [
+    z.object({
+      ...base,
+      action: z.literal("DRAFT"),
+      supplierId: z.string(),
+      expectedOn: date,
+      note,
+      lines: z
+        .array(
+          z.object({
+            ingredientId: z.string(),
+            quantity: qty,
+            totalCost: money,
+          }),
+        )
+        .min(1)
+        .max(60),
+    }),
+    z.object({
+      ...base,
+      action: z.enum(["APPROVE", "CANCEL"]),
+      id: z.string(),
+      version: z.string(),
+      note,
+    }),
+    z.object({
+      ...base,
+      action: z.literal("RECEIVE"),
+      id: z.string(),
+      version: z.string(),
+      invoiceNumber: z.string().trim().min(1).max(80),
+      date,
+      note,
+      paid: money,
+      accountId: z.string().optional(),
+    }),
+  ]),
+  stockcounts: z.discriminatedUnion("action", [
+    z.object({
+      ...base,
+      action: z.literal("DRAFT"),
+      date,
+      note,
+      lines: z
+        .array(
+          z.object({
+            ingredientId: z.string(),
+            version: z.string(),
+            counted: z.string().regex(/^\d{1,12}(?:\.\d{1,4})?$/),
+            addedValue: money.optional(),
+          }),
+        )
+        .min(1)
+        .max(500),
+    }),
+    z.object({
+      ...base,
+      action: z.enum(["POST", "CANCEL"]),
+      id: z.string(),
+      version: z.string(),
+      note,
+    }),
+  ]),
+  approvals: z.discriminatedUnion("action", [
+    z.object({
+      ...base,
+      action: z.literal("REQUEST"),
+      kind: z.enum(["REFUND", "DISCOUNT"]),
+      amount: money,
+      reason: note,
+      orderId: z.string().optional(),
+      lines: z.array(cartLineSchema).min(1).max(60).optional(),
+    }),
+    z.object({
+      ...base,
+      action: z.literal("DECIDE"),
+      id: z.string(),
+      approved: z.boolean(),
+      note,
+    }),
+  ]),
   money: z.object({
     ...base,
     kind: z.enum([
@@ -257,6 +360,21 @@ export const schemas = {
       guestCount: z.number().int().min(1).max(100),
     }),
     z.object({ ...base, action: z.literal("CLOSE"), sessionId: z.string() }),
+    z.object({
+      ...base,
+      action: z.literal("TRANSFER"),
+      sessionId: z.string(),
+      tableId: z.string(),
+      note,
+    }),
+    z.object({
+      ...base,
+      action: z.enum(["MERGE", "SPLIT"]),
+      sessionId: z.string(),
+      targetSessionId: z.string(),
+      orderIds: z.array(z.string()).min(1).max(100).optional(),
+      note,
+    }),
     z.object({
       ...base,
       action: z.literal("PAY"),

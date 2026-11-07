@@ -13,6 +13,7 @@ export const POST = handle(async (request: Request) => {
       expectedTotal: z.number().int().min(0).max(10000000).optional(),
       lines: z.array(cartLineSchema).min(1).max(60),
       cashReceived: z.number().multipleOf(0.01).min(0).max(1000000),
+      approvalId: z.string().optional(),
       accountId: z.string().optional(),
       credit: z.boolean().default(false),
       partyId: z.string().optional(),
@@ -32,6 +33,7 @@ export const POST = handle(async (request: Request) => {
     null,
     await getSettings(),
     {
+      approvalId: data.approvalId,
       cashReceived: data.cashReceived,
       actor,
       accountId: data.accountId,

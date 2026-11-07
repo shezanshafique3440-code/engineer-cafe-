@@ -6,14 +6,19 @@ assert.ok(
   "Set DATABASE_URL explicitly for the isolated test database.",
 );
 const url = new URL(connection);
+const database = process.env.CAFE_TEST_DATABASE || "cafe_business_test";
+assert.ok(
+  ["cafe_business_test", "cafe_operations_test"].includes(database),
+  "Disposable business/operations test database required.",
+);
 assert.ok(
   ["127.0.0.1", "localhost"].includes(url.hostname),
   "Local database required.",
 );
 assert.equal(
   url.pathname,
-  "/cafe_business_test",
-  "Only cafe_business_test is permitted.",
+  "/" + database,
+  "Only the explicitly selected disposable test database is permitted.",
 );
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
@@ -21,7 +26,7 @@ const prisma = globalThis.prisma || new PrismaClient();
 (async () => {
   assert.equal(
     (await prisma.$queryRaw`SELECT current_database()::text AS name`)[0].name,
-    "cafe_business_test",
+    database,
   );
   assert.equal(
     await prisma.businessJournal.count(),

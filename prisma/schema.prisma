@@ -305,6 +305,7 @@ model Order {
   businessJournals BusinessJournal[]
   businessPayments BusinessPayment[]
   businessSaleLines BusinessSaleLine[]
+  approvals CafeApproval[]
   addressLine  String?
   area         String?
   city         String?
@@ -530,6 +531,7 @@ model StaffAccess {
   updatedAt DateTime @updatedAt
 }
 model BusinessParty {
+  purchaseOrders CafePurchaseOrder[]
   id String @id @default(cuid())
   kind String
   name String
@@ -708,6 +710,7 @@ model BusinessPosting {
   @@index([partyId])
 }
 model BusinessPurchase {
+  purchaseOrder CafePurchaseOrder?
   id String @id @default(cuid())
   supplierId String
   supplier BusinessParty @relation(fields:[supplierId],references:[id],onDelete:Restrict)
@@ -776,6 +779,13 @@ model CashShift {
   actualCash Decimal? @db.Decimal(18,2)
   variance Decimal? @db.Decimal(18,2)
   closeNote String?
+  closedById String?
+  closedByName String?
+  denominations Json?
+  reviewedAt DateTime?
+  reviewedById String?
+  reviewedByName String?
+  reviewNote String?
   journals BusinessJournal[]
   orders Order[]
 }
@@ -846,4 +856,67 @@ model IngredientReservation {
   createdAt DateTime @default(now())
   @@unique([orderId,orderItemKey,ingredientId])
   @@index([ingredientId,consumedAt,releasedAt])
+}
+
+// Purchase orders are commitments only. Receipt posts an existing purchase invoice.
+model CafePurchaseOrder {
+  id String @id @default(cuid())
+  reference String @unique
+  supplierId String
+  supplierName String
+  supplier BusinessParty @relation(fields:[supplierId],references:[id],onDelete:Restrict)
+  expectedOn DateTime @db.Date
+  status String @default("DRAFT")
+  lines Json
+  total Decimal @db.Decimal(18,2)
+  note String
+  createdById String
+  createdByName String
+  approvedById String?
+  approvedByName String?
+  approvedAt DateTime?
+  purchaseId String? @unique
+  purchase BusinessPurchase? @relation(fields:[purchaseId],references:[id],onDelete:Restrict)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status,createdAt])
+}
+model CafeStockCount {
+  id String @id @default(cuid())
+  reference String @unique
+  status String @default("DRAFT")
+  date DateTime @db.Date
+  lines Json
+  note String
+  createdById String
+  createdByName String
+  postedByName String?
+  postedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status,createdAt])
+}
+model CafeApproval {
+  id String @id @default(cuid())
+  kind String
+  orderId String?
+  orderNumber String?
+  order Order? @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  scopeHash String?
+  context Json?
+  amount Decimal @db.Decimal(18,2)
+  reason String
+  status String @default("PENDING")
+  requestedById String
+  requestedByName String
+  reviewedById String?
+  reviewedByName String?
+  reviewNote String?
+  reviewedAt DateTime?
+  usedAt DateTime?
+  resultId String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([status,createdAt])
+  @@index([requestedById,status])
 }

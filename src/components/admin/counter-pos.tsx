@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Printer, Plus, Minus, Trash2 } from "lucide-react";
 import { CartProvider, useCart } from "@/context/cart-context";
@@ -13,6 +13,8 @@ import { Button, Input, Select, Checkbox, ErrorState } from "@/components/ui";
 import { buildReceiptHtml, printSlip } from "@/lib/receipt";
 import type { ProductDTO } from "@/lib/types";
 import type { OrderDTO } from "@/server/orders";
+import { useSession } from "@/context/session-context";
+import { Form, rows, text, type Row } from "@/components/business/shared";
 type SalesContext = {
   enabled: boolean;
   accounts: {
@@ -55,6 +57,7 @@ function Counter({
   session: string;
   setSession: (id: string) => void;
 }) {
+  const { user } = useSession();
   const cart = useCart(),
     settings = useSettings(),
     money = useMoney();
@@ -70,8 +73,41 @@ function Counter({
     [party, setParty] = useState(""),
     [busy, setBusy] = useState(false),
     [receipt, setReceipt] = useState<OrderDTO | null>(null),
-    [requestId, setRequestId] = useState("");
+    [requestId, setRequestId] = useState(""),
+    [approvals, setApprovals] = useState<Row[]>([]),
+    [approvalId, setApprovalId] = useState("");
   const table = mode === "TABLE";
+  const loadApprovals = useCallback(
+    () =>
+      table
+        ? Promise.resolve()
+        : apiGet<Row>("/api/admin/business/approvals").then((d) =>
+            setApprovals(
+              rows(d, "approvals").filter(
+                (a) =>
+                  a.requestedById === user?.id &&
+                  a.kind === "DISCOUNT" &&
+                  a.status === "APPROVED" &&
+                  new Date(text(a, "expiresAt")) > new Date(),
+              ),
+            ),
+          ),
+    [table, user?.id],
+  );
+  const approved = approvals.find((a) => a.id === approvalId);
+  const discount = approved ? Number(approved.amount) : 0;
+  const saleTax =
+    approved && cart.quote
+      ? Math.round(
+          (Math.max(0, cart.quote.subtotal - discount) * settings.taxPercent) /
+            100,
+        )
+      : (cart.quote?.tax ?? 0);
+  const saleTotal =
+    approved && cart.quote
+      ? cart.quote.subtotal - discount + saleTax + cart.quote.deliveryFee
+      : (cart.quote?.total ?? 0);
+
   const load = () =>
     Promise.all([
       apiGet<{ products: ProductDTO[] }>("/api/meal-catalog"),
@@ -96,6 +132,9 @@ function Counter({
     void load();
     setRequestId(crypto.randomUUID());
   }, []);
+  useEffect(() => {
+    void loadApprovals().catch(() => {});
+  }, [loadApprovals]);
   const setOrderType = cart.setOrderType;
   useEffect(() => setOrderType("PICKUP"), [setOrderType]);
   const complete = async () => {
@@ -105,11 +144,12 @@ function Counter({
       const payload = {
         requestId,
         lines: cart.toCartLinesPayload(),
-        expectedTotal: cart.quote?.total,
+        expectedTotal: saleTotal,
         customerName: name.trim() || (table ? "Table guest" : "Counter guest"),
         ...(table
           ? { sessionId: session }
           : {
+              approvalId: approvalId || undefined,
               cashReceived: cash ? Number(cash) : 0,
               accountId: account || undefined,
               credit,
@@ -123,6 +163,8 @@ function Counter({
       setReceipt(result.order);
       cart.clear({ silent: true });
       setCash("");
+      setApprovalId("");
+      void loadApprovals().catch(() => {});
       setName("");
       setRequestId(crypto.randomUUID());
       toast.success(
@@ -149,10 +191,10 @@ function Counter({
     cart.quoting ||
     !cart.lines.length ||
     !requestId ||
+    discount > (cart.quote?.subtotal ?? 0) ||
     (table
       ? !session || !context?.enabled
-      : (!credit && (!cash || Number(cash) < cart.quote.total)) ||
-        (credit && !party));
+      : (!credit && (!cash || Number(cash) < saleTotal)) || (credit && !party));
   return (
     <div className="min-w-0">
       <h1 className="text-3xl font-bold">
@@ -335,6 +377,73 @@ function Counter({
               </div>
             </div>
           ))}
+          {!table && (
+            <details className="my-4 rounded-xl border border-cream-200 p-3">
+              <summary className="cursor-pointer text-sm font-bold">
+                Manager-approved discount
+              </summary>
+              <div className="mt-3 space-y-3">
+                <Select
+                  label="Approved discount for this cart"
+                  value={approvalId}
+                  onChange={(e) => {
+                    setApprovalId(e.target.value);
+                    setRequestId(crypto.randomUUID());
+                  }}
+                >
+                  <option value="">No manual discount</option>
+                  {approvals.map((a) => (
+                    <option key={text(a, "id")} value={text(a, "id")}>
+                      {money(Number(a.amount))} · {text(a, "reason")}
+                    </option>
+                  ))}
+                </Select>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() =>
+                    void loadApprovals().catch((e) => toast.error(e.message))
+                  }
+                >
+                  Refresh approvals
+                </Button>
+                {Boolean(discount) && (
+                  <p className="text-sm">
+                    Approved discount: {money(discount)}. Applies only to the
+                    requesting cashier’s exact approved cart.
+                  </p>
+                )}
+                <Form
+                  title="Request a cart discount"
+                  module="approvals"
+                  fields={[
+                    {
+                      name: "amount",
+                      label: "Discount requested (whole Rs.)",
+                      type: "number",
+                      min: "1",
+                      step: "1",
+                    },
+                    { name: "reason", label: "Discount reason" },
+                  ]}
+                  build={(v) => ({
+                    ...v,
+                    action: "REQUEST",
+                    kind: "DISCOUNT",
+                    lines: cart.toCartLinesPayload(),
+                  })}
+                  onDone={() => {
+                    toast.success(
+                      "Sent for manager review. Refresh approvals after approval.",
+                    );
+                    void loadApprovals();
+                  }}
+                  submitLabel="Request discount"
+                  disabled={!cart.lines.length}
+                />
+              </div>
+            </details>
+          )}
           {cart.quoteError && (
             <p role="alert" className="my-3 text-sm text-chilli-600">
               {cart.quoteError}
@@ -347,11 +456,11 @@ function Counter({
             </div>
             <div className="flex justify-between">
               <dt>Tax</dt>
-              <dd>{money(cart.quote?.tax ?? 0)}</dd>
+              <dd>{money(saleTax)}</dd>
             </div>
             <div className="flex justify-between text-lg font-bold">
               <dt>Total</dt>
-              <dd>{money(cart.quote?.total ?? 0)}</dd>
+              <dd>{money(saleTotal)}</dd>
             </div>
           </dl>
           <div className="space-y-3">
@@ -410,10 +519,7 @@ function Counter({
                 />
                 {!credit && (
                   <p className="text-lg font-bold">
-                    Change:{" "}
-                    {money(
-                      Math.max(0, Number(cash) - (cart.quote?.total ?? 0)),
-                    )}
+                    Change: {money(Math.max(0, Number(cash) - saleTotal))}
                   </p>
                 )}
               </>

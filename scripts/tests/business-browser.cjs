@@ -35,6 +35,9 @@ const fs = require("node:fs");
     "inventory",
     "recipes",
     "purchases",
+    "procurement",
+    "stockcounts",
+    "approvals",
     "staff",
     "attendance",
     "payroll",
@@ -73,7 +76,15 @@ const fs = require("node:fs");
       );
       if (
         width === 390 &&
-        ["overview", "inventory", "payroll", "tables"].includes(section)
+        [
+          "overview",
+          "inventory",
+          "payroll",
+          "tables",
+          "procurement",
+          "cash",
+          "approvals",
+        ].includes(section)
       )
         await page.screenshot({
           path: artifacts + "/" + section + "-mobile.png",

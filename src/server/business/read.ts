@@ -13,6 +13,8 @@ import { badRequest } from "@/server/api";
 import { serializeOrder } from "@/server/orders";
 import { accountBalance, type DB } from "./core";
 import { stockReadiness } from "./inventory";
+import { operationsRead } from "./operations-read";
+import { reviewer } from "./operations";
 export async function businessRead(
   tx: DB,
   actor: SessionUser,
@@ -55,6 +57,10 @@ export async function businessRead(
     owner: actor.role === "ADMIN",
   };
   switch (module) {
+    case "procurement":
+    case "stockcounts":
+    case "approvals":
+      return { ...meta, ...(await operationsRead(tx, actor, module)) };
     case "overview":
     case "ledger": {
       const [allAccounts, period, balances, parties, sales, config] =
@@ -176,8 +182,48 @@ export async function businessRead(
               take: 200,
             })
           : [];
+      const cashFlow = await tx.$queryRaw<
+        {
+          source: string;
+          received: { toString(): string };
+          paid: { toString(): string };
+        }[]
+      >`
+        SELECT j.source, SUM(p.debit) AS received, SUM(p.credit) AS paid
+        FROM "BusinessPosting" p JOIN "BusinessJournal" j ON j.id=p."journalId"
+        JOIN "BusinessAccount" a ON a.id=p."accountId"
+        WHERE a."isMoney"=true AND j.date >= ${start} AND j.date <= ${end}
+        GROUP BY j.source ORDER BY j.source`;
+      const openingMoney = await tx.businessPosting.aggregate({
+        where: { account: { isMoney: true }, journal: { date: { lt: start } } },
+        _sum: { debit: true, credit: true },
+      });
+      const dailySales = await tx.businessSaleLine.groupBy({
+        by: ["date"],
+        where: { date: filter },
+        _sum: { quantity: true, net: true, cost: true },
+        orderBy: { date: "asc" },
+      });
+      const openingCash =
+        paise(openingMoney._sum.debit ?? 0) -
+        paise(openingMoney._sum.credit ?? 0);
+      const netCash = cashFlow.reduce(
+        (sum, r) => sum + paise(r.received) - paise(r.paid),
+        0n,
+      );
       return {
         ...meta,
+        cashFlow,
+        openingMoney: decimal(openingCash),
+        closingMoney: decimal(openingCash + netCash),
+        netCashFlow: decimal(netCash),
+        dailySales: dailySales.map((r) => ({
+          date: r.date,
+          quantity: r._sum.quantity,
+          sales: String(r._sum.net ?? 0),
+          cost: String(r._sum.cost ?? 0),
+          profit: decimal(paise(r._sum.net ?? 0) - paise(r._sum.cost ?? 0)),
+        })),
         config,
         revenue: decimal(income),
         cogs: decimal(cogs),
@@ -265,6 +311,7 @@ export async function businessRead(
             id: true,
             name: true,
             price: true,
+            discountPrice: true,
             recipeRequired: true,
             recipe: { include: { lines: true } },
           },
@@ -302,6 +349,10 @@ export async function businessRead(
         products: products.map((p) => ({
           ...p,
           estimatedCost: estimate(p.recipe),
+          sellingPrice:
+            p.discountPrice && p.discountPrice > 0 && p.discountPrice < p.price
+              ? p.discountPrice
+              : p.price,
         })),
         addons,
         readiness,
@@ -491,7 +542,7 @@ export async function businessRead(
         orderBy: { openedAt: "desc" },
         take: 100,
       });
-      return { ...meta, drawers: rows, shifts };
+      return { ...meta, drawers: rows, shifts, canReview: reviewer(actor) };
     }
     case "money": {
       const journals = await tx.businessJournal.findMany({
@@ -633,14 +684,38 @@ export async function businessRead(
           take: 1000,
         }),
       };
-    case "audit":
+    case "audit": {
+      const q = (url.searchParams.get("q") ?? "").trim().slice(0, 100);
+      const rawPage = Number(url.searchParams.get("page") ?? 1);
+      if (!Number.isInteger(rawPage) || rawPage < 1 || rawPage > 100000)
+        throw badRequest("Invalid history page.");
+      const where = {
+        createdAt: {
+          gte: new Date(start.getTime() - 5 * 3600000),
+          lt: new Date(end.getTime() + 19 * 3600000),
+        },
+        ...(q
+          ? {
+              OR: ["actorName", "action", "entity", "entityId"].map(
+                (field) => ({
+                  [field]: { contains: q, mode: "insensitive" as const },
+                }),
+              ),
+            }
+          : {}),
+      };
       return {
         ...meta,
+        page: rawPage,
+        total: await tx.businessAudit.count({ where }),
         rows: await tx.businessAudit.findMany({
-          orderBy: { createdAt: "desc" },
-          take: 200,
+          where,
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          skip: (rawPage - 1) * 50,
+          take: 50,
         }),
       };
+    }
     default:
       throw badRequest("Unknown business module.");
   }

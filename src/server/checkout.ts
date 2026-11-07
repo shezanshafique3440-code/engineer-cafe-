@@ -1,6 +1,7 @@
 import "server-only";
 import { reserveOrder } from "./business/inventory";
-import { businessLock } from "./business/core";
+import { applyCounterDiscount } from "./business/operations";
+import { audit, businessLock } from "./business/core";
 import { receiveOrderMoney, validateCredit } from "./business/order-ledger";
 import { paise, decimal } from "@/lib/business-math";
 import { createHash } from "node:crypto";
@@ -17,6 +18,7 @@ export async function createCafeOrder(
   user: SessionUser | null,
   settings: CafeSetting,
   pos?: {
+    approvalId?: string;
     cashReceived: number;
     actor?: SessionUser;
     accountId?: string;
@@ -83,6 +85,15 @@ export async function createCafeOrder(
     settings,
   );
 
+  if (pos?.approvalId && pos.actor)
+    await applyCounterDiscount(
+      prisma,
+      pos.actor,
+      pos.approvalId,
+      data.lines,
+      quote,
+      settings.taxPercent,
+    );
   if (data.expectedTotal !== undefined && data.expectedTotal !== quote.total)
     throw new HttpError(
       409,
@@ -160,6 +171,15 @@ export async function createCafeOrder(
         currentSettings,
         tx,
       );
+      if (pos?.approvalId && pos.actor)
+        await applyCounterDiscount(
+          tx,
+          pos.actor,
+          pos.approvalId,
+          data.lines,
+          quote,
+          currentSettings.taxPercent,
+        );
       if (!pos && quote.belowMinimum)
         throw badRequest("The minimum order amount changed. Review your cart.");
       if (data.couponCode && quote.couponError)
@@ -334,6 +354,20 @@ export async function createCafeOrder(
         },
       });
 
+      if (pos?.approvalId) {
+        await audit(
+          tx,
+          pos.actor!,
+          "USE_DISCOUNT_APPROVAL",
+          "Approval",
+          pos.approvalId,
+          { orderId: created.id, discount: quote.discount },
+        );
+        await tx.cafeApproval.update({
+          where: { id: pos.approvalId },
+          data: { status: "USED", usedAt: new Date(), resultId: created.id },
+        });
+      }
       if (user && quote.loyaltyPointsUsed)
         await tx.loyaltyEntry.create({
           data: {

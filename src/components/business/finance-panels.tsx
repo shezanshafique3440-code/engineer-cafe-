@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { paise, decimal } from "@/lib/business-math";
 import { useState } from "react";
-import { Button } from "@/components/ui";
+import { Button, Input } from "@/components/ui";
 import { downloadCsv } from "@/lib/csv";
 import {
   Form,
@@ -20,6 +20,9 @@ import {
   type Field,
 } from "./shared";
 import { JournalList } from "./purchase-panels";
+import { CashFlowPanel } from "./operations-panels";
+import { printBusinessSlip } from "@/lib/business-slip";
+import { toast } from "sonner";
 const note: Field = { name: "note", label: "Reason / reference" };
 export function OverviewPanel({ data }: { data: Row }) {
   const sales = rows(data, "sales");
@@ -124,6 +127,7 @@ export function OverviewPanel({ data }: { data: Row }) {
           </tr>
         ))}
       </Table>
+      <CashFlowPanel data={data} />
       <Notice>
         Margin = profit ÷ sale; markup = profit ÷ cost. Item profit is before
         general cafe expenses. The net-profit card includes those expenses.
@@ -194,7 +198,29 @@ export function OverviewPanel({ data }: { data: Row }) {
   );
 }
 export function CashPanel({ data, reload }: { data: Row; reload: () => void }) {
-  const [closing, setClosing] = useState<Row | null>(null);
+  const [closing, setClosing] = useState<Row | null>(null),
+    [reviewing, setReviewing] = useState<Row | null>(null),
+    [coins, setCoins] = useState<Record<string, string>>({});
+  const denominations = [
+    "5000",
+    "1000",
+    "500",
+    "100",
+    "50",
+    "20",
+    "10",
+    "5",
+    "2",
+    "1",
+    "0.5",
+  ];
+  const count = denominations.reduce(
+    (sum, d) =>
+      sum +
+      paise(d) * BigInt(/^\d{1,6}$/.test(coins[d] ?? "") ? coins[d] : "0"),
+    0n,
+  );
+
   return (
     <div className="space-y-5">
       <Notice>
@@ -249,6 +275,30 @@ export function CashPanel({ data, reload }: { data: Row; reload: () => void }) {
           </article>
         ))}
       </div>
+      {reviewing && (
+        <Form
+          key={text(reviewing, "id")}
+          title="Review counted cash"
+          description={
+            "Difference: " +
+            money(reviewing.variance) +
+            ". Review acknowledges the recorded difference; it does not post another correction."
+          }
+          module="cash"
+          fields={[note]}
+          build={(v) => ({
+            ...v,
+            action: "REVIEW",
+            shiftId: reviewing.id,
+            amount: "0",
+          })}
+          onDone={() => {
+            setReviewing(null);
+            reload();
+          }}
+          submitLabel="Approve closing review"
+        />
+      )}
       {closing && (
         <Form
           key={text(closing, "id")}
@@ -261,22 +311,119 @@ export function CashPanel({ data, reload }: { data: Row; reload: () => void }) {
           module="cash"
           fields={[
             {
+              name: "method",
+              label: "Count method",
+              type: "select",
+              value: "manual",
+              options: [
+                { value: "manual", label: "Enter total cash" },
+                { value: "notes", label: "Count notes & coins" },
+              ],
+            },
+            {
               name: "amount",
               label: "Actual cash counted (Rs.)",
+              visible: (v) => v.method !== "notes",
               type: "number",
               min: "0",
             },
             note,
           ]}
-          build={(v) => ({ ...v, action: "CLOSE", shiftId: closing.id })}
+          build={(v) => ({
+            ...v,
+            action: "CLOSE",
+            shiftId: closing.id,
+            amount: v.method === "notes" ? decimal(count) : v.amount,
+            denominations:
+              v.method === "notes"
+                ? denominations.map((value) => ({
+                    value,
+                    count: Number(coins[value] || 0),
+                  }))
+                : undefined,
+          })}
           onDone={() => {
             setClosing(null);
+            setCoins({});
             reload();
           }}
           submitLabel="Record count & close"
-        />
+        >
+          {(v) => (
+            <div className="space-y-3">
+              {v.method === "notes" && (
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {denominations.map((value) => (
+                    <Input
+                      key={value}
+                      label={"Rs. " + value + " · pieces"}
+                      type="number"
+                      min="0"
+                      max="100000"
+                      step="1"
+                      value={coins[value] || ""}
+                      onChange={(e) =>
+                        setCoins((c) => ({ ...c, [value]: e.target.value }))
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+              <Notice>
+                Physical total:{" "}
+                {v.method === "notes" ? money(decimal(count)) : money(v.amount)}{" "}
+                · Difference from last refresh:{" "}
+                {v.method === "notes"
+                  ? money(decimal(count - paise(text(closing, "balance", "0"))))
+                  : /^\d+(?:\.\d{1,2})?$/.test(String(v.amount))
+                    ? money(
+                        decimal(
+                          paise(String(v.amount)) -
+                            paise(text(closing, "balance", "0")),
+                        ),
+                      )
+                    : "—"}
+                . Final expected cash is checked again when you close.
+              </Notice>
+            </div>
+          )}
+        </Form>
       )}
-      <h2 className="text-xl font-bold">Shift history</h2>
+      <div className="flex flex-wrap gap-3">
+        <h2 className="text-xl font-bold">Latest 100 shifts</h2>
+        <Button
+          variant="secondary"
+          onClick={() =>
+            downloadCsv(
+              "cash-closings.csv",
+              [
+                "Drawer",
+                "Cashier",
+                "Opened",
+                "Closed",
+                "Expected",
+                "Counted",
+                "Difference",
+                "Reviewer",
+                "Reason",
+              ],
+              rows(data, "shifts").map((s) => [
+                text(s, "drawer.name"),
+                text(s, "openedByName"),
+                text(s, "openedAt"),
+                text(s, "closedAt"),
+                text(s, "expectedCash"),
+                text(s, "actualCash"),
+                text(s, "variance"),
+                text(s, "reviewedByName"),
+                text(s, "closeNote"),
+              ]),
+            )
+          }
+        >
+          Export closings
+        </Button>
+      </div>
       <Table
         headers={[
           "Drawer / cashier",
@@ -285,7 +432,8 @@ export function CashPanel({ data, reload }: { data: Row; reload: () => void }) {
           "Expected",
           "Actual",
           "Difference",
-          "Status",
+          "Status / review",
+          "Actions",
         ]}
         empty={!rows(data, "shifts").length}
       >
@@ -307,6 +455,53 @@ export function CashPanel({ data, reload }: { data: Row; reload: () => void }) {
             <Cell>
               {s.closedAt ? "Closed" : "Open"}
               <p className="text-xs">{text(s, "closeNote")}</p>
+              {Boolean(s.closedAt) && (
+                <p className="text-xs font-semibold">
+                  {s.reviewedAt
+                    ? "Reviewed by " + text(s, "reviewedByName")
+                    : s.closedById
+                      ? "Awaiting review"
+                      : "Legacy closing · unreviewed"}
+                </p>
+              )}
+              <p className="text-xs">{text(s, "reviewNote")}</p>
+            </Cell>
+            <Cell>
+              <div className="flex flex-wrap gap-2">
+                {Boolean(s.closedAt) && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      void printBusinessSlip(
+                        "Cash closing statement",
+                        [
+                          ["Drawer", text(s, "drawer.name")],
+                          ["Cashier", text(s, "openedByName")],
+                          ["Opened", text(s, "openedAt")],
+                          ["Closed", text(s, "closedAt")],
+                          ["Opening cash", money(s.openingCash)],
+                          ["Expected cash", money(s.expectedCash)],
+                          ["Counted cash", money(s.actualCash)],
+                          ["Difference", money(s.variance)],
+                          ["Reason", text(s, "closeNote")],
+                          ["Reviewer", text(s, "reviewedByName", "Pending")],
+                        ],
+                        "Reviewer note: " + text(s, "reviewNote"),
+                      ).catch((e) => toast.error(e.message))
+                    }
+                  >
+                    Print closing
+                  </Button>
+                )}
+                {Boolean(data.canReview) &&
+                  Boolean(s.closedAt) &&
+                  !s.reviewedAt && (
+                    <Button size="sm" onClick={() => setReviewing(s)}>
+                      Review closing
+                    </Button>
+                  )}
+              </div>
             </Cell>
           </tr>
         ))}

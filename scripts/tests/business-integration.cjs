@@ -8,10 +8,15 @@ const { Pool } = require(process.env.CAFE_TEST_PG_MODULE || "pg");
 const url = process.env.CAFE_BUSINESS_TEST_URL || "http://localhost:4175";
 if (!["localhost", "127.0.0.1"].includes(new URL(url).hostname))
   throw Error("Local test server required");
+const database = process.env.CAFE_TEST_DATABASE || "cafe_business_test";
+assert.ok(
+  ["cafe_business_test", "cafe_operations_test"].includes(database),
+  "Disposable test database required.",
+);
 const db = new Pool({
   host: "127.0.0.1",
   user: "agent",
-  database: "cafe_business_test",
+  database,
 });
 let assertions = 0;
 const eq = (a, b, n) => {
@@ -74,7 +79,7 @@ const dated = { date: today, note: "Isolated regression check" };
 (async () => {
   eq(
     (await sql("SELECT current_database()::text AS name"))[0].name,
-    "cafe_business_test",
+    database,
   );
   eq(
     (await sql('SELECT count(*)::int AS n FROM "BusinessJournal"'))[0].n,

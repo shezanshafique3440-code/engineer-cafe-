@@ -11,6 +11,12 @@ import { payParty, postPurchase, returnPurchase } from "./purchases";
 import { draftPayroll, postPayroll, reversePayroll } from "./payroll";
 import { cashAction, moneyAction, openingParty, reverseMoney } from "./cash";
 import { receiveOrderMoney } from "./order-ledger";
+import {
+  procurementAction,
+  stockCountAction,
+  approvalAction,
+  reviewer,
+} from "./operations";
 export const MODULE_CAPS: Record<string, string> = {
   overview: "reports",
   ingredients: "stock-read",
@@ -23,6 +29,9 @@ export const MODULE_CAPS: Record<string, string> = {
   attendance: "attendance",
   payroll: "payroll",
   cash: "cash",
+  procurement: "purchases",
+  stockcounts: "inventory",
+  approvals: "payments",
   money: "expenses",
   ledger: "finance",
   opening: "setup",
@@ -45,6 +54,12 @@ export async function businessAction(
   body: unknown,
 ) {
   switch (module) {
+    case "procurement":
+      return procurementAction(tx, actor, schemas.procurement.parse(body));
+    case "stockcounts":
+      return stockCountAction(tx, actor, schemas.stockcounts.parse(body));
+    case "approvals":
+      return approvalAction(tx, actor, schemas.approvals.parse(body));
     case "ingredients": {
       if (!canBusiness(actor, "inventory")) throw forbidden();
       const d = schemas.ingredients.parse(body);
@@ -482,6 +497,83 @@ export async function businessAction(
         include: { orders: { orderBy: { createdAt: "asc" } } },
       });
       if (session.closedAt) throw badRequest("Table bill is already closed.");
+      if (["TRANSFER", "MERGE", "SPLIT"].includes(d.action)) {
+        if (!reviewer(actor) && !canBusiness(actor, "payments"))
+          throw forbidden("A cashier, manager or owner must move bills.");
+        if (d.action === "TRANSFER") {
+          const target = await tx.cafeTable.findUniqueOrThrow({
+            where: { id: d.tableId },
+          });
+          if (
+            !target.isActive ||
+            (await tx.tableSession.count({
+              where: { tableId: target.id, closedAt: null },
+            }))
+          )
+            throw badRequest("Choose a different available table.");
+          const moved = await tx.tableSession.update({
+            where: { id: session.id },
+            data: { tableId: target.id },
+          });
+          await tx.order.updateMany({
+            where: { tableSessionId: session.id },
+            data: { tableName: target.name },
+          });
+          await audit(tx, actor, "TRANSFER_TABLE", "TableSession", session.id, {
+            from: session.tableId,
+            to: target.id,
+            note: d.note,
+          });
+          return moved;
+        }
+        if (d.action === "MERGE" || d.action === "SPLIT") {
+          const target = await tx.tableSession.findUniqueOrThrow({
+            where: { id: d.targetSessionId },
+            include: { table: true },
+          });
+          if (
+            target.id === session.id ||
+            target.closedAt ||
+            !target.table.isActive
+          )
+            throw badRequest("Choose a different open table bill.");
+          const ids =
+            d.action === "MERGE"
+              ? session.orders.map((o) => o.id)
+              : (d.orderIds ?? []);
+          if (
+            !ids.length ||
+            new Set(ids).size !== ids.length ||
+            ids.some((id) => !session.orders.some((o) => o.id === id))
+          )
+            throw badRequest("Select tickets from the source bill.");
+          if (d.action === "SPLIT" && ids.length === session.orders.length)
+            throw badRequest("Use merge to move every ticket.");
+          await tx.order.updateMany({
+            where: { id: { in: ids }, tableSessionId: session.id },
+            data: { tableSessionId: target.id, tableName: target.table.name },
+          });
+          if (d.action === "MERGE") {
+            await tx.tableSession.update({
+              where: { id: session.id },
+              data: { closedAt: new Date() },
+            });
+            await tx.tableSession.update({
+              where: { id: target.id },
+              data: { guestCount: { increment: session.guestCount } },
+            });
+          }
+          await audit(
+            tx,
+            actor,
+            d.action + "_TABLE",
+            "TableSession",
+            session.id,
+            { targetSessionId: target.id, orderIds: ids, note: d.note },
+          );
+          return { targetSessionId: target.id, moved: ids.length };
+        }
+      }
       if (d.action === "PAY") {
         if (!canBusiness(actor, "payments")) throw forbidden();
         let remaining = paise(d.amount);

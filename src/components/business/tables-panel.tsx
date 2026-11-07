@@ -3,7 +3,7 @@ import Link from "next/link";
 import { paise, decimal } from "@/lib/business-math";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui";
+import { Button, Checkbox } from "@/components/ui";
 import { canBusiness } from "@/lib/business-access";
 import { useSession } from "@/context/session-context";
 import { useSettings, useMoney } from "@/context/settings-context";
@@ -21,7 +21,9 @@ export function TablesPanel({
     settings = useSettings(),
     format = useMoney();
   const [payment, setPayment] = useState<Row | null>(null),
-    [closing, setClosing] = useState<Row | null>(null);
+    [closing, setClosing] = useState<Row | null>(null),
+    [moving, setMoving] = useState<Row | null>(null),
+    [tickets, setTickets] = useState<string[]>([]);
   const tables = rows(data, "tables");
   const print = async (table: Row, session: Row) => {
     const orders = rows(session, "orders").filter(
@@ -159,6 +161,85 @@ export function TablesPanel({
         onDone={reload}
         submitLabel="Open table"
       />
+      {moving && (
+        <Form
+          key={text(moving, "id")}
+          title="Move / combine table bills"
+          description="Split moves whole tickets, including their existing payments and kitchen status. To divide a single ticket, collect separate cash/bank payments. No revenue or stock is posted again."
+          module="tables"
+          fields={[
+            {
+              name: "action",
+              label: "Bill operation",
+              type: "select",
+              value: "TRANSFER",
+              options: [
+                { value: "TRANSFER", label: "Transfer to an empty table" },
+                {
+                  value: "MERGE",
+                  label: "Merge every ticket into another open bill",
+                },
+                {
+                  value: "SPLIT",
+                  label: "Move selected tickets to another open bill",
+                },
+              ],
+            },
+            {
+              name: "tableId",
+              label: "Empty destination table",
+              type: "select",
+              options: options(tables.filter((t) => t.isActive && !t.busy)),
+              visible: (v) => v.action === "TRANSFER",
+            },
+            {
+              name: "targetSessionId",
+              label: "Destination bill",
+              type: "select",
+              options: tables.flatMap((t) =>
+                rows(t, "sessions")
+                  .filter((s) => s.id !== moving.id)
+                  .map((s) => ({
+                    value: text(s, "id"),
+                    label: text(t, "name") + " · " + money(s.total),
+                  })),
+              ),
+              visible: (v) => v.action !== "TRANSFER",
+            },
+            { name: "note", label: "Reason for moving bill" },
+          ]}
+          build={(v) => ({ ...v, sessionId: moving.id, orderIds: tickets })}
+          onDone={() => {
+            setMoving(null);
+            setTickets([]);
+            reload();
+          }}
+          submitLabel="Confirm bill operation"
+        >
+          {(v) =>
+            v.action === "SPLIT" && (
+              <div className="space-y-3">
+                {rows(moving, "orders").map((o) => (
+                  <Checkbox
+                    key={text(o, "id")}
+                    label={
+                      "#" + text(o, "orderNumber") + " · " + money(o.total)
+                    }
+                    checked={tickets.includes(text(o, "id"))}
+                    onChange={(e) =>
+                      setTickets((ids) =>
+                        e.target.checked
+                          ? [...ids, text(o, "id")]
+                          : ids.filter((id) => id !== o.id),
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            )
+          }
+        </Form>
+      )}
       {payment && (
         <Form
           key={"pay:" + text(payment, "id")}
@@ -280,6 +361,16 @@ export function TablesPanel({
                           onClick={() => setClosing(session)}
                         >
                           Close table
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            setMoving(session);
+                            setTickets([]);
+                          }}
+                        >
+                          Transfer / merge / split
                         </Button>
                       </>
                     )}

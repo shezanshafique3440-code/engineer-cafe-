@@ -19,7 +19,13 @@ import {
   ReceivablesPanel,
 } from "./finance-panels";
 import { TablesPanel } from "./tables-panel";
-import { Notice, Table, Cell, text, rows, type Row } from "./shared";
+import {
+  ProcurementPanel,
+  StockCountsPanel,
+  ApprovalsPanel,
+  AuditPanel,
+} from "./operations-panels";
+import { Notice, type Row } from "./shared";
 const SECTIONS = [
   ...BUSINESS_SECTIONS,
   { id: "suppliers", label: "Supplier balances", cap: "purchases" },
@@ -121,32 +127,14 @@ function Workspace() {
         <TablesPanel data={data} reload={() => void load()} />
       ) : section.id === "receivables" ? (
         <ReceivablesPanel data={data} reload={() => void load()} />
+      ) : section.id === "procurement" ? (
+        <ProcurementPanel data={data} reload={() => void load()} />
+      ) : section.id === "stockcounts" ? (
+        <StockCountsPanel data={data} reload={() => void load()} />
+      ) : section.id === "approvals" ? (
+        <ApprovalsPanel data={data} reload={() => void load()} />
       ) : section.id === "audit" ? (
-        <Table
-          headers={["When", "Who", "Action", "Record", "Details"]}
-          empty={!rows(data, "rows").length}
-        >
-          {rows(data, "rows").map((a) => (
-            <tr key={text(a, "id")}>
-              <Cell>
-                {new Date(text(a, "createdAt")).toLocaleString("en-PK", {
-                  timeZone: "Asia/Karachi",
-                })}
-              </Cell>
-              <Cell>{text(a, "actorName")}</Cell>
-              <Cell>{text(a, "action")}</Cell>
-              <Cell>{text(a, "entity")}</Cell>
-              <Cell>
-                <details>
-                  <summary className="cursor-pointer">View change</summary>
-                  <pre className="mt-2 max-w-xs whitespace-pre-wrap break-words text-xs">
-                    {JSON.stringify(a.details, null, 2)}
-                  </pre>
-                </details>
-              </Cell>
-            </tr>
-          ))}
-        </Table>
+        <AuditPanel data={data} />
       ) : null}
     </>
   ) : null;

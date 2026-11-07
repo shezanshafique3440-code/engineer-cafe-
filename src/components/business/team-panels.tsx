@@ -16,6 +16,9 @@ import {
   type Field,
 } from "./shared";
 import { paise, decimal } from "@/lib/business-math";
+import { printBusinessSlip } from "@/lib/business-slip";
+import { toast } from "sonner";
+import { downloadCsv } from "@/lib/csv";
 const note: Field = { name: "note", label: "Reason / reference" };
 export function StaffPanel({
   data,
@@ -593,6 +596,92 @@ export function PayrollPanel({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    void printBusinessSlip(
+                      "Salary slip · " + text(p, "employee.party.name"),
+                      [
+                        [
+                          "Employee",
+                          text(p, "employee.code") +
+                            " · " +
+                            text(p, "employee.party.name"),
+                        ],
+                        ["Period", text(p, "period")],
+                        ["Status", text(p, "status")],
+                        ["Base pay for period", money(p.basePay)],
+                        ["Unpaid leave deduction", money(p.unpaidDeduction)],
+                        ["Overtime", money(p.overtimePay)],
+                        ["Bonus", money(p.bonus)],
+                        ["Other deduction", money(p.manualDeduction)],
+                        ["Advance recovery", money(p.advanceApplied)],
+                        [
+                          p.status === "POSTED"
+                            ? "Net salary payable"
+                            : "Calculated net (not posted)",
+                          money(p.netPay),
+                        ],
+                        ["Paid", money(p.paid)],
+                        [
+                          "Remaining",
+                          p.status !== "POSTED"
+                            ? "Not due · " + text(p, "status")
+                            : money(
+                                decimal(
+                                  paise(text(p, "netPay", "0")) -
+                                    paise(text(p, "paid", "0")),
+                                ),
+                              ),
+                        ],
+                      ],
+                      "A salary calculation is not proof of payment. Payments are recorded separately.\n" +
+                        text(p, "note"),
+                    ).catch((e) => toast.error(e.message))
+                  }
+                >
+                  Print salary slip
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    downloadCsv(
+                      "salary-" + text(p, "employee.code") + ".csv",
+                      [
+                        "Employee",
+                        "Period",
+                        "Status",
+                        "Base",
+                        "Unpaid deduction",
+                        "Overtime",
+                        "Bonus",
+                        "Manual deduction",
+                        "Advance recovery",
+                        "Net payable",
+                        "Paid",
+                      ],
+                      [
+                        [
+                          text(p, "employee.party.name"),
+                          text(p, "period"),
+                          text(p, "status"),
+                          text(p, "basePay"),
+                          text(p, "unpaidDeduction"),
+                          text(p, "overtimePay"),
+                          text(p, "bonus"),
+                          text(p, "manualDeduction"),
+                          text(p, "advanceApplied"),
+                          text(p, "netPay"),
+                          text(p, "paid"),
+                        ],
+                      ],
+                    )
+                  }
+                >
+                  Export salary
+                </Button>
                 {p.status === "DRAFT" ? (
                   <>
                     <Button

@@ -1,7 +1,7 @@
 import "server-only";
 import type { SessionUser } from "@/lib/types";
 import { getCurrentUser } from "./auth";
-import { businessLock } from "./business/core";
+import { audit, businessLock } from "./business/core";
 import { consumeOrder } from "./business/inventory";
 import {
   invoiceOrder,
@@ -350,6 +350,12 @@ export async function transitionOrder(
 
       await tx.orderEvent.create({
         data: { orderId: order.id, status, note: note || null },
+      });
+      await audit(tx, actor, "UPDATE_ORDER_STATUS", "Order", order.id, {
+        orderNumber: order.orderNumber,
+        before: order.status,
+        after: status,
+        note: note || "",
       });
       return tx.order.findUniqueOrThrow({
         where: { id: order.id },

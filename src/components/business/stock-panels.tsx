@@ -1,4 +1,5 @@
 "use client";
+import { decimal, divideRound, paise } from "@/lib/business-math";
 import { useState } from "react";
 import { Button, Input, Select } from "@/components/ui";
 import { canBusiness } from "@/lib/business-access";
@@ -347,7 +348,8 @@ export function RecipesPanel({
   data: Row;
   reload: () => void;
 }) {
-  const [target, setTarget] = useState(""),
+  const [margin, setMargin] = useState("65"),
+    [target, setTarget] = useState(""),
     [kind, setKind] = useState<"products" | "addons">("products");
   const selected =
     rows(data, kind).find((p) => p.id === target) ?? rows(data, kind)[0];
@@ -391,11 +393,23 @@ export function RecipesPanel({
           reload={reload}
         />
       )}
+      <Input
+        label="Target ingredient margin (%)"
+        hint="Cost-based suggestion only; overheads and tax are excluded. Selling prices change only through Products."
+        type="number"
+        min="0"
+        max="95"
+        step="1"
+        value={margin}
+        onChange={(e) => setMargin(e.target.value)}
+      />
       <Table
         headers={[
           "Menu item",
           "Selling price",
           "Estimated ingredient cost",
+          "Ingredient margin",
+          "Suggested price at target",
           "Tracking",
         ]}
         empty={!rows(data, "products").length}
@@ -403,11 +417,37 @@ export function RecipesPanel({
         {rows(data, "products").map((p) => (
           <tr key={text(p, "id")}>
             <Cell>{text(p, "name")}</Cell>
-            <Cell>{money(p.price)}</Cell>
+            <Cell>{money(p.sellingPrice)}</Cell>
             <Cell>
               {p.estimatedCost === null
                 ? "Needs stock / recipe"
                 : money(p.estimatedCost)}
+            </Cell>
+            <Cell>
+              {p.estimatedCost === null || Number(p.sellingPrice) <= 0
+                ? "—"
+                : decimal(
+                    divideRound(
+                      (BigInt(Number(p.sellingPrice)) * 100n -
+                        paise(text(p, "estimatedCost"))) *
+                        10000n,
+                      BigInt(Number(p.sellingPrice)) * 100n,
+                    ),
+                  ) + "%"}
+            </Cell>
+            <Cell>
+              {p.estimatedCost === null ||
+              !/^\d{1,2}$/.test(margin) ||
+              Number(margin) > 95
+                ? "—"
+                : money(
+                    decimal(
+                      (paise(text(p, "estimatedCost")) * 100n +
+                        BigInt(100 - Number(margin)) -
+                        1n) /
+                        BigInt(100 - Number(margin)),
+                    ),
+                  )}
             </Cell>
             <Cell>
               {p.recipeRequired

@@ -10,6 +10,7 @@ import {
   reverseJournal,
   type DB,
 } from "./core";
+import { reviewer } from "./operations";
 export const EXPENSE_CODES = [
   "RENT",
   "GAS",
@@ -29,6 +30,7 @@ export async function cashAction(
     shiftId?: string;
     amount: string;
     note: string;
+    denominations?: { value: string; count: number }[];
   },
 ) {
   if (data.action === "OPEN") {
@@ -68,12 +70,47 @@ export async function cashAction(
     where: { id: data.shiftId },
     include: { drawer: true },
   });
+  if (data.action === "REVIEW") {
+    if (!reviewer(actor)) throw forbidden("Manager or owner review required.");
+    if (!shift.closedAt || shift.reviewedAt)
+      throw badRequest("Choose a closed shift awaiting review.");
+    if (shift.closedById === actor.id && actor.role !== "ADMIN")
+      throw forbidden("Another manager or the owner must review your closing.");
+    if (data.note.trim().length < 3) throw badRequest("Add a review note.");
+    const reviewed = await tx.cashShift.update({
+      where: { id: shift.id },
+      data: {
+        reviewedAt: new Date(),
+        reviewedById: actor.id,
+        reviewedByName: actor.name,
+        reviewNote: data.note,
+      },
+    });
+    await audit(tx, actor, "REVIEW_SHIFT", "Shift", shift.id, {
+      note: data.note,
+      variance: String(shift.variance),
+    });
+    return reviewed;
+  }
   if (shift.closedAt) throw badRequest("This shift is already closed.");
   if (shift.openedById !== actor.id && actor.role !== "ADMIN")
     throw forbidden("Only this cashier or the owner can close the shift.");
   const expected = await accountBalance(tx, shift.drawer.accountId),
     actual = paise(data.amount),
     variance = actual - expected;
+  if (data.denominations) {
+    if (
+      new Set(data.denominations.map((d) => d.value)).size !==
+        data.denominations.length ||
+      data.denominations.reduce(
+        (s, d) => s + paise(d.value) * BigInt(d.count),
+        0n,
+      ) !== actual
+    )
+      throw badRequest(
+        "Denomination count does not match the physical closing amount.",
+      );
+  }
   if (variance && !data.note.trim())
     throw badRequest("Explain the cash difference before closing.");
   if (variance)
@@ -102,6 +139,9 @@ export async function cashAction(
       actualCash: decimal(actual),
       variance: decimal(variance),
       closeNote: data.note,
+      closedById: actor.id,
+      closedByName: actor.name,
+      denominations: data.denominations,
     },
   });
   await audit(tx, actor, "CLOSE_SHIFT", "Shift", shift.id, {

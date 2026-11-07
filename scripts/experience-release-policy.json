@@ -7,9 +7,10 @@
   "upgrade": {
     "package.json": "9a9f5f73e0e7527fe2701a9c61f408f16f2926e08f223756122066e983237671",
     "package-lock.json": "f7828c6ef19412c2322469d8fd5ebce384fdadf2a463998a724c9ea65ec696f6",
-    "prisma/schema.prisma": "618300ee75202d23c2ddc29a95c98fbe5a7a9115bca23f5b129ea1e1017a5804",
+    "prisma/schema.prisma": "49c684e919477239b0f1b9e902c66737cd74914633f06a72dfe46a0b0ee873a6",
     "prisma/migrations/20261106120000_cafe_experience/migration.sql": "8b892aaa2297d5a5ec6d7bdf6d7934422cb5fbee91d4222d00a564a840e08c73",
-    "prisma/migrations/20261107090000_cafe_business/migration.sql": "843a3b8aac564d9fbfd878fca0f2ef2cd42e79ba4c49eca3701ff5c6d446cee5"
+    "prisma/migrations/20261107090000_cafe_business/migration.sql": "843a3b8aac564d9fbfd878fca0f2ef2cd42e79ba4c49eca3701ff5c6d446cee5",
+    "prisma/migrations/20261108090000_cafe_operations/migration.sql": "8dc0dd344386f36e5ad7fdfb2833aa9dc8a7314e0304450101408dd67a152f31"
   },
   "baselineCommit": "9c0c8157293610749ff66b57181a78549b453c42",
   "additionalBaselines": [
@@ -17,6 +18,11 @@
       "package.json": "9a9f5f73e0e7527fe2701a9c61f408f16f2926e08f223756122066e983237671",
       "package-lock.json": "f7828c6ef19412c2322469d8fd5ebce384fdadf2a463998a724c9ea65ec696f6",
       "prisma/schema.prisma": "ed4ad0dd33b64cff9f76a5dbca15e8b8bcb88958186a0c752f6d4537f1c4d6f2"
+    },
+    {
+      "package.json": "9a9f5f73e0e7527fe2701a9c61f408f16f2926e08f223756122066e983237671",
+      "package-lock.json": "f7828c6ef19412c2322469d8fd5ebce384fdadf2a463998a724c9ea65ec696f6",
+      "prisma/schema.prisma": "618300ee75202d23c2ddc29a95c98fbe5a7a9115bca23f5b129ea1e1017a5804"
     }
   ]
 }

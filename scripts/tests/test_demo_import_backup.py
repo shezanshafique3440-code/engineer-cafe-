@@ -15,12 +15,14 @@ class DemoImportBackupTests(unittest.TestCase):
         self.base = Path(self.tmp.name)
         self.app = self.base / 'app'
         subprocess.run(['git','clone','--shared','--quiet',str(ROOT),str(self.app)],check=True)
+        # The demo-only runner intentionally supports this pinned accounting baseline.
+        self.git('checkout','--detach','78364cda44f966c1fcc088760586d93f87985c0c')
         self.git('config','user.email','demo-qa@example.test')
         self.git('config','user.name','Demo QA')
         for name in ['business-demo.cjs','business-demo-data.ts','business-practice-data.ts','business-activation.ts','client-handover-data.ts','load-business-demo.sh']:
             (self.app/'scripts'/name).write_text((ROOT/'scripts'/name).read_text())
         self.git('add','scripts')
-        self.git('commit','-qm','Demo loader fixture')
+        self.git('commit','--allow-empty','-qm','Demo loader fixture')
         self.target = self.git('rev-parse','HEAD').strip()
         (self.app/'.next').mkdir(exist_ok=True)
         (self.app/'.next/BUILD_ID').write_text('existing-build')
