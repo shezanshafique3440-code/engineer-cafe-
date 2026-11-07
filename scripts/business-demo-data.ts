@@ -1186,3 +1186,6 @@ export async function seedBusinessDemo(apply = false) {
     { timeout: 600000, maxWait: 10000 },
   );
 }
+
+/** Shared assumptions for operational practice; never presented as real recipes. */
+export { recipe as assumedRecipe };

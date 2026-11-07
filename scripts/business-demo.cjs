@@ -13,13 +13,14 @@ Module._resolveFilename = function (name, parent, ...args) {
     : resolve.call(this, name, parent, ...args);
 };
 local("tsx/cjs");
-const { seedBusinessDemo } = require(
-  path.resolve(process.env.CAFE_DEMO_SOURCE),
-);
+const loaded = require(path.resolve(process.env.CAFE_DEMO_SOURCE));
 const db = local(path.join(process.cwd(), "src/lib/prisma.ts")).prisma;
-seedBusinessDemo(process.argv.includes("--apply"))
+const run = loaded.seedBusinessPractice ?? loaded.seedBusinessDemo;
+run(process.argv.includes("--apply"))
   .catch((e) => {
-    console.error("DEMO import failed; its transaction was rolled back.");
+    console.error(
+      "Data preparation stopped. Completed batches are retry-safe; inspect the progress above before retrying.",
+    );
     console.error(e.message);
     process.exitCode = 1;
   })

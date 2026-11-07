@@ -34,3 +34,19 @@ CAFE_DEMO_SOURCE="$PWD/scripts/business-demo-data.ts" node scripts/business-demo
 The CLI adapter resolves Next's `server-only` marker to Next's own empty server module only in this separate process; it does not patch the running web app. It uses the installed `tsx` and Prisma packages and does not install dependencies or change the schema.
 
 Validation covers a clean isolated database (600 orders / 360 attendance records), an isolated database with existing financial activity and a closed period, and repeat imports. `scripts/tests/business-demo-verify.cjs` checks 28 stock/ledger/date/privacy/settlement invariants against local test databases only. `python -m unittest scripts.tests.test_demo_import_backup` checks verified backup ordering, failures, service recovery and preservation of edited accounting code. The populated business screens were also checked at a 390px mobile width.
+
+## Usable assumed-data practice
+
+The owner's latest instruction is to assume plausible cafe figures like the supplied spreadsheet. Run the same backup wrapper with a second argument `practice` to reuse the existing 600-record sample and make normal workflows usable. The label remains **ASSUMED / TEST**, never genuine cafe history.
+
+Practice mode adds recipes only where a normal-menu product is missing a recipe; existing recipes, prices, images, passwords and legacy orders are retained. Those added recipes point to the clearly labelled sample ingredients. Recognised food add-ons also receive missing assumed recipes. The training-product category remains hidden so it does not duplicate the public menu.
+
+Four limited STAFF test logins are created for manager, cashier, waiter and chef, linked to the sample employees. Passwords are random and saved only in a mode-0600 `practice-logins.txt` under the private backup's `practice` directory (also available through `/var/backups/engineer-cafe/practice-latest`); they are not printed in logs or stored in audit JSON. Existing employee login links are retained. The new cashier receives a separate practice till with Rs. 20,000 transferred from the sample bank, without changing the real cash account.
+
+Accounting activates only if recipe readiness passes and no untracked legacy tickets are open. Otherwise the import retains those tickets and prints their numbers for the owner to finish/cancel in the normal workflow before activating in Opening setup. Closed periods are never reopened.
+
+Eight Excel-compatible CSV snapshots are exported: Daily Sales Report (the reference sheet's quantity/price/sale/cost/profit/profit-percent columns), staff salaries, ingredient stock, payroll, attendance, purchases, expenses and summary. Profit percent based on cost and margin based on sales are distinct columns. Every file identifies its figures as assumed. These private snapshot files do not publish financial records or credentials on the storefront. New live reports continue to come from the website.
+
+The base sample and practice setup have separate completion markers. Repeating either phase adds no duplicate orders, recipes, users or cashier float. If report export fails after a completed database phase, rerun to regenerate the CSVs rather than re-importing the records.
+
+Operational practice validation includes 40 real API checks for a normal-menu order through cashier, chef, waiter, payment, stock and profit, plus guarded activation with an existing legacy ticket. Repeat setup preserves the same test passwords and does not repeat the cashier float.

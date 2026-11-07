@@ -17,7 +17,7 @@ class DemoImportBackupTests(unittest.TestCase):
         subprocess.run(['git','clone','--shared','--quiet',str(ROOT),str(self.app)],check=True)
         self.git('config','user.email','demo-qa@example.test')
         self.git('config','user.name','Demo QA')
-        for name in ['business-demo.cjs','business-demo-data.ts','load-business-demo.sh']:
+        for name in ['business-demo.cjs','business-demo-data.ts','business-practice-data.ts','load-business-demo.sh']:
             (self.app/'scripts'/name).write_text((ROOT/'scripts'/name).read_text())
         self.git('add','scripts')
         self.git('commit','-qm','Demo loader fixture')
@@ -62,8 +62,8 @@ print('PASS demo service double')
         p=self.bin/name;p.write_text(source);p.chmod(0o700)
     def git(self,*args):
         return subprocess.check_output(['git',*args],cwd=self.app,stderr=subprocess.PIPE,text=True)
-    def run_loader(self,**extra):
-        return subprocess.run(['bash',str(LOADER),self.target],cwd=self.app,env=dict(self.env,**extra),capture_output=True,text=True,timeout=30)
+    def run_loader(self,mode='demo',**extra):
+        return subprocess.run(['bash',str(LOADER),self.target,mode],cwd=self.app,env=dict(self.env,**extra),capture_output=True,text=True,timeout=30)
     def test_success_has_verified_backup_before_import_and_preserves_build(self):
         r=self.run_loader();self.assertEqual(r.returncode,0,r.stdout+r.stderr)
         self.assertTrue(self.seed.exists())
@@ -74,6 +74,17 @@ print('PASS demo service double')
         actions=self.log.read_text();self.assertLess(actions.index('pg_restore --list'),actions.index('node importer'))
         self.assertIn('pm2 restart engineer-cafe\n',actions)
         self.assertIn('pm2 restart engineer-cafe-notifications',actions)
+    def test_practice_runner_is_included_in_verified_backup(self):
+        r=self.run_loader(mode='practice');self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        backups=list((self.base/'backups').glob('demo-data-*'));self.assertEqual(len(backups),1)
+        self.assertTrue((backups[0]/'runner/business-practice-data.ts').is_file())
+        self.assertIn('runner/business-practice-data.ts',(backups[0]/'SHA256SUMS').read_text())
+        self.assertTrue(self.seed.exists())
+    def test_practice_latest_real_directory_is_preserved(self):
+        p=self.base/'backups/practice-latest';p.mkdir(parents=True)
+        (p/'keep.txt').write_text('preserve')
+        r=self.run_loader(mode='practice');self.assertNotEqual(r.returncode,0)
+        self.assertEqual((p/'keep.txt').read_text(),'preserve');self.assertFalse(self.seed.exists())
     def test_failed_dump_never_runs_import_and_restores_services(self):
         r=self.run_loader(QA_FAIL_DUMP='1');self.assertNotEqual(r.returncode,0)
         self.assertFalse(self.seed.exists());actions=self.log.read_text()
