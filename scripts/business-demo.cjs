@@ -2,6 +2,16 @@
 const path = require("node:path");
 const Module = require("node:module");
 const local = Module.createRequire(path.join(process.cwd(), "package.json"));
+// The reviewed files execute under /var/backups, outside the app's ancestor tree.
+// Make installed app dependencies visible to their bare imports in this CLI only.
+process.env.NODE_PATH = [
+  path.join(process.cwd(), "node_modules"),
+  process.env.NODE_PATH,
+]
+  .filter(Boolean)
+  .join(path.delimiter);
+Module._initPaths();
+
 if (!process.env.DATABASE_URL)
   throw Error("Load the cafe .env before running the demo importer.");
 if (!process.env.CAFE_DEMO_SOURCE)

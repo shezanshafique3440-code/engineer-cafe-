@@ -50,3 +50,5 @@ Eight Excel-compatible CSV snapshots are exported: Daily Sales Report (the refer
 The base sample and practice setup have separate completion markers. Repeating either phase adds no duplicate orders, recipes, users or cashier float. If report export fails after a completed database phase, rerun to regenerate the CSVs rather than re-importing the records.
 
 Operational practice validation includes 40 real API checks for a normal-menu order through cashier, chef, waiter, payment, stock and profit, plus guarded activation with an existing legacy ticket. Repeat setup preserves the same test passwords and does not repeat the cashier float.
+
+The backup-directory runner initializes its own dependency search path from the installed app's `node_modules`, preserving any existing custom `NODE_PATH`. This is limited to the importer process. Regression tests run the actual runner from `/tmp` without the QA database preload's search-path changes, including an existing custom dependency path (`python -m unittest scripts.tests.test_demo_runner_resolution`).
