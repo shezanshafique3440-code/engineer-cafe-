@@ -17,7 +17,7 @@ class DemoImportBackupTests(unittest.TestCase):
         subprocess.run(['git','clone','--shared','--quiet',str(ROOT),str(self.app)],check=True)
         self.git('config','user.email','demo-qa@example.test')
         self.git('config','user.name','Demo QA')
-        for name in ['business-demo.cjs','business-demo-data.ts','business-practice-data.ts','load-business-demo.sh']:
+        for name in ['business-demo.cjs','business-demo-data.ts','business-practice-data.ts','business-activation.ts','client-handover-data.ts','load-business-demo.sh']:
             (self.app/'scripts'/name).write_text((ROOT/'scripts'/name).read_text())
         self.git('add','scripts')
         self.git('commit','-qm','Demo loader fixture')
@@ -42,6 +42,8 @@ elif args[0] not in ['stop','restart']:sys.exit(99)
 import os,sys
 args=sys.argv[1:]
 with open(os.environ['QA_LOG'],'a') as f:f.write('docker '+' '.join(args)+'\\n')
+if any('psql' in arg for arg in args):
+ sys.stdin.read();sys.exit(0)
 if 'pg_restore' in args:
  if '--list' not in args:sys.exit(97)
  sys.exit(0 if sys.stdin.buffer.read().startswith(b'PGDMP') else 1)
@@ -52,12 +54,26 @@ sys.stdout.buffer.write(b'PGDMP_demo_backup')
 import os,sys
 from pathlib import Path
 with open(os.environ['QA_LOG'],'a') as f:f.write('node importer\\n')
+if sys.argv[1]=='-e':
+ print('fixture' if 'username' in sys.argv[2] else 'postgresql://fixture@127.0.0.1/engineer_cafe_client');sys.exit(0)
 backup=Path(sys.argv[1]).parent.parent
 if not (backup/'SHA256SUMS').is_file():sys.exit(98)
 if os.environ.get('QA_FAIL_SEED'):sys.exit(24)
 Path(os.environ['QA_SEED']).write_text('demo imported')
 print('PASS demo service double')
 ''')
+        self.command('npm', '#!/usr/bin/env python3\nprint("PASS migration service double")\n')
+    def test_finish_runner_is_backed_up_before_activation(self):
+        r=self.run_loader(mode='finish');self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        backup=list((self.base/'backups').glob('demo-data-*'))[0]
+        self.assertIn('runner/business-activation.ts',(backup/'SHA256SUMS').read_text())
+    def test_client_runner_is_backed_up_and_original_environment_kept(self):
+        before=(self.app/'.env').read_bytes()
+        r=self.run_loader(mode='client');self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        self.assertEqual((self.app/'.env').read_bytes(),before)
+        backup=list((self.base/'backups').glob('demo-data-*'))[0]
+        self.assertIn('runner/client-handover-data.ts',(backup/'SHA256SUMS').read_text())
+        self.assertTrue(self.seed.exists())
     def command(self,name,source):
         p=self.bin/name;p.write_text(source);p.chmod(0o700)
     def git(self,*args):

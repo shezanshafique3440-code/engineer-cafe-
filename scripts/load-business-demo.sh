@@ -7,7 +7,7 @@ export PATH="/opt/node22/bin:$PATH"
 APP=${CAFE_APP_DIR:-/var/www/engineer-cafe}
 TARGET=${1:?Supply the reviewed demo-tools commit}
 MODE=${2:-demo}
-case "$MODE" in demo|practice) ;; *) echo "Use demo or practice mode"; exit 1 ;; esac
+case "$MODE" in demo|practice|finish|client) ;; *) echo "Use demo, practice, finish or client mode"; exit 1 ;; esac
 [[ "$TARGET" =~ ^[0-9a-f]{40}$ ]]
 cd "$APP"
 APP=$(pwd -P)
@@ -42,6 +42,8 @@ for file in business-demo.cjs business-demo-data.ts; do
   git show "$TARGET:scripts/$file" > "$BACKUP/runner/$file"
 done
 if [ "$MODE" = practice ]; then git show "$TARGET:scripts/business-practice-data.ts" > "$BACKUP/runner/business-practice-data.ts"; fi
+if [ "$MODE" = finish ]; then git show "$TARGET:scripts/business-activation.ts" > "$BACKUP/runner/business-activation.ts"; fi
+if [ "$MODE" = client ]; then git show "$TARGET:scripts/client-handover-data.ts" > "$BACKUP/runner/client-handover-data.ts"; fi
 printf '%s\n' "$(git rev-parse HEAD)" > "$BACKUP/app-commit"
 printf '%s\n' "$TARGET" > "$BACKUP/importer-commit"
 cp -p .env "$BACKUP/previous.env"
@@ -55,7 +57,7 @@ finish() {
   fi
   echo "Demo-data backup: $BACKUP"
   if [ "$code" -ne 0 ]; then
-    echo "Demo loading did not finish. A failed import transaction rolls back its changes; no old database dump was imported. Send the output."
+    echo "Setup did not finish. Completed steps may remain; no database dump was restored automatically. Send the output before retrying."
   fi
   exit "$code"
 }
@@ -71,6 +73,8 @@ docker exec -i infra-postgres-1 pg_restore --list < "$BACKUP/database-before-dem
   cd "$BACKUP"
   sha256sum app-commit importer-commit previous.env database-before-demo.dump runner/business-demo.cjs runner/business-demo-data.ts > SHA256SUMS
   if [ -f runner/business-practice-data.ts ]; then sha256sum runner/business-practice-data.ts >> SHA256SUMS; fi
+  if [ -f runner/business-activation.ts ]; then sha256sum runner/business-activation.ts >> SHA256SUMS; fi
+  if [ -f runner/client-handover-data.ts ]; then sha256sum runner/client-handover-data.ts >> SHA256SUMS; fi
   sha256sum --status --check SHA256SUMS
 )
 echo "PASS: pre-demo database and environment backup verified."
@@ -83,6 +87,23 @@ if [ "$MODE" = practice ]; then
   export CAFE_DEMO_SOURCE="$BACKUP/runner/business-practice-data.ts"
   export CAFE_PRACTICE_OUTPUT="$BACKUP/practice"
 fi
+if [ "$MODE" = finish ]; then export CAFE_DEMO_SOURCE="$BACKUP/runner/business-activation.ts"; fi
+if [ "$MODE" = client ]; then
+  CLIENT_OWNER=$(node -e 'process.stdout.write(decodeURIComponent(new URL(process.env.DATABASE_URL).username))')
+  EXISTS=$(docker exec -i infra-postgres-1 sh -lc 'exec psql -XqAt -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-postgres}" -d postgres' <<'SQL'
+SELECT 1 FROM pg_database WHERE datname='engineer_cafe_client';
+SQL
+)
+  if [ "$EXISTS" != 1 ]; then
+    docker exec -i infra-postgres-1 sh -lc 'exec psql -Xq -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-postgres}" -d postgres -v owner="$1"' -- "$CLIENT_OWNER" <<'SQL'
+CREATE DATABASE engineer_cafe_client OWNER :"owner";
+SQL
+  fi
+  export CAFE_CLIENT_DATABASE_URL=$(node -e 'const u=new URL(process.env.DATABASE_URL);u.pathname="/engineer_cafe_client";process.stdout.write(u.toString())')
+  DATABASE_URL="$CAFE_CLIENT_DATABASE_URL" npm run db:deploy
+  export CAFE_CLIENT_OUTPUT="$BACKUP/client-handover"
+  export CAFE_DEMO_SOURCE="$BACKUP/runner/client-handover-data.ts"
+fi
 export TSX_TSCONFIG_PATH="$APP/tsconfig.json"
 node "$BACKUP/runner/business-demo.cjs" --apply 2>&1 | tee "$BACKUP/import.log"
 if [ "$MODE" = practice ]; then
@@ -92,6 +113,10 @@ if [ "$MODE" = practice ]; then
   echo "Private test logins: $ROOT/practice-latest/practice-logins.txt"
   echo "Excel-compatible reports: $ROOT/practice-latest/"
 fi
-echo "PASS: assumed test data loaded; existing menu prices/photos and passwords were preserved."
-echo "Open https://esellerstore.vip/admin/business and refresh."
-echo "Search DEMO in Orders/Customers; set the report range to the last 30 days."
+case "$MODE" in
+  finish) echo "PASS: accounting cutover checked; see accountingActive above." ;;
+  client) echo "PASS: separate client database prepared. Practice website is still on its original database. Templates: $BACKUP/client-handover" ;;
+  *) echo "PASS: assumed test data loaded; existing menu prices/photos and passwords were preserved."
+     echo "Open https://esellerstore.vip/admin/business and refresh."
+     echo "Search DEMO in Orders/Customers; set the report range to the last 30 days." ;;
+esac

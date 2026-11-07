@@ -25,7 +25,11 @@ Module._resolveFilename = function (name, parent, ...args) {
 local("tsx/cjs");
 const loaded = require(path.resolve(process.env.CAFE_DEMO_SOURCE));
 const db = local(path.join(process.cwd(), "src/lib/prisma.ts")).prisma;
-const run = loaded.seedBusinessPractice ?? loaded.seedBusinessDemo;
+const run =
+  loaded.prepareClientHandover ??
+  loaded.finishBusinessSetup ??
+  loaded.seedBusinessPractice ??
+  loaded.seedBusinessDemo;
 run(process.argv.includes("--apply"))
   .catch((e) => {
     console.error(

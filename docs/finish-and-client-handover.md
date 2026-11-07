@@ -1,0 +1,13 @@
+# Finish practice activation and prepare the client handover
+
+The owner confirmed that legacy ticket **EC1005 is an old test order**. The guarded `finish` runner may cancel this exact unpaid, untracked ticket, then activate accounting through the normal recipe-readiness and legacy-ticket checks. It refuses tracked, paid or delivered tickets; it does not fabricate a sale, receipt or refund. Other open legacy orders are listed and retained. Repeating the step does not create another cancellation or financial entry.
+
+Run `scripts/load-business-demo.sh <reviewed-commit> finish` with `CAFE_CANCEL_TEST_ORDER=EC1005`. The existing backup-first wrapper is used and services are restored on failure. `scripts/verify-cafe-live.cjs` then checks the local app and four private practice logins. It performs 23 login/permission/readiness checks without creating orders or sending messages. Its credentials stay in the private VPS file; passwords and session cookies are never printed.
+
+For the clean client copy, run the same wrapper with mode `client`. It creates `engineer_cafe_client` only when absent, applies the existing reviewed migrations, then copies the catalogue, configured prices/photos, customisations, genuine recipe definitions and active ADMIN accounts from a read-only source snapshot. Assumed recipes, demo stock, practice users, salaries, customer records, sales, balances and financial journals are excluded. Ingredient quantities and values start at zero. Public ordering and accounting are disabled in the client copy until real opening records are entered. The active website's `.env` and database are **not switched**; the practice system remains available.
+
+An existing completed client-copy marker returns the previous result. Other non-empty client databases are refused, never overwritten or dropped. Empty templates for actual opening stock, staff rates, supplier/customer dues and cash/bank balances are written into the private backup directory. These real figures still need the cafe owner's input before a real-business cutover.
+
+The receipt preview is checked for totals, recorded payment/balance, embedded QR and 80mm print formatting. A physical printer, its driver, margins and paper feed still require a real print from Admin Orders → Print. A browser/PDF check does not certify a physical printer.
+
+Validation: 12 runner/backup/recovery checks, guarded unpaid cancellation and paid-order rejection, clean client copy with zero orders/journals/employees and nine catalogue/isolation checks, four role logins and receipt PDF generation. All validation uses local isolated databases and services; run the VPS commands to apply and verify the actual server state.
