@@ -4,7 +4,7 @@ import { handle, json, requireAdmin } from "@/server/api";
 const REVENUE_STATUSES = ["CONFIRMED", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
 
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requireAdmin("insights");
 
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);

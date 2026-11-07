@@ -96,6 +96,7 @@ if '-lc' in args:
  if 'psql' in command:
   from pathlib import Path
   sql=sys.stdin.read()
+  if 'Accounting is active.' in sql:sys.exit(1 if os.environ.get('QA_BUSINESS_ACTIVE')=='1' else 0)
   if 'SELECT theme' in sql:print(Path(os.environ['QA_THEME']).read_text());sys.exit(0)
   if 'UPDATE public."CafeSetting" SET theme' in sql:
    Path(os.environ['QA_THEME']).write_text(args[-1]);sys.exit(0)
@@ -292,6 +293,42 @@ if '-w' in args:sys.stdout.write('200')
         self.assertEqual(self.state.read_text(), 'running')
         self.assertFalse(self.pm2log.exists())
 
+    def test_active_accounting_stops_rollback_before_services_change(self):
+        self.git('switch', '--detach', self.target)
+        self.write('src/server/business/core.ts', '// accounting-aware release')
+        self.git('add', '.')
+        self.git('commit', '-qm', 'accounting release fixture')
+        self.target = self.git('rev-parse', 'HEAD').strip()
+        self.git('switch', '--detach', self.old)
+        deployed = self.deploy()
+        self.assertEqual(deployed.returncode, 0, deployed.stdout + deployed.stderr)
+        before_log = self.pm2log.read_text()
+        result = self.run_script(self.snapshot() / 'rollback.sh', QA_BUSINESS_ACTIVE='1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.git('rev-parse', 'HEAD').strip(), self.target)
+        self.assertEqual(self.state.read_text(), 'running')
+        self.assertEqual(self.pm2log.read_text(), before_log)
+        allowed = self.run_script(self.snapshot() / 'rollback.sh')
+        self.assertEqual(allowed.returncode, 0, allowed.stdout + allowed.stderr)
+
+    def test_additive_policy_accepts_previous_experience_release(self):
+        self.git('switch', '--detach', self.old)
+        baseline_ref = '1a4bb66240ab347265d8540d840d0dbdbbca4917'
+        files = ['package.json', 'package-lock.json', 'prisma/schema.prisma']
+        existing = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', baseline_ref, 'prisma/migrations'], cwd=ROOT, text=True).splitlines()
+        for file in files + existing:
+            self.write(file, subprocess.check_output(['git', 'show', baseline_ref + ':' + file], cwd=ROOT, text=True))
+        self.git('add', '.')
+        self.git('commit', '-qm', 'previous experience baseline')
+        baseline = self.git('rev-parse', 'HEAD').strip()
+        policy = json.loads((ROOT / 'scripts/experience-release-policy.json').read_text())
+        for file in list(policy['upgrade']) + ['scripts/experience-release-policy.json']:
+            self.write(file, (ROOT / file).read_text())
+        self.git('add', '.')
+        self.git('commit', '-qm', 'business upgrade fixture')
+        result = subprocess.run(['node', str(ROOT / 'scripts/check-experience-release.cjs'), baseline, self.git('rev-parse', 'HEAD').strip()], cwd=self.app, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_additive_policy_accepts_reviewed_upgrade_and_rejects_extra_migration(self):
         self.git('switch', '--detach', self.old)
         files = ['package.json', 'package-lock.json', 'prisma/schema.prisma']
@@ -302,7 +339,7 @@ if '-w' in args:sys.stdout.write('200')
         self.git('add', '.')
         self.git('commit', '-qm', 'real baseline fixture')
         baseline = self.git('rev-parse', 'HEAD').strip()
-        for file in files + ['scripts/experience-release-policy.json', 'prisma/migrations/20261106120000_cafe_experience/migration.sql']:
+        for file in files + ['scripts/experience-release-policy.json'] + list(k for k in json.loads((ROOT / 'scripts/experience-release-policy.json').read_text())['upgrade'] if k.startswith('prisma/migrations/')):
             self.write(file, (ROOT / file).read_text())
         self.git('add', '.')
         self.git('commit', '-qm', 'reviewed additive fixture')

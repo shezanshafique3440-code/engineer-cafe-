@@ -4,7 +4,7 @@ import { handle, json, parseQuery, requireAdmin } from "@/server/api";
 import { buildInsights } from "@/lib/cafe-insights";
 
 export const GET = handle(async (request: Request) => {
-  await requireAdmin();
+  await requireAdmin("insights");
   const { days } = parseQuery(
     request,
     z.object({ days: z.coerce.number().int().min(7).max(365).default(90) }),

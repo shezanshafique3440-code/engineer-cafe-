@@ -11,7 +11,7 @@ function dayKey(date: Date): string {
 }
 
 export const GET = handle(async (request: Request) => {
-  await requireAdmin();
+  await requireAdmin("insights");
   const { days } = parseQuery(request, querySchema);
 
   const since = new Date();

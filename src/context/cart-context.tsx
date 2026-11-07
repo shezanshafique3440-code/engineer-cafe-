@@ -122,13 +122,13 @@ export function CartProvider({
   scope = "storefront",
 }: {
   children: ReactNode;
-  scope?: "storefront" | "pos";
+  scope?: "storefront" | "pos" | `table:${string}`;
 }) {
-  const storageKey = scope === "pos" ? "engineer-cafe-pos-v1" : STORAGE_KEY;
+  const storageKey = scope !== "storefront" ? `engineer-cafe-${scope}-v1` : STORAGE_KEY;
   const couponKey =
-    scope === "pos" ? "engineer-cafe-pos-coupon-v1" : COUPON_KEY;
+    scope !== "storefront" ? `engineer-cafe-${scope}-coupon-v1` : COUPON_KEY;
   const serviceKey =
-    scope === "pos" ? "ec-pos-service" : "ec-service-preference";
+    scope !== "storefront" ? `ec-${scope}-service` : "ec-service-preference";
   const { t } = useLanguage();
   const { user } = useSession();
   const [lines, setLines] = useState<CartLine[]>([]);

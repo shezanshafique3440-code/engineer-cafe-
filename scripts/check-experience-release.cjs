@@ -1,4 +1,4 @@
-// Permit only the reviewed additive schema/dependency upgrade, in either direction.
+// Accept only reviewed additive releases from the pinned supported baselines.
 const { execFileSync } = require("node:child_process");
 const { createHash } = require("node:crypto");
 const [old, next] = process.argv.slice(2);
@@ -6,45 +6,43 @@ const read = (ref, path) => execFileSync("git", ["show", `${ref}:${path}`]);
 const hash = (ref, path) =>
   createHash("sha256").update(read(ref, path)).digest("hex");
 const policy = JSON.parse(read(next, "scripts/experience-release-policy.json"));
-for (const [path, expected] of Object.entries(policy.baseline)) {
-  if (hash(old, path) !== expected)
-    throw new Error(`Unreviewed baseline: ${path}`);
-}
-for (const [path, expected] of Object.entries(policy.upgrade)) {
-  if (hash(next, path) !== expected)
-    throw new Error(`Unreviewed upgrade content: ${path}`);
-}
-const oldMigrations = execFileSync(
-  "git",
-  ["ls-tree", "-r", "--name-only", old, "prisma/migrations"],
-  { encoding: "utf8" },
-)
-  .trim()
-  .split("\n");
-for (const file of oldMigrations)
-  if (hash(old, file) !== hash(next, file))
-    throw new Error("Existing migration changed: " + file);
-const added = execFileSync(
-  "git",
-  ["diff", "--name-only", old, next, "--", "prisma/migrations"],
-  { encoding: "utf8" },
-)
-  .trim()
-  .split("\n")
-  .filter(Boolean);
 if (
-  JSON.stringify(added) !==
-  JSON.stringify([
-    "prisma/migrations/20261106120000_cafe_experience/migration.sql",
-  ])
+  ![policy.baseline, ...(policy.additionalBaselines || [])].some((base) =>
+    Object.entries(base).every(
+      ([path, expected]) => hash(old, path) === expected,
+    ),
+  )
 )
-  throw new Error("Unexpected migration set");
-const before = JSON.parse(read(old, "package.json")),
-  after = JSON.parse(read(next, "package.json"));
-delete after.dependencies["web-push"];
-delete after.devDependencies["@types/web-push"];
-if (JSON.stringify(before) !== JSON.stringify(after))
-  throw new Error("Unexpected package changes");
-console.log(
-  "PASS: reviewed additive experience migration and Web Push dependencies.",
-);
+  throw Error("Unreviewed baseline: package or schema");
+for (const [path, expected] of Object.entries(policy.upgrade))
+  if (hash(next, path) !== expected)
+    throw Error("Unreviewed upgrade content: " + path);
+const migrations = (ref) =>
+  execFileSync(
+    "git",
+    ["ls-tree", "-r", "--name-only", ref, "prisma/migrations"],
+    { encoding: "utf8" },
+  )
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+const before = migrations(old),
+  after = migrations(next);
+for (const file of before)
+  if (!after.includes(file) || hash(old, file) !== hash(next, file))
+    throw Error("Existing migration changed: " + file);
+const added = after.filter((p) => !before.includes(p));
+const expected = Object.keys(policy.upgrade)
+  .filter((p) => p.startsWith("prisma/migrations/") && !before.includes(p))
+  .sort();
+if (JSON.stringify(added.sort()) !== JSON.stringify(expected))
+  throw Error("Unexpected migration set");
+const oldPackage = JSON.parse(read(old, "package.json")),
+  newPackage = JSON.parse(read(next, "package.json"));
+if (!oldPackage.dependencies["web-push"])
+  delete newPackage.dependencies["web-push"];
+if (!oldPackage.devDependencies["@types/web-push"])
+  delete newPackage.devDependencies["@types/web-push"];
+if (JSON.stringify(oldPackage) !== JSON.stringify(newPackage))
+  throw Error("Unexpected package changes");
+console.log("PASS: reviewed additive cafe schema and dependency upgrade.");

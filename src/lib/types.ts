@@ -13,6 +13,8 @@ export type SessionUser = {
   name: string;
   email: string;
   role: Role;
+  businessProfile?: string | null;
+  employeeId?: string | null;
 };
 
 export type AddonDTO = {

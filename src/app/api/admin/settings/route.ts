@@ -6,13 +6,13 @@ import { getSettings } from "@/server/settings";
 import { resolveTheme } from "@/lib/themes";
 
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requireAdmin("settings");
   const settings = await getSettings();
   return json({ settings });
 });
 
 export const PUT = handle(async (request: Request) => {
-  const user = await requireAdmin();
+  const user = await requireAdmin("settings");
   const data = await parseBody(request, settingsSchema);
   const current = await getSettings();
   if (user.role !== "ADMIN" && data.theme !== resolveTheme(current.theme))

@@ -1,3 +1,4 @@
+import { businessLock } from "@/server/business/core";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { handle, json, parseBody, requireAdmin, badRequest, forbidden, notFound, HttpError } from "@/server/api";
@@ -9,7 +10,7 @@ const schema = z.object({
 });
 
 export const PATCH = handle(async (request: Request, ctx: { params: Promise<{ id: string }> }) => {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin("customers");
   if (admin.role !== "ADMIN") throw forbidden("Only an admin can manage customer accounts.");
   const { id } = await ctx.params;
   const data = await parseBody(request, schema);
@@ -42,13 +43,14 @@ const deleteSchema = z.object({
 });
 
 export const DELETE = handle(async (request: Request, ctx: { params: Promise<{ id: string }> }) => {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin("customers");
   if (admin.role !== "ADMIN") throw forbidden("Only an admin can delete customer accounts.");
   const { id } = await ctx.params;
   if (id === admin.id) throw badRequest("You can't delete your own account.");
   const confirmation = await parseBody(request, deleteSchema);
 
   await prisma.$transaction(async (tx) => {
+    await businessLock(tx);
     const customer = await tx.user.findUnique({
       where: { id },
       select: { email: true, role: true, updatedAt: true, reviews: { select: { productId: true } } },
@@ -71,7 +73,7 @@ export const DELETE = handle(async (request: Request, ctx: { params: Promise<{ i
 });
 
 export const GET = handle(async (_r: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requireAdmin("customers");
   const { id } = await ctx.params;
   const user = await prisma.user.findUniqueOrThrow({
     where: { id },

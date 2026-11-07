@@ -4,7 +4,7 @@ import { categorySchema } from "@/lib/validation";
 import { handle, json, parseBody, requireAdmin, HttpError } from "@/server/api";
 
 export const PUT = handle(async (request: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { id } = await ctx.params;
   const data = await parseBody(request, categorySchema);
   const category = await prisma.category.update({
@@ -23,7 +23,7 @@ export const PUT = handle(async (request: Request, ctx: { params: Promise<{ id: 
 });
 
 export const DELETE = handle(async (_r: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { id } = await ctx.params;
 
   const productCount = await prisma.product.count({ where: { categoryId: id } });

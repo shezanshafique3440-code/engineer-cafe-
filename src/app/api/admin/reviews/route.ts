@@ -7,7 +7,7 @@ const querySchema = z.object({
 });
 
 export const GET = handle(async (request: Request) => {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const q = parseQuery(request, querySchema);
   const reviews = await prisma.review.findMany({
     where: q.status === "ALL" ? {} : { status: q.status },

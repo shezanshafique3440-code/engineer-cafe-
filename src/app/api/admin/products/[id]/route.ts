@@ -4,7 +4,7 @@ import { productSchema } from "@/lib/validation";
 import { handle, json, parseBody, requireAdmin, notFound } from "@/server/api";
 
 export const GET = handle(async (_r: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { id } = await ctx.params;
   const product = await prisma.product.findUnique({
     where: { id },
@@ -17,7 +17,7 @@ export const GET = handle(async (_r: Request, ctx: { params: Promise<{ id: strin
 });
 
 export const PUT = handle(async (request: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { id } = await ctx.params;
   const data = await parseBody(request, productSchema);
   const slug = slugify(data.slug || data.name);
@@ -62,7 +62,7 @@ export const PUT = handle(async (request: Request, ctx: { params: Promise<{ id: 
  * deleted, so order history stays intact.
  */
 export const DELETE = handle(async (_r: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { id } = await ctx.params;
 
   const referenced = await prisma.orderItem.count({ where: { productId: id } });

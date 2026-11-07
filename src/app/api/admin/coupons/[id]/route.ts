@@ -9,7 +9,7 @@ function toDate(value: string | null | undefined): Date | null {
 }
 
 export const PUT = handle(async (request: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { id } = await ctx.params;
   const data = await parseBody(request, couponSchema);
   const coupon = await prisma.coupon.update({
@@ -32,7 +32,7 @@ export const PUT = handle(async (request: Request, ctx: { params: Promise<{ id: 
 });
 
 export const DELETE = handle(async (_r: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { id } = await ctx.params;
 
   const used = await prisma.order.count({ where: { couponId: id } });

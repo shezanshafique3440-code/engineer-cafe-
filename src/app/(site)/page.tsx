@@ -5,7 +5,6 @@ import { getSettings } from "@/server/settings";
 import { buildMetadata, restaurantJsonLd, SITE_DESCRIPTION } from "@/lib/seo";
 import { RecentlyViewed } from "@/components/storefront/browse-memory";
 import { Hero } from "@/components/home/hero";
-import { heroCatalog } from "@/lib/hero-catalog";
 import {
   CafeCollections,
   CafeStory,
@@ -68,7 +67,8 @@ export default async function HomePage() {
       p.stock !== 0 &&
       categories.some((c) => c.id === p.category.id),
   );
-  const highlights = heroCatalog(available);
+  const featured=available.filter(p=>p.isFeatured);
+  const highlights=featured.length?featured:available.slice(0,1);
 
   return (
     <div className="cinema-home">
@@ -81,14 +81,7 @@ export default async function HomePage() {
           ),
         }}
       />
-      <Hero
-        products={highlights}
-        catalog={available}
-        rating={ratings._count ? ratings._avg.rating : null}
-        reviewCount={ratings._count}
-        menuCount={stats._count}
-        prepMinutes={Math.max(1, Math.round(stats._avg.prepTimeMinutes ?? 10))}
-      />
+      <Hero stats={{highlights,avgPrepMinutes:Math.max(1,Math.round(stats._avg.prepTimeMinutes??10)),menuItems:stats._count,rating:ratings._count?ratings._avg.rating:null}}/>
       <CafeCollections products={available} />
       <CafeStory products={available} />
       <SignatureMenu products={available} categories={categories} />

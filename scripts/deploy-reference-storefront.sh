@@ -126,7 +126,7 @@ CAFE_RELEASE_SNAPSHOT="$BACKUP" bash "$BACKUP/deploy-reviewed.sh" "$TARGET"
 # These checks belong inside this wrapper's recovery boundary.
 curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 \
   https://esellerstore.vip/ -o "$BACKUP/home-after.html"
-grep -q 'cinema-hero' "$BACKUP/home-after.html"
+grep -Eq 'classic-hero|cinema-hero' "$BACKUP/home-after.html"
 for route in /discover /compare /api/storefront-selection; do
   status=$(curl --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 \
     -o /dev/null -w '%{http_code}' "https://esellerstore.vip$route")

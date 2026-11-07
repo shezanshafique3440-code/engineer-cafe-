@@ -1,4 +1,5 @@
 "use client";
+import { useSession } from "@/context/session-context";
 import { pakistanTime } from "@/lib/experience";
 
 import { useCallback, useEffect, useState } from "react";
@@ -32,6 +33,27 @@ export function KitchenBoard() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const money = useMoney();
+  const { user } = useSession();
+  const allowedNext = (ticket: Ticket) => {
+    const next = kitchenNext(ticket.status, ticket.orderType);
+    if (
+      user?.businessProfile === "CHEF" &&
+      next &&
+      !["CONFIRMED", "PREPARING", "READY"].includes(next)
+    )
+      return null;
+    if (
+      user?.businessProfile === "WAITER" &&
+      !(
+        ticket.serviceMode === "DINE_IN" &&
+        ticket.status === "READY" &&
+        next === "DELIVERED" &&
+        ticket.waiterName === user.name
+      )
+    )
+      return null;
+    return next;
+  };
   const load = useCallback(async () => {
     try {
       setData(await apiGet<Board>("/api/admin/kitchen"));
@@ -50,12 +72,15 @@ export function KitchenBoard() {
     return () => clearInterval(timer);
   }, [load, paused, updating]);
   const advance = async (ticket: Ticket) => {
-    const status = kitchenNext(ticket.status, ticket.orderType);
+    const status = allowedNext(ticket);
     if (!status) return;
     if (
       status === "DELIVERED" &&
       !window.confirm(
-        ticket.paymentStatus !== "PAID" && ticket.paymentMethod !== "ONLINE"
+        ticket.serviceMode !== "DINE_IN" &&
+          !ticket.businessCredit &&
+          ticket.paymentStatus !== "PAID" &&
+          ticket.paymentMethod !== "ONLINE"
           ? `Confirm #${ticket.orderNumber} has been handed over and ${money(ticket.total)} cash received?`
           : `Confirm #${ticket.orderNumber} has been handed over?`,
       )
@@ -87,8 +112,16 @@ export function KitchenBoard() {
   );
   const late = tickets.filter(
     (ticket) =>
-      ticketAge(ticket.scheduledAt ? new Date(new Date(ticket.scheduledAt).getTime()-ticket.estimatedMinutes*60000).toISOString() : ticket.placedAt, ticket.estimatedMinutes, now || Date.now())
-        .overdue,
+      ticketAge(
+        ticket.scheduledAt
+          ? new Date(
+              new Date(ticket.scheduledAt).getTime() -
+                ticket.estimatedMinutes * 60000,
+            ).toISOString()
+          : ticket.placedAt,
+        ticket.estimatedMinutes,
+        now || Date.now(),
+      ).overdue,
   ).length;
   return (
     <div>
@@ -147,15 +180,22 @@ export function KitchenBoard() {
           role="alert"
           className="mb-4 rounded-xl border border-chilli-400/30 bg-chilli-400/10 p-3 text-sm text-chilli-600"
         >
-          {"Kitchen connection interrupted. Displayed tickets may be stale. Refresh before acting."}</p>
+          {
+            "Kitchen connection interrupted. Displayed tickets may be stale. Refresh before acting."
+          }
+        </p>
       )}
       {data && data.total > data.tickets.length && (
         <p className="mb-4 text-sm text-amber-700">
-          {"Showing the oldest"}{data.tickets.length} {"of"}{data.total} {"active tickets. Completed tickets free up space."}</p>
+          {"Showing the oldest"}
+          {data.tickets.length} {"of"}
+          {data.total} {"active tickets. Completed tickets free up space."}
+        </p>
       )}
       <div className="surface mb-5 grid gap-3 p-3 sm:grid-cols-2">
         <label className="text-xs font-semibold text-charcoal-500">
-          {"Find a ticket"}<input
+          {"Find a ticket"}
+          <input
             aria-label="Find a kitchen ticket"
             className="field mt-1"
             type="search"
@@ -198,7 +238,8 @@ export function KitchenBoard() {
       </div>
       {!data && !failed && (
         <p role="status" className="py-12 text-center text-charcoal-500">
-          {"Loading kitchen tickets…"}</p>
+          {"Loading kitchen tickets…"}
+        </p>
       )}
       <div className="grid items-start gap-4 xl:grid-cols-5">
         {KITCHEN_LANES.map((status) => (
@@ -221,12 +262,21 @@ export function KitchenBoard() {
                 .filter((t) => t.status === status)
                 .map((ticket) => {
                   const age = ticketAge(
-                    ticket.scheduledAt ? new Date(new Date(ticket.scheduledAt).getTime()-ticket.estimatedMinutes*60000).toISOString() : ticket.placedAt,
+                    ticket.scheduledAt
+                      ? new Date(
+                          new Date(ticket.scheduledAt).getTime() -
+                            ticket.estimatedMinutes * 60000,
+                        ).toISOString()
+                      : ticket.placedAt,
                     ticket.estimatedMinutes,
                     now || Date.now(),
                   );
-                  const notDue=Boolean(ticket.scheduledAt&&new Date(ticket.scheduledAt).getTime()>Date.now()+ticket.estimatedMinutes*60000);
-                  const next = kitchenNext(ticket.status, ticket.orderType);
+                  const notDue = Boolean(
+                    ticket.scheduledAt &&
+                      new Date(ticket.scheduledAt).getTime() >
+                        Date.now() + ticket.estimatedMinutes * 60000,
+                  );
+                  const next = allowedNext(ticket);
                   return (
                     <article
                       key={ticket.id}
@@ -240,13 +290,23 @@ export function KitchenBoard() {
                           #{ticket.orderNumber}
                         </p>
                         <span className="chip bg-cream-100 text-[10px]">
-                          {ORDER_TYPE_LABEL[ticket.orderType]}
+                          {ticket.serviceMode === "DINE_IN"
+                            ? "Table · " + ticket.tableName
+                            : ORDER_TYPE_LABEL[ticket.orderType]}
                         </span>
                       </div>
                       <p className="mt-2 break-words text-sm text-charcoal-600">
                         {ticket.customerName}
-                        {ticket.scheduledAt&&<strong className="mt-1 block text-chai-700">Scheduled: {pakistanTime(ticket.scheduledAt)}</strong>}
-                        {ticket.paymentStatus==="PAID"&&<span className="mt-1 block text-xs text-circuit-600">Paid at counter</span>}
+                        {ticket.scheduledAt && (
+                          <strong className="mt-1 block text-chai-700">
+                            Scheduled: {pakistanTime(ticket.scheduledAt)}
+                          </strong>
+                        )}
+                        {ticket.paymentStatus === "PAID" && (
+                          <span className="mt-1 block text-xs text-circuit-600">
+                            Paid at counter
+                          </span>
+                        )}
                       </p>
                       <p
                         className={cn(
@@ -291,14 +351,19 @@ export function KitchenBoard() {
                       </ul>
                       {ticket.instructions && (
                         <p className="mb-3 break-words rounded-lg bg-amber-50 p-2 text-xs text-amber-900">
-                          {"Order note:"}{ticket.instructions}
+                          {"Order note:"}
+                          {ticket.instructions}
                         </p>
                       )}
                       {next && (
                         <Button
                           className="w-full px-2 text-xs"
                           loading={updating === ticket.id}
-                          disabled={!!updating || failed || (notDue&&next!=="CONFIRMED")}
+                          disabled={
+                            !!updating ||
+                            failed ||
+                            (notDue && next !== "CONFIRMED")
+                          }
                           onClick={() => void advance(ticket)}
                         >
                           {next === "DELIVERED"
@@ -312,7 +377,8 @@ export function KitchenBoard() {
               {data && !tickets.some((t) => t.status === status) && (
                 <div className="py-10 text-center text-xs text-charcoal-500">
                   <ChefHat className="mx-auto mb-2 h-6 w-6" />
-                  {"No tickets in this lane."}</div>
+                  {"No tickets in this lane."}
+                </div>
               )}
             </div>
           </section>
@@ -321,7 +387,9 @@ export function KitchenBoard() {
       {data && (
         <p className="mt-4 text-xs text-charcoal-500">
           {"Last successful refresh:"}{" "}
-          {new Date(data.fetchedAt).toLocaleTimeString("en-PK")}{". Estimates are measured from order placement."}</p>
+          {new Date(data.fetchedAt).toLocaleTimeString("en-PK")}
+          {". Estimates are measured from order placement."}
+        </p>
       )}
     </div>
   );

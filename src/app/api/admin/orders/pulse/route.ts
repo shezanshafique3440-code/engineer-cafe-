@@ -1,3 +1,4 @@
+import { waiterOrderScope } from "@/lib/business-access";
 import { prisma } from "@/lib/prisma";
 import { handle, json, requireAdmin } from "@/server/api";
 
@@ -7,11 +8,13 @@ import { handle, json, requireAdmin } from "@/server/api";
  * stats endpoint is far too heavy to call on a timer.
  */
 export const GET = handle(async () => {
-  await requireAdmin();
+  const actor = await requireAdmin("orders");
+  const scope = waiterOrderScope(actor);
 
   const [pendingCount, latest] = await Promise.all([
-    prisma.order.count({ where: { status: "PENDING" } }),
+    prisma.order.count({ where: { ...scope, status: "PENDING" } }),
     prisma.order.findFirst({
+      where: scope,
       orderBy: { placedAt: "desc" },
       select: {
         id: true,
@@ -26,6 +29,8 @@ export const GET = handle(async () => {
 
   return json({
     pendingCount,
-    latest: latest ? { ...latest, placedAt: latest.placedAt.toISOString() } : null,
+    latest: latest
+      ? { ...latest, placedAt: latest.placedAt.toISOString() }
+      : null,
   });
 });

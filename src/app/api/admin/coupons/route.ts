@@ -9,13 +9,13 @@ function toDate(value: string | null | undefined): Date | null {
 }
 
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } });
   return json({ coupons });
 });
 
 export const POST = handle(async (request: Request) => {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const data = await parseBody(request, couponSchema);
   const coupon = await prisma.coupon.create({
     data: {

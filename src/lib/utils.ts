@@ -7,8 +7,8 @@ export function cn(...inputs: ClassValue[]) {
 
 /** Rs. 250 — Pakistani Rupee formatter used everywhere in the UI. */
 export function formatCurrency(amount: number, symbol = "Rs."): string {
-  const rounded = Math.round(Number.isFinite(amount) ? amount : 0);
-  return `${symbol} ${rounded.toLocaleString("en-PK")}`;
+  const value = Number.isFinite(amount) ? amount : 0;
+  return `${symbol} ${value.toLocaleString("en-PK", { minimumFractionDigits: Number.isInteger(value) ? 0 : 2, maximumFractionDigits: 2 })}`;
 }
 
 export function formatDate(value: Date | string, withTime = false): string {
@@ -46,7 +46,10 @@ export function slugify(input: string): string {
 }
 
 /** Percentage saved when a discount price is set. */
-export function discountPercent(price: number, discountPrice?: number | null): number | null {
+export function discountPercent(
+  price: number,
+  discountPrice?: number | null,
+): number | null {
   if (!discountPrice || discountPrice >= price || price <= 0) return null;
   return Math.round(((price - discountPrice) / price) * 100);
 }

@@ -1,3 +1,4 @@
+import { waiterOrderScope } from "@/lib/business-access";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { handle, json, parseQuery, requireAdmin } from "@/server/api";
@@ -6,7 +7,16 @@ import { serializeOrder } from "@/server/orders";
 const querySchema = z.object({
   search: z.string().max(80).optional(),
   status: z
-    .enum(["ALL", "PENDING", "CONFIRMED", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"])
+    .enum([
+      "ALL",
+      "PENDING",
+      "CONFIRMED",
+      "PREPARING",
+      "READY",
+      "OUT_FOR_DELIVERY",
+      "DELIVERED",
+      "CANCELLED",
+    ])
     .default("ALL"),
   orderType: z.enum(["ALL", "DELIVERY", "PICKUP"]).default("ALL"),
   from: z.string().max(30).optional(),
@@ -16,7 +26,8 @@ const querySchema = z.object({
 });
 
 export const GET = handle(async (request: Request) => {
-  await requireAdmin();
+  const actor = await requireAdmin("orders");
+  const scope = waiterOrderScope(actor);
   const q = parseQuery(request, querySchema);
 
   const createdAt: { gte?: Date; lte?: Date } = {};
@@ -33,15 +44,24 @@ export const GET = handle(async (request: Request) => {
   }
 
   const where = {
+    ...scope,
     ...(q.status !== "ALL" ? { status: q.status } : {}),
     ...(q.orderType !== "ALL" ? { orderType: q.orderType } : {}),
     ...(Object.keys(createdAt).length ? { createdAt } : {}),
     ...(q.search
       ? {
           OR: [
-            { orderNumber: { contains: q.search, mode: "insensitive" as const } },
-            { customerName: { contains: q.search, mode: "insensitive" as const } },
+            {
+              orderNumber: { contains: q.search, mode: "insensitive" as const },
+            },
+            {
+              customerName: {
+                contains: q.search,
+                mode: "insensitive" as const,
+              },
+            },
             { customerPhone: { contains: q.search } },
+            { tableName: { contains: q.search, mode: "insensitive" as const } },
           ],
         }
       : {}),
@@ -53,10 +73,17 @@ export const GET = handle(async (request: Request) => {
       orderBy: { createdAt: "desc" },
       skip: (q.page - 1) * q.perPage,
       take: q.perPage,
-      include: { items: { include: { addons: true } }, events: { orderBy: { createdAt: "asc" } } },
+      include: {
+        items: { include: { addons: true } },
+        events: { orderBy: { createdAt: "asc" } },
+      },
     }),
     prisma.order.count({ where }),
-    prisma.order.groupBy({ by: ["status"], _count: { status: true } }),
+    prisma.order.groupBy({
+      where: scope,
+      by: ["status"],
+      _count: { status: true },
+    }),
   ]);
 
   return json({
@@ -65,6 +92,8 @@ export const GET = handle(async (request: Request) => {
     page: q.page,
     perPage: q.perPage,
     totalPages: Math.max(1, Math.ceil(total / q.perPage)),
-    statusCounts: Object.fromEntries(statusCounts.map((s) => [s.status, s._count.status])),
+    statusCounts: Object.fromEntries(
+      statusCounts.map((s) => [s.status, s._count.status]),
+    ),
   });
 });

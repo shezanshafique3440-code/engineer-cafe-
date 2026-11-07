@@ -34,6 +34,21 @@ if ! git diff --quiet "$CURRENT" "$PREVIOUS" -- package.json package-lock.json p
   test "$(cat "$BACKUP/additive-release")" = "$PREVIOUS $CURRENT"
   test -s "$BACKUP/dependencies.tar.gz"
 fi
+# Earlier app versions cannot maintain active ingredient and accounting books.
+if git cat-file -e "$CURRENT:src/server/business/core.ts" 2>/dev/null && ! git cat-file -e "$PREVIOUS:src/server/business/core.ts" 2>/dev/null; then
+  docker exec -i infra-postgres-1 sh -lc 'exec psql -Xq -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-postgres}" -d engineer_cafe' <<'SQL'
+DO $$
+DECLARE active boolean := false;
+BEGIN
+  IF to_regclass('public."BusinessConfig"') IS NOT NULL THEN
+    EXECUTE 'SELECT enabled FROM public."BusinessConfig" WHERE id=1' INTO active;
+  END IF;
+  IF active THEN
+    RAISE EXCEPTION 'Accounting is active. Settle open tracked orders and pause accounting in Opening setup before rolling back to the earlier app. No services or data have been changed.';
+  END IF;
+END $$;
+SQL
+fi
 test -f .env
 pm2 describe engineer-cafe >/dev/null
 RECOVERY=$(mktemp -d "$BACKUP/rollback-attempt.XXXXXXXX")

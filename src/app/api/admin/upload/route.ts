@@ -3,7 +3,7 @@ import { rateLimit } from "@/server/rate-limit";
 import { ALLOWED_MIME, MAX_UPLOAD_BYTES, storage } from "@/server/storage";
 
 export const POST = handle(async (request: Request) => {
-  await requireAdmin();
+  await requireAdmin("catalog");
   rateLimit(request, "upload", 30, 60_000);
 
   const form = await request.formData().catch(() => null);

@@ -1,92 +1,224 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Printer, Plus, Minus, Trash2 } from "lucide-react";
 import { CartProvider, useCart } from "@/context/cart-context";
 import { useSettings, useMoney } from "@/context/settings-context";
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiGet, apiPost, ApiError } from "@/lib/api-client";
 import { ProductDialog } from "@/components/menu/product-dialog";
 import { StorefrontProvider } from "@/context/storefront-context";
 import { FavoritesProvider } from "@/context/favorites-context";
-import { Button, Input, ErrorState } from "@/components/ui";
+import { Button, Input, Select, Checkbox, ErrorState } from "@/components/ui";
 import { buildReceiptHtml, printSlip } from "@/lib/receipt";
 import type { ProductDTO } from "@/lib/types";
 import type { OrderDTO } from "@/server/orders";
-export function CounterPOS() {
+type SalesContext = {
+  enabled: boolean;
+  accounts: {
+    id: string;
+    name: string;
+    code: string;
+    drawer?: { id: string } | null;
+  }[];
+  sessions: { id: string; table: { name: string } }[];
+  customers: { id: string; name: string; creditLimit: string }[];
+  shift: { id: string; drawer: { name: string; accountId: string } } | null;
+};
+export function CounterPOS({
+  mode = "COUNTER",
+  sessionId = "",
+}: {
+  mode?: "COUNTER" | "TABLE";
+  sessionId?: string;
+}) {
+  const [session, setSession] = useState(sessionId);
   return (
     <FavoritesProvider>
-      <CartProvider scope="pos">
+      <CartProvider
+        key={mode + session}
+        scope={mode === "TABLE" ? `table:${session}` : "pos"}
+      >
         <StorefrontProvider>
-          <Counter />
+          <Counter mode={mode} session={session} setSession={setSession} />
         </StorefrontProvider>
       </CartProvider>
     </FavoritesProvider>
   );
 }
-function Counter() {
+function Counter({
+  mode,
+  session,
+  setSession,
+}: {
+  mode: "COUNTER" | "TABLE";
+  session: string;
+  setSession: (id: string) => void;
+}) {
   const cart = useCart(),
     settings = useSettings(),
     money = useMoney();
   const [products, setProducts] = useState<ProductDTO[]>([]),
-    [error, setError] = useState(false),
+    [context, setContext] = useState<SalesContext | null>(null),
+    [error, setError] = useState(""),
     [query, setQuery] = useState(""),
     [slug, setSlug] = useState<string | null>(null),
     [cash, setCash] = useState(""),
     [name, setName] = useState(""),
+    [account, setAccount] = useState(""),
+    [credit, setCredit] = useState(false),
+    [party, setParty] = useState(""),
     [busy, setBusy] = useState(false),
     [receipt, setReceipt] = useState<OrderDTO | null>(null),
     [requestId, setRequestId] = useState("");
+  const table = mode === "TABLE";
   const load = () =>
-    apiGet<{ products: ProductDTO[] }>("/api/meal-catalog")
-      .then((d) => {
+    Promise.all([
+      apiGet<{ products: ProductDTO[] }>("/api/meal-catalog"),
+      apiGet<SalesContext>("/api/admin/sales-context"),
+    ])
+      .then(([d, c]) => {
         setProducts(d.products);
-        setError(false);
+        setContext(c);
+        setAccount(
+          (current) =>
+            current ||
+            c.shift?.drawer.accountId ||
+            c.accounts.find((a) => a.code === "CASH_MAIN")?.id ||
+            "",
+        );
+        setError("");
       })
-      .catch(() => setError(true));
+      .catch((e) =>
+        setError(e instanceof Error ? e.message : "Unable to load the counter"),
+      );
   useEffect(() => {
     void load();
     setRequestId(crypto.randomUUID());
   }, []);
   const setOrderType = cart.setOrderType;
-  useEffect(() => {
-    setOrderType("PICKUP");
-  }, [setOrderType]);
+  useEffect(() => setOrderType("PICKUP"), [setOrderType]);
   const complete = async () => {
+    if (busy) return;
     setBusy(true);
     try {
-      const d = await apiPost<{ order: OrderDTO }>("/api/admin/pos", {
+      const payload = {
         requestId,
-        expectedTotal: cart.quote?.total,
         lines: cart.toCartLinesPayload(),
-        cashReceived: Number(cash),
-        customerName: name.trim() || "Counter guest",
-      });
-      setReceipt(d.order);
+        expectedTotal: cart.quote?.total,
+        customerName: name.trim() || (table ? "Table guest" : "Counter guest"),
+        ...(table
+          ? { sessionId: session }
+          : {
+              cashReceived: cash ? Number(cash) : 0,
+              accountId: account || undefined,
+              credit,
+              partyId: party || undefined,
+            }),
+      };
+      const result = await apiPost<{ order: OrderDTO }>(
+        table ? "/api/admin/table-orders" : "/api/admin/pos",
+        payload,
+      );
+      setReceipt(result.order);
       cart.clear({ silent: true });
       setCash("");
       setName("");
       setRequestId(crypto.randomUUID());
-      toast.success("Cash recorded. Ticket sent to kitchen.");
+      toast.success(
+        table
+          ? "Table ticket sent to kitchen."
+          : credit
+            ? "Credit sale recorded."
+            : "Payment recorded. Ticket sent to kitchen.",
+      );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not record sale");
+      toast.error(
+        e instanceof ApiError && e.fields
+          ? Object.values(e.fields).flat()[0] || e.message
+          : e instanceof Error
+            ? e.message
+            : "Could not record sale",
+      );
     } finally {
       setBusy(false);
     }
   };
+  const disabled =
+    !cart.quote ||
+    cart.quoting ||
+    !cart.lines.length ||
+    !requestId ||
+    (table
+      ? !session || !context?.enabled
+      : (!credit && (!cash || Number(cash) < cart.quote.total)) ||
+        (credit && !party));
   return (
-    <div>
-      <h1 className="text-3xl font-bold">Counter POS</h1>
+    <div className="min-w-0">
+      <h1 className="text-3xl font-bold">
+        {table ? "Waiter order desk" : "Counter POS"}
+      </h1>
       <p className="mt-2 text-sm text-charcoal-500">
-        Take cash, calculate change and send a paid ticket to the kitchen.
+        {table
+          ? "Choose an open table and send its next kitchen ticket. The cashier settles the combined bill."
+          : "Receive payment, calculate change and send the ticket to the kitchen."}
       </p>
+      <div className="my-4 flex flex-wrap gap-2">
+        <Link
+          className="btn-secondary text-xs"
+          href="/admin/business?section=tables"
+        >
+          Tables & bills
+        </Link>
+        {!table && (
+          <Link
+            className="btn-secondary text-xs"
+            href="/admin/business?section=cash"
+          >
+            Open / close cash shift
+          </Link>
+        )}
+      </div>
+      {context?.enabled && !table && (
+        <p className="mb-4 rounded-xl bg-chai-50 p-3 text-sm">
+          {context.shift
+            ? "Your cash shift: " + context.shift.drawer.name
+            : "No cash shift is open under your login. Open a drawer before taking cash; bank/wallet receipts use the selected account."}
+        </p>
+      )}
+      {table && context && (
+        <div className="surface mb-4 p-4">
+          <Select
+            label="Open table bill"
+            value={session}
+            onChange={(e) => setSession(e.target.value)}
+          >
+            <option value="">Choose a table…</option>
+            {context.sessions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.table.name}
+              </option>
+            ))}
+          </Select>
+          {!context.enabled && (
+            <p className="mt-2 text-sm text-chilli-600">
+              The owner must finish business setup and activate table ordering.
+            </p>
+          )}
+        </div>
+      )}
       {receipt && (
         <div
           role="status"
           className="surface my-5 flex flex-wrap items-center justify-between gap-3 p-4"
         >
           <p>
-            <strong>#{receipt.orderNumber}</strong> · Paid{" "}
-            {money(receipt.total)} · Change {money(receipt.cashChange ?? 0)}
+            <strong>#{receipt.orderNumber}</strong> · {receipt.paymentStatus}{" "}
+            {money(receipt.total)}
+            {receipt.cashChange !== null
+              ? " · Change " + money(receipt.cashChange)
+              : ""}
+            {receipt.tableName ? " · " + receipt.tableName : ""}
           </p>
           <Button
             onClick={async () => {
@@ -106,11 +238,11 @@ function Counter() {
             }}
           >
             <Printer className="h-4 w-4" />
-            Print receipt
+            Print ticket
           </Button>
         </div>
       )}
-      <div className="mt-6 grid gap-5 xl:grid-cols-[1fr_360px]">
+      <div className="mt-6 grid min-w-0 gap-5 xl:grid-cols-[1fr_360px]">
         <section className="min-w-0">
           <Input
             type="search"
@@ -120,7 +252,7 @@ function Counter() {
             onChange={(e) => setQuery(e.target.value)}
           />
           {error ? (
-            <ErrorState onRetry={() => void load()} />
+            <ErrorState description={error} onRetry={() => void load()} />
           ) : (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {products
@@ -153,11 +285,13 @@ function Counter() {
             </div>
           )}
         </section>
-        <section className="surface self-start p-4 xl:sticky xl:top-24">
-          <h2 className="mb-3 text-lg font-bold">Current sale</h2>
-          {cart.lines.length === 0 && (
+        <section className="surface min-w-0 self-start p-4 xl:sticky xl:top-24">
+          <h2 className="mb-3 text-lg font-bold">
+            {table ? "Current table ticket" : "Current sale"}
+          </h2>
+          {!cart.lines.length && (
             <p className="py-6 text-sm text-charcoal-500">
-              Select items to start a sale.
+              Select items to start.
             </p>
           )}
           {cart.lines.map((l) => (
@@ -168,6 +302,7 @@ function Counter() {
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <button
+                  type="button"
                   className="btn-secondary p-2"
                   aria-label={`Decrease ${l.name}`}
                   onClick={() => cart.decrement(l.key)}
@@ -176,6 +311,7 @@ function Counter() {
                 </button>
                 <span>{l.quantity}</span>
                 <button
+                  type="button"
                   className="btn-secondary p-2"
                   aria-label={`Increase ${l.name}`}
                   onClick={() => cart.increment(l.key)}
@@ -189,6 +325,7 @@ function Counter() {
                   )}
                 </span>
                 <button
+                  type="button"
                   className="p-2 text-chilli-600"
                   aria-label={`Remove ${l.name}`}
                   onClick={() => cart.removeItem(l.key)}
@@ -203,56 +340,107 @@ function Counter() {
               {cart.quoteError}
             </p>
           )}
-          <div className="my-4 space-y-2 text-sm">
-            <p className="flex justify-between">
-              <span>Subtotal</span>
-              <span>{money(cart.quote?.subtotal ?? 0)}</span>
-            </p>
-            <p className="flex justify-between">
-              <span>Tax</span>
-              <span>{money(cart.quote?.tax ?? 0)}</span>
-            </p>
-            <p className="flex justify-between text-lg font-bold">
-              <span>Total</span>
-              <span>{money(cart.quote?.total ?? 0)}</span>
-            </p>
-          </div>
+          <dl className="my-4 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <dt>Subtotal</dt>
+              <dd>{money(cart.quote?.subtotal ?? 0)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt>Tax</dt>
+              <dd>{money(cart.quote?.tax ?? 0)}</dd>
+            </div>
+            <div className="flex justify-between text-lg font-bold">
+              <dt>Total</dt>
+              <dd>{money(cart.quote?.total ?? 0)}</dd>
+            </div>
+          </dl>
           <div className="space-y-3">
             <Input
               label="Customer name (optional)"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <Input
-              label="Cash received"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={cash}
-              onChange={(e) => setCash(e.target.value)}
-            />
-            <p className="text-lg font-bold">
-              Change:{" "}
-              {money(Math.max(0, Number(cash) - (cart.quote?.total ?? 0)))}
-            </p>
+            {!table && (
+              <>
+                {context?.enabled && (
+                  <>
+                    <Checkbox
+                      label="Approved customer credit"
+                      checked={credit}
+                      onChange={(e) => setCredit(e.target.checked)}
+                    />
+                    {credit && (
+                      <Select
+                        label="Credit customer"
+                        value={party}
+                        onChange={(e) => setParty(e.target.value)}
+                      >
+                        <option value="">Choose approved customer…</option>
+                        {context.customers.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name} · limit {money(Number(c.creditLimit))}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                    <Select
+                      label="Payment received into"
+                      value={account}
+                      onChange={(e) => setAccount(e.target.value)}
+                    >
+                      {context.accounts.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </>
+                )}
+                <Input
+                  label={
+                    credit ? "Received now (optional)" : "Amount tendered (Rs.)"
+                  }
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  max={1000000}
+                  step="0.01"
+                  value={cash}
+                  onChange={(e) => setCash(e.target.value)}
+                />
+                {!credit && (
+                  <p className="text-lg font-bold">
+                    Change:{" "}
+                    {money(
+                      Math.max(0, Number(cash) - (cart.quote?.total ?? 0)),
+                    )}
+                  </p>
+                )}
+              </>
+            )}
             <Button
               className="w-full"
               loading={busy}
-              disabled={
-                !cart.quote ||
-                cart.quoting ||
-                !cash ||
-                Number(cash) < cart.quote.total ||
-                !cart.lines.length
-              }
+              disabled={disabled}
               onClick={() => void complete()}
             >
-              Record cash & send ticket
+              {table
+                ? "Send table ticket"
+                : credit
+                  ? "Record credit sale"
+                  : "Record payment & send ticket"}
             </Button>
           </div>
         </section>
       </div>
-      {slug && <ProductDialog slug={slug} open onClose={() => setSlug(null)} />}
+      {slug && (
+        <ProductDialog
+          slug={slug}
+          open
+          staffMode
+          onClose={() => setSlug(null)}
+        />
+      )}
     </div>
   );
 }

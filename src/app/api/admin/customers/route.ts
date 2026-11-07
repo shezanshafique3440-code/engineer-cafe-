@@ -10,7 +10,7 @@ const querySchema = z.object({
 });
 
 export const GET = handle(async (request: Request) => {
-  await requireAdmin();
+  await requireAdmin("customers");
   const q = parseQuery(request, querySchema);
 
   const where = {

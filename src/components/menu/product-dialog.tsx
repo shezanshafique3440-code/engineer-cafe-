@@ -50,10 +50,12 @@ export function ProductDialog({
   slug,
   open,
   onClose,
+  staffMode=false,
 }: {
   slug: string;
   open: boolean;
   onClose: () => void;
+  staffMode?:boolean;
 }) {
   const [product, setProduct] = useState<ProductDTO | null>(null);
   const [loading, setLoading] = useState(true);
@@ -481,7 +483,7 @@ export function ProductDialog({
                     </Button>
                   </div>
 
-                  <Button
+                  {!staffMode&&<Button
                     onClick={handleBuyNow}
                     disabled={
                       !product.isAvailable ||
@@ -492,7 +494,7 @@ export function ProductDialog({
                     className="mt-3 w-full"
                     size="lg"
                   >
-                    <Zap className="h-4 w-4" aria-hidden /> {<T text="Buy it now"/>}</Button>
+                    <Zap className="h-4 w-4" aria-hidden /> {<T text="Buy it now"/>}</Button>}
                 </div>
               </>
             )}

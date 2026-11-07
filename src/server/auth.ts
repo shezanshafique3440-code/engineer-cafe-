@@ -82,10 +82,10 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   if (!session) return null;
   const user = await prisma.user.findUnique({
     where: { id: session.id },
-    select: { id: true, name: true, email: true, role: true, isActive: true },
+    select: { id: true, name: true, email: true, role: true, isActive: true, staffAccess: { select: { profile:true,employeeId:true } } },
   });
   if (!user || !user.isActive) return null;
-  return { id: user.id, name: user.name, email: user.email, role: user.role };
+  return { id: user.id, name: user.name, email: user.email, role: user.role, businessProfile:user.staffAccess?.profile??null, employeeId:user.staffAccess?.employeeId??null };
 }
 
 export function isStaff(role: Role | undefined | null): boolean {

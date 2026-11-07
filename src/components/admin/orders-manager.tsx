@@ -1,9 +1,21 @@
 "use client";
+import { OrderMoney } from "@/components/business/order-money";
+import { canBusiness } from "@/lib/business-access";
 import { pakistanTime } from "@/lib/experience";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Search, Printer, Eye, RefreshCw, Phone, MapPin, MessageCircle, Download, Trash2 } from "lucide-react";
+import {
+  Search,
+  Printer,
+  Eye,
+  RefreshCw,
+  Phone,
+  MapPin,
+  MessageCircle,
+  Download,
+  Trash2,
+} from "lucide-react";
 import { downloadCsv } from "@/lib/csv";
 import { apiDelete, apiGet, apiPatch, ApiError } from "@/lib/api-client";
 import { useSession } from "@/context/session-context";
@@ -12,16 +24,31 @@ import { PageHeader, DataTable, TableSkeleton, Modal } from "./ui";
 import { Button, Select, ErrorState, Badge } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
 import {
-  ORDER_STATUS_LABEL, ORDER_STATUS_TONE, ORDER_TYPE_LABEL,
-  PAYMENT_METHOD_LABEL, nextStatuses, allStatuses,
+  ORDER_STATUS_LABEL,
+  ORDER_STATUS_TONE,
+  ORDER_TYPE_LABEL,
+  PAYMENT_METHOD_LABEL,
+  nextStatuses,
+  allStatuses,
 } from "@/lib/constants";
-import { whatsappOrderHref, toWhatsAppNumber, NOTIFY_LABEL, ORDERS_CHANGED_EVENT } from "@/lib/notifications";
+import {
+  whatsappOrderHref,
+  toWhatsAppNumber,
+  NOTIFY_LABEL,
+  ORDERS_CHANGED_EVENT,
+} from "@/lib/notifications";
 import type { OrderDTO } from "@/server/orders";
 import type { OrderStatus } from "@prisma/client";
 
 const STATUS_OPTIONS = [
-  "ALL", "PENDING", "CONFIRMED", "PREPARING", "READY",
-  "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED",
+  "ALL",
+  "PENDING",
+  "CONFIRMED",
+  "PREPARING",
+  "READY",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+  "CANCELLED",
 ] as const;
 
 export function OrdersManager() {
@@ -58,6 +85,18 @@ function OrdersManagerInner() {
   const settings = useSettings();
   const { user } = useSession();
   const canDelete = user?.role === "ADMIN";
+  const allowedStatus = (order: OrderDTO, status: OrderStatus) => {
+    if (user?.businessProfile === "CHEF")
+      return ["CONFIRMED", "PREPARING", "READY"].includes(status);
+    if (user?.businessProfile === "WAITER")
+      return (
+        order.serviceMode === "DINE_IN" &&
+        order.status === "READY" &&
+        status === "DELIVERED" &&
+        order.waiterName === user.name
+      );
+    return true;
+  };
 
   const load = useCallback(
     async (targetPage = 1) => {
@@ -119,7 +158,10 @@ function OrdersManagerInner() {
    * cafe has no messaging API, so the send stays a deliberate one-tap action
    * by whoever is on the counter.
    */
-  const notifyCustomer = (order: OrderDTO, status: OrderStatus = order.status) => {
+  const notifyCustomer = (
+    order: OrderDTO,
+    status: OrderStatus = order.status,
+  ) => {
     const href = whatsappOrderHref(order, status, {
       cafeName: settings.cafeName,
       money,
@@ -134,14 +176,31 @@ function OrdersManagerInner() {
   };
 
   const updateStatus = async (order: OrderDTO, status: OrderStatus) => {
-    if (status === "CANCELLED" && !window.confirm(`Cancel order #${order.orderNumber}?`)) return;
-    if (status === "DELIVERED" && !window.confirm(order.paymentMethod === "ONLINE"
-      ? `Confirm order #${order.orderNumber} has been handed over?`
-      : `Confirm order #${order.orderNumber} has been handed over and ${money(order.total)} cash received?`)) return;
+    if (
+      status === "CANCELLED" &&
+      !window.confirm(`Cancel order #${order.orderNumber}?`)
+    )
+      return;
+    if (
+      status === "DELIVERED" &&
+      !window.confirm(
+        order.paymentMethod === "ONLINE" ||
+          order.businessCredit ||
+          order.paymentStatus === "PAID"
+          ? `Confirm order #${order.orderNumber} has been handed over?`
+          : `Confirm order #${order.orderNumber} has been handed over and ${money(order.total)} cash received?`,
+      )
+    )
+      return;
     setUpdating(order.id);
     try {
-      const data = await apiPatch<{ order: OrderDTO }>(`/api/admin/orders/${order.id}`, { status });
-      setOrders((current) => current.map((o) => (o.id === order.id ? data.order : o)));
+      const data = await apiPatch<{ order: OrderDTO }>(
+        `/api/admin/orders/${order.id}`,
+        { status },
+      );
+      setOrders((current) =>
+        current.map((o) => (o.id === order.id ? data.order : o)),
+      );
       if (viewing?.id === order.id) setViewing(data.order);
       window.dispatchEvent(new Event(ORDERS_CHANGED_EVENT));
 
@@ -149,13 +208,17 @@ function OrdersManagerInner() {
       // carries the send rather than leaving it to be remembered.
       const canNotify = Boolean(toWhatsAppNumber(data.order.customerPhone));
       toast.success(`#${order.orderNumber} → ${ORDER_STATUS_LABEL[status]}`, {
-        description: canNotify ? `Tell ${data.order.customerName} on WhatsApp?` : undefined,
+        description: canNotify
+          ? `Tell ${data.order.customerName} on WhatsApp?`
+          : undefined,
         action: canNotify
           ? { label: "Send", onClick: () => notifyCustomer(data.order, status) }
           : undefined,
       });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Couldn't update this order.");
+      toast.error(
+        err instanceof ApiError ? err.message : "Couldn't update this order.",
+      );
     } finally {
       setUpdating(null);
     }
@@ -187,7 +250,9 @@ function OrdersManagerInner() {
       await load(orders.length === 1 && page > 1 ? page - 1 : page);
       requestAnimationFrame(() => refreshButton.current?.focus());
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Couldn't delete this order.");
+      toast.error(
+        err instanceof ApiError ? err.message : "Couldn't delete this order.",
+      );
       if (err instanceof ApiError && [404, 409].includes(err.status)) {
         setDeleting(null);
         await load(page);
@@ -226,15 +291,49 @@ function OrdersManagerInner() {
         description={`${total} order${total === 1 ? "" : "s"} matching your filters.`}
         action={
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" disabled={!orders.length || loading} title="Download orders on the current filtered page"
-              onClick={() => downloadCsv(`cafe-orders-page-${page}.csv`,
-                ["Order", "Customer", "Phone", "Total (PKR)", "Status", "Type", "Payment", "Placed at"],
-                orders.map(order => [order.orderNumber, order.customerName, order.customerPhone, order.total,
-                  ORDER_STATUS_LABEL[order.status], ORDER_TYPE_LABEL[order.orderType], order.paymentStatus, order.placedAt]))}>
+            <Button
+              variant="secondary"
+              disabled={!orders.length || loading}
+              title="Download orders on the current filtered page"
+              onClick={() =>
+                downloadCsv(
+                  `cafe-orders-page-${page}.csv`,
+                  [
+                    "Order",
+                    "Customer",
+                    "Phone",
+                    "Total (PKR)",
+                    "Status",
+                    "Type",
+                    "Payment",
+                    "Placed at",
+                  ],
+                  orders.map((order) => [
+                    order.orderNumber,
+                    order.customerName,
+                    order.customerPhone,
+                    order.total,
+                    ORDER_STATUS_LABEL[order.status],
+                    ORDER_TYPE_LABEL[order.orderType],
+                    order.paymentStatus,
+                    order.placedAt,
+                  ]),
+                )
+              }
+            >
               <Download className="h-4 w-4" aria-hidden /> Export page
             </Button>
-            <Button ref={refreshButton} variant="secondary" onClick={() => void load(page)} disabled={loading}>
-              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden /> Refresh
+            <Button
+              ref={refreshButton}
+              variant="secondary"
+              onClick={() => void load(page)}
+              disabled={loading}
+            >
+              <RefreshCw
+                className={cn("h-4 w-4", loading && "animate-spin")}
+                aria-hidden
+              />{" "}
+              Refresh
             </Button>
           </div>
         }
@@ -256,7 +355,9 @@ function OrdersManagerInner() {
           >
             {status === "ALL" ? "All" : ORDER_STATUS_LABEL[status]}
             {status !== "ALL" && statusCounts[status] ? (
-              <span className="ml-1.5 text-charcoal-400">{statusCounts[status]}</span>
+              <span className="ml-1.5 text-charcoal-400">
+                {statusCounts[status]}
+              </span>
             ) : null}
           </button>
         ))}
@@ -264,13 +365,20 @@ function OrdersManagerInner() {
 
       <div className="surface mb-5 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="relative">
-          <label htmlFor="order-search" className="label">Search</label>
-          <Search className="pointer-events-none absolute left-3.5 top-[34px] h-4 w-4 text-charcoal-300" aria-hidden />
+          <label htmlFor="order-search" className="label">
+            Search
+          </label>
+          <Search
+            className="pointer-events-none absolute left-3.5 top-[34px] h-4 w-4 text-charcoal-300"
+            aria-hidden
+          />
           <input
             id="order-search"
             type="search"
             value={filters.search}
-            onChange={(e) => setFilters((c) => ({ ...c, search: e.target.value }))}
+            onChange={(e) =>
+              setFilters((c) => ({ ...c, search: e.target.value }))
+            }
             placeholder="Order #, name or phone"
             className="field pl-10"
           />
@@ -278,24 +386,32 @@ function OrdersManagerInner() {
         <Select
           label="Order type"
           value={filters.orderType}
-          onChange={(e) => setFilters((c) => ({ ...c, orderType: e.target.value }))}
+          onChange={(e) =>
+            setFilters((c) => ({ ...c, orderType: e.target.value }))
+          }
         >
           <option value="ALL">All types</option>
           <option value="DELIVERY">Delivery</option>
           <option value="PICKUP">Pickup</option>
         </Select>
         <div>
-          <label htmlFor="from-date" className="label">From</label>
+          <label htmlFor="from-date" className="label">
+            From
+          </label>
           <input
             id="from-date"
             type="date"
             value={filters.from}
-            onChange={(e) => setFilters((c) => ({ ...c, from: e.target.value }))}
+            onChange={(e) =>
+              setFilters((c) => ({ ...c, from: e.target.value }))
+            }
             className="field"
           />
         </div>
         <div>
-          <label htmlFor="to-date" className="label">To</label>
+          <label htmlFor="to-date" className="label">
+            To
+          </label>
           <input
             id="to-date"
             type="date"
@@ -307,18 +423,33 @@ function OrdersManagerInner() {
       </div>
 
       {error ? (
-        <ErrorState title="Unable to load orders." onRetry={() => void load(page)} />
+        <ErrorState
+          title="Unable to load orders."
+          onRetry={() => void load(page)}
+        />
       ) : loading && orders.length === 0 ? (
         <TableSkeleton cols={7} />
       ) : (
         <>
           <DataTable
-            columns={["Order", "Customer", "Items", "Total", "Payment", "Type", "Status", "Date", "Actions"]}
+            columns={[
+              "Order",
+              "Customer",
+              "Items",
+              "Total",
+              "Payment",
+              "Type",
+              "Status",
+              "Date",
+              "Actions",
+            ]}
             empty={orders.length === 0}
           >
             {orders.map((order) => {
               // Every status, not just the next one — see allStatuses.
-              const options = allStatuses(order.status, order.orderType);
+              const options = allStatuses(order.status, order.orderType).filter(
+                (status) => allowedStatus(order, status),
+              );
               return (
                 <tr key={order.id} className="transition hover:bg-cream-50">
                   <td className="whitespace-nowrap px-4 py-3">
@@ -331,25 +462,54 @@ function OrdersManagerInner() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-charcoal-800">{order.customerName}</p>
-                    <p className="text-xs text-charcoal-400">{order.customerPhone}</p>{order.scheduledAt&&<p className="mt-1 text-xs font-semibold text-chai-700">Due {pakistanTime(order.scheduledAt)}</p>}{order.channel==="POS"&&<span className="text-xs text-circuit-600">Counter sale</span>}
+                    <p className="font-medium text-charcoal-800">
+                      {order.customerName}
+                    </p>
+                    <p className="text-xs text-charcoal-400">
+                      {order.customerPhone}
+                    </p>
+                    {order.scheduledAt && (
+                      <p className="mt-1 text-xs font-semibold text-chai-700">
+                        Due {pakistanTime(order.scheduledAt)}
+                      </p>
+                    )}
+                    {order.channel === "POS" && (
+                      <span className="text-xs text-circuit-600">
+                        Counter sale
+                      </span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-charcoal-500">{order.items.length}</td>
+                  <td className="px-4 py-3 text-charcoal-500">
+                    {order.items.length}
+                  </td>
                   <td className="whitespace-nowrap px-4 py-3 font-bold text-charcoal-900">
                     {money(order.total)}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-charcoal-500">
                     {PAYMENT_METHOD_LABEL[order.paymentMethod]}
                     <br />
-                    <span className={order.paymentStatus === "PAID" ? "text-circuit-600" : "text-charcoal-400"}>
+                    <span
+                      className={
+                        order.paymentStatus === "PAID"
+                          ? "text-circuit-600"
+                          : "text-charcoal-400"
+                      }
+                    >
                       {order.paymentStatus}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-charcoal-500">
-                    {ORDER_TYPE_LABEL[order.orderType]}
+                    {order.serviceMode === "DINE_IN"
+                      ? "Dine-in · " + order.tableName
+                      : ORDER_TYPE_LABEL[order.orderType]}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={cn("chip ring-1", ORDER_STATUS_TONE[order.status])}>
+                    <span
+                      className={cn(
+                        "chip ring-1",
+                        ORDER_STATUS_TONE[order.status],
+                      )}
+                    >
                       {ORDER_STATUS_LABEL[order.status]}
                     </span>
                   </td>
@@ -364,7 +524,11 @@ function OrdersManagerInner() {
                           disabled={updating === order.id}
                           value=""
                           onChange={(e) => {
-                            if (e.target.value) void updateStatus(order, e.target.value as OrderStatus);
+                            if (e.target.value)
+                              void updateStatus(
+                                order,
+                                e.target.value as OrderStatus,
+                              );
                           }}
                           className="rounded-lg border border-cream-300 bg-surface px-2 py-1.5 text-xs font-medium text-charcoal-700"
                         >
@@ -402,7 +566,7 @@ function OrdersManagerInner() {
                       >
                         <Printer className="h-4 w-4" />
                       </button>
-                      {canDelete && (
+                      {canDelete && !order.businessTracked && (
                         <button
                           type="button"
                           onClick={() => requestDelete(order)}
@@ -423,11 +587,23 @@ function OrdersManagerInner() {
 
           {totalPages > 1 && (
             <div className="mt-5 flex items-center justify-between gap-3">
-              <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => void load(page - 1)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => void load(page - 1)}
+              >
                 Previous
               </Button>
-              <span className="text-sm text-charcoal-500">Page {page} of {totalPages}</span>
-              <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => void load(page + 1)}>
+              <span className="text-sm text-charcoal-500">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => void load(page + 1)}
+              >
                 Next
               </Button>
             </div>
@@ -444,32 +620,53 @@ function OrdersManagerInner() {
         {viewing && (
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={cn("chip ring-1", ORDER_STATUS_TONE[viewing.status])}>
+              <span
+                className={cn("chip ring-1", ORDER_STATUS_TONE[viewing.status])}
+              >
                 {ORDER_STATUS_LABEL[viewing.status]}
               </span>
-              <Badge>{ORDER_TYPE_LABEL[viewing.orderType]}</Badge>
+              <Badge>
+                {viewing.serviceMode === "DINE_IN"
+                  ? "Dine-in · " + viewing.tableName
+                  : ORDER_TYPE_LABEL[viewing.orderType]}
+              </Badge>
               <Badge>{PAYMENT_METHOD_LABEL[viewing.paymentMethod]}</Badge>
-              <Badge tone={viewing.paymentStatus === "PAID" ? "green" : "default"}>
+              <Badge
+                tone={viewing.paymentStatus === "PAID" ? "green" : "default"}
+              >
                 {viewing.paymentStatus}
               </Badge>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-xl bg-cream-50 p-4">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-charcoal-400">Customer</p>
-                <p className="text-sm font-semibold text-charcoal-900">{viewing.customerName}</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-charcoal-400">
+                  Customer
+                </p>
+                <p className="text-sm font-semibold text-charcoal-900">
+                  {viewing.customerName}
+                </p>
                 <p className="mt-1 flex items-center gap-1.5 text-xs text-charcoal-600">
                   <Phone className="h-3 w-3" aria-hidden />
-                  <a href={`tel:${viewing.customerPhone}`} className="hover:underline">{viewing.customerPhone}</a>
+                  <a
+                    href={`tel:${viewing.customerPhone}`}
+                    className="hover:underline"
+                  >
+                    {viewing.customerPhone}
+                  </a>
                 </p>
                 {viewing.customerEmail && (
-                  <p className="mt-0.5 truncate text-xs text-charcoal-500">{viewing.customerEmail}</p>
+                  <p className="mt-0.5 truncate text-xs text-charcoal-500">
+                    {viewing.customerEmail}
+                  </p>
                 )}
               </div>
 
               <div className="rounded-xl bg-cream-50 p-4">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-charcoal-400">
-                  {viewing.orderType === "DELIVERY" ? "Delivery address" : "Pickup"}
+                  {viewing.orderType === "DELIVERY"
+                    ? "Delivery address"
+                    : "Pickup"}
                 </p>
                 {viewing.orderType === "DELIVERY" ? (
                   <p className="flex gap-2 text-xs leading-relaxed text-charcoal-600">
@@ -481,16 +678,32 @@ function OrdersManagerInner() {
                     </span>
                   </p>
                 ) : (
-                  <p className="text-xs text-charcoal-600">Collecting from the counter.</p>
+                  <p className="text-xs text-charcoal-600">
+                    Collecting from the counter.
+                  </p>
                 )}
                 {viewing.instructions && (
-                  <p className="mt-2 text-xs italic text-charcoal-500">“{viewing.instructions}”</p>
+                  <p className="mt-2 text-xs italic text-charcoal-500">
+                    “{viewing.instructions}”
+                  </p>
                 )}
               </div>
             </div>
 
+            {viewing.businessTracked && canBusiness(user, "payments") && (
+              <OrderMoney
+                key={viewing.id + viewing.version}
+                order={viewing}
+                onDone={() => {
+                  setViewing(null);
+                  void load(page);
+                }}
+              />
+            )}
             <div>
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-charcoal-400">Items</p>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-charcoal-400">
+                Items
+              </p>
               <ul className="divide-y divide-cream-200 rounded-xl border border-cream-200">
                 {viewing.items.map((item) => (
                   <li key={item.id} className="flex justify-between gap-3 p-3">
@@ -500,73 +713,126 @@ function OrdersManagerInner() {
                       </p>
                       {item.addons.length > 0 && (
                         <p className="text-xs text-charcoal-400">
-                          {item.addons.map((a) => `${a.addonName}${a.price ? ` (+${money(a.price)})` : ""}`).join(", ")}
+                          {item.addons
+                            .map(
+                              (a) =>
+                                `${a.addonName}${a.price ? ` (+${money(a.price)})` : ""}`,
+                            )
+                            .join(", ")}
                         </p>
                       )}
-                      {item.notes && <p className="text-xs italic text-charcoal-400">“{item.notes}”</p>}
+                      {item.notes && (
+                        <p className="text-xs italic text-charcoal-400">
+                          “{item.notes}”
+                        </p>
+                      )}
                     </div>
-                    <span className="shrink-0 text-sm font-bold">{money(item.lineTotal)}</span>
+                    <span className="shrink-0 text-sm font-bold">
+                      {money(item.lineTotal)}
+                    </span>
                   </li>
                 ))}
               </ul>
             </div>
 
             <dl className="space-y-2 rounded-xl bg-cream-50 p-4 text-sm">
-              <div className="flex justify-between"><dt className="text-charcoal-500">Subtotal</dt><dd className="font-semibold">{money(viewing.subtotal)}</dd></div>
+              <div className="flex justify-between">
+                <dt className="text-charcoal-500">Subtotal</dt>
+                <dd className="font-semibold">{money(viewing.subtotal)}</dd>
+              </div>
               {viewing.discount > 0 && (
-                <div className="flex justify-between"><dt className="text-charcoal-500">Discount {viewing.couponCode}</dt><dd className="font-semibold text-circuit-600">− {money(viewing.discount)}</dd></div>
+                <div className="flex justify-between">
+                  <dt className="text-charcoal-500">
+                    Discount {viewing.couponCode}
+                  </dt>
+                  <dd className="font-semibold text-circuit-600">
+                    − {money(viewing.discount)}
+                  </dd>
+                </div>
               )}
               {viewing.deliveryFee > 0 && (
-                <div className="flex justify-between"><dt className="text-charcoal-500">Delivery</dt><dd className="font-semibold">{money(viewing.deliveryFee)}</dd></div>
+                <div className="flex justify-between">
+                  <dt className="text-charcoal-500">Delivery</dt>
+                  <dd className="font-semibold">
+                    {money(viewing.deliveryFee)}
+                  </dd>
+                </div>
               )}
               {viewing.tax > 0 && (
-                <div className="flex justify-between"><dt className="text-charcoal-500">Tax</dt><dd className="font-semibold">{money(viewing.tax)}</dd></div>
+                <div className="flex justify-between">
+                  <dt className="text-charcoal-500">Tax</dt>
+                  <dd className="font-semibold">{money(viewing.tax)}</dd>
+                </div>
               )}
               <div className="flex justify-between border-t border-cream-200 pt-2 text-base">
-                <dt className="font-bold">Total</dt><dd className="font-extrabold">{money(viewing.total)}</dd>
+                <dt className="font-bold">Total</dt>
+                <dd className="font-extrabold">{money(viewing.total)}</dd>
               </div>
             </dl>
 
             <div>
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-charcoal-400">Timeline</p>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-charcoal-400">
+                Timeline
+              </p>
               <ol className="space-y-1.5">
                 {viewing.events.map((event) => (
-                  <li key={event.id} className="flex justify-between gap-3 text-xs">
+                  <li
+                    key={event.id}
+                    className="flex justify-between gap-3 text-xs"
+                  >
                     <span className="font-medium text-charcoal-700">
                       {ORDER_STATUS_LABEL[event.status]}
-                      {event.note && <span className="ml-1.5 font-normal text-charcoal-400">— {event.note}</span>}
+                      {event.note && (
+                        <span className="ml-1.5 font-normal text-charcoal-400">
+                          — {event.note}
+                        </span>
+                      )}
                     </span>
-                    <span className="shrink-0 text-charcoal-400">{formatDate(event.createdAt, true)}</span>
+                    <span className="shrink-0 text-charcoal-400">
+                      {formatDate(event.createdAt, true)}
+                    </span>
                   </li>
                 ))}
               </ol>
             </div>
 
             <div className="flex flex-wrap gap-2 border-t border-cream-200 pt-4">
-              {nextStatuses(viewing.status, viewing.orderType).map((status) => (
-                <Button
-                  key={status}
-                  size="sm"
-                  variant={status === "CANCELLED" ? "danger" : "primary"}
-                  loading={updating === viewing.id}
-                  onClick={() => void updateStatus(viewing, status)}
-                >
-                  Mark {ORDER_STATUS_LABEL[status]}
-                </Button>
-              ))}
+              {nextStatuses(viewing.status, viewing.orderType)
+                .filter((status) => allowedStatus(viewing, status))
+                .map((status) => (
+                  <Button
+                    key={status}
+                    size="sm"
+                    variant={status === "CANCELLED" ? "danger" : "primary"}
+                    loading={updating === viewing.id}
+                    onClick={() => void updateStatus(viewing, status)}
+                  >
+                    Mark {ORDER_STATUS_LABEL[status]}
+                  </Button>
+                ))}
               <Button
                 size="sm"
                 variant="secondary"
                 disabled={!toWhatsAppNumber(viewing.customerPhone)}
                 onClick={() => notifyCustomer(viewing)}
               >
-                <MessageCircle className="h-3.5 w-3.5" aria-hidden /> WhatsApp: {NOTIFY_LABEL[viewing.status]}
+                <MessageCircle className="h-3.5 w-3.5" aria-hidden /> WhatsApp:{" "}
+                {NOTIFY_LABEL[viewing.status]}
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => void printOrder(viewing)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void printOrder(viewing)}
+              >
                 <Printer className="h-3.5 w-3.5" aria-hidden /> Print
               </Button>
-              {canDelete && (
-                <Button size="sm" variant="danger" disabled={updating === viewing.id || deletingBusy} onClick={() => requestDelete(viewing)}>
+              {canDelete && !viewing.businessTracked && (
+                <Button
+                  size="sm"
+                  variant="danger"
+                  disabled={updating === viewing.id || deletingBusy}
+                  onClick={() => requestDelete(viewing)}
+                >
                   <Trash2 className="h-3.5 w-3.5" aria-hidden /> Delete order
                 </Button>
               )}
@@ -576,23 +842,47 @@ function OrdersManagerInner() {
       </Modal>
       <Modal
         open={Boolean(deleting)}
-        onClose={() => { if (!deletingBusy) setDeleting(null); }}
-        title={deleting ? `Delete order #${deleting.orderNumber}?` : "Delete order"}
+        onClose={() => {
+          if (!deletingBusy) setDeleting(null);
+        }}
+        title={
+          deleting ? `Delete order #${deleting.orderNumber}?` : "Delete order"
+        }
       >
         {deleting && (
           <div className="space-y-4">
             <div className="rounded-xl border border-cream-200 bg-cream-50 p-4 text-sm">
               <p className="font-semibold">{deleting.customerName}</p>
-              <p className="mt-1 text-charcoal-500">{money(deleting.total)} · {ORDER_STATUS_LABEL[deleting.status]}</p>
+              <p className="mt-1 text-charcoal-500">
+                {money(deleting.total)} · {ORDER_STATUS_LABEL[deleting.status]}
+              </p>
             </div>
-            <p className="text-sm text-charcoal-600">This permanently removes the order, its receipt and timeline from order history and reports. This cannot be undone here.</p>
-            {deleting.status !== "DELIVERED" && deleting.status !== "CANCELLED" && (
-              <p className="text-sm text-charcoal-600">Reserved stock for this unfinished order will be released.</p>
-            )}
-            <p className="text-xs text-charcoal-500">Deleting an order does not issue a payment refund.</p>
+            <p className="text-sm text-charcoal-600">
+              This permanently removes the order, its receipt and timeline from
+              order history and reports. This cannot be undone here.
+            </p>
+            {deleting.status !== "DELIVERED" &&
+              deleting.status !== "CANCELLED" && (
+                <p className="text-sm text-charcoal-600">
+                  Reserved stock for this unfinished order will be released.
+                </p>
+              )}
+            <p className="text-xs text-charcoal-500">
+              Deleting an order does not issue a payment refund.
+            </p>
             <div className="flex flex-wrap justify-end gap-2 border-t border-cream-200 pt-4">
-              <Button variant="secondary" disabled={deletingBusy} onClick={() => setDeleting(null)}>Keep order</Button>
-              <Button variant="danger" loading={deletingBusy} onClick={() => void confirmDelete()}>
+              <Button
+                variant="secondary"
+                disabled={deletingBusy}
+                onClick={() => setDeleting(null)}
+              >
+                Keep order
+              </Button>
+              <Button
+                variant="danger"
+                loading={deletingBusy}
+                onClick={() => void confirmDelete()}
+              >
                 <Trash2 className="h-4 w-4" aria-hidden /> Delete order
               </Button>
             </div>

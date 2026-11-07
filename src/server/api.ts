@@ -2,6 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { ZodError, type ZodTypeAny, type output as ZodOutput } from "zod";
 import { Prisma } from "@prisma/client";
+import { canBusiness } from "@/lib/business-access";
 import { getCurrentUser, isStaff } from "./auth";
 import type { SessionUser } from "@/lib/types";
 
@@ -111,8 +112,8 @@ export async function requireUser(): Promise<SessionUser> {
   return user;
 }
 
-export async function requireAdmin(): Promise<SessionUser> {
+export async function requireAdmin(capability="admin"): Promise<SessionUser> {
   const user = await requireUser();
-  if (!isStaff(user.role)) throw forbidden("Admin access required.");
+  if (!isStaff(user.role)||!canBusiness(user,capability)) throw forbidden("Your staff role does not allow this action.");
   return user;
 }

@@ -16,7 +16,7 @@ export const POST = handle(
       throw badRequest("This order is already being prepared and can no longer be cancelled.");
     }
 
-    const updated = await transitionOrder(order, "CANCELLED", "Cancelled by customer");
+    const updated = await transitionOrder(order, "CANCELLED", "Cancelled by customer",user);
     return json({ order: serializeOrder(updated) });
   },
 );

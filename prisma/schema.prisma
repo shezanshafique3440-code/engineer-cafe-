@@ -88,6 +88,8 @@ model User {
   addresses Address[]
   orders    Order[]
   reviews   Review[]
+  staffAccess StaffAccess?
+  businessParty BusinessParty?
   favorites Favorite[]
   loyaltyEntries LoyaltyEntry[]
   pushSubscriptions PushSubscription[]
@@ -160,6 +162,8 @@ model Product {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
+  recipe Recipe?
+  recipeRequired Boolean @default(true)
   addonGroups AddonGroupOnProduct[]
   orderItems  OrderItem[]
   reviews     Review[]
@@ -224,6 +228,7 @@ model ProductAddon {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  recipe Recipe?
   orderItemAddons OrderItemAddon[]
 
   @@index([addonGroupId])
@@ -277,6 +282,29 @@ model Order {
   loyaltyDiscount Int @default(0)
   loyaltyPointsEarned Int @default(0)
 
+  cashTendered Decimal? @db.Decimal(18,2)
+  changeGiven Decimal? @db.Decimal(18,2)
+  tableName String?
+  waiterName String?
+  businessTracked Boolean @default(false)
+  businessConsumedAt DateTime?
+  businessInvoicedAt DateTime?
+  businessVoidedAt DateTime?
+  businessCredit Boolean @default(false)
+  businessPartyId String?
+  businessParty BusinessParty? @relation(fields:[businessPartyId],references:[id],onDelete:Restrict)
+  serviceMode String @default("TAKEAWAY")
+  tableSessionId String?
+  tableSession TableSession? @relation(fields:[tableSessionId],references:[id],onDelete:Restrict)
+  cashShiftId String?
+  cashShift CashShift? @relation(fields:[cashShiftId],references:[id],onDelete:Restrict)
+  amountPaid Decimal @default(0) @db.Decimal(18,2)
+  amountRefunded Decimal @default(0) @db.Decimal(18,2)
+  ingredientReservations IngredientReservation[]
+  stockMovements StockMovement[]
+  businessJournals BusinessJournal[]
+  businessPayments BusinessPayment[]
+  businessSaleLines BusinessSaleLine[]
   addressLine  String?
   area         String?
   city         String?
@@ -482,4 +510,340 @@ model NotificationJob {
 model OrderCounter {
   id Int @id @default(1)
   value Int @default(999)
+}
+
+// Operational and accounting records. Posted ledgers are append-only.
+model BusinessConfig {
+  id Int @id @default(1)
+  enabled Boolean @default(false)
+  enabledAt DateTime?
+  lockedThrough DateTime? @db.Date
+  updatedAt DateTime @updatedAt
+}
+model StaffAccess {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  profile String
+  employeeId String? @unique
+  employee Employee? @relation(fields:[employeeId],references:[id],onDelete:Restrict)
+  updatedAt DateTime @updatedAt
+}
+model BusinessParty {
+  id String @id @default(cuid())
+  kind String
+  name String
+  phone String?
+  email String?
+  address String?
+  userId String? @unique
+  user User? @relation(fields:[userId],references:[id],onDelete:SetNull)
+  creditLimit Decimal @default(0) @db.Decimal(18,2)
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  employee Employee?
+  postings BusinessPosting[]
+  purchases BusinessPurchase[]
+  payments BusinessPayment[]
+  orders Order[]
+  @@index([kind,isActive])
+}
+model Employee {
+  id String @id @default(cuid())
+  code String @unique
+  partyId String @unique
+  party BusinessParty @relation(fields:[partyId],references:[id],onDelete:Restrict)
+  designation String
+  payBasis String @default("MONTHLY")
+  basePay Decimal @db.Decimal(18,2)
+  overtimeRate Decimal @default(0) @db.Decimal(18,2)
+  joinedOn DateTime @db.Date
+  leftOn DateTime? @db.Date
+  isActive Boolean @default(true)
+  notes String?
+  updatedAt DateTime @updatedAt
+  access StaffAccess?
+  attendance Attendance[]
+  payroll PayrollRecord[]
+  sessions TableSession[]
+}
+model Attendance {
+  id String @id @default(cuid())
+  employeeId String
+  employee Employee @relation(fields:[employeeId],references:[id],onDelete:Restrict)
+  date DateTime @db.Date
+  status String
+  clockIn DateTime?
+  clockOut DateTime?
+  overtimeHours Decimal @default(0) @db.Decimal(10,4)
+  notes String?
+  recordedBy String
+  updatedAt DateTime @updatedAt
+  @@unique([employeeId,date])
+  @@index([date])
+}
+model PayrollRecord {
+  id String @id @default(cuid())
+  employeeId String
+  employee Employee @relation(fields:[employeeId],references:[id],onDelete:Restrict)
+  period String
+  startsOn DateTime @db.Date
+  endsOn DateTime @db.Date
+  status String @default("DRAFT")
+  basePay Decimal @db.Decimal(18,2)
+  unpaidDeduction Decimal @db.Decimal(18,2)
+  overtimePay Decimal @db.Decimal(18,2)
+  bonus Decimal @default(0) @db.Decimal(18,2)
+  manualDeduction Decimal @default(0) @db.Decimal(18,2)
+  advanceApplied Decimal @default(0) @db.Decimal(18,2)
+  earnedPay Decimal @db.Decimal(18,2)
+  netPay Decimal @db.Decimal(18,2)
+  sourceHash String
+  snapshot Json
+  note String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  payments BusinessPayment[]
+  @@index([period,status])
+}
+model Ingredient {
+  id String @id @default(cuid())
+  name String @unique
+  unit String
+  quantity Decimal @default(0) @db.Decimal(18,4)
+  stockValue Decimal @default(0) @db.Decimal(18,2)
+  reorderAt Decimal @default(0) @db.Decimal(18,4)
+  isActive Boolean @default(true)
+  updatedAt DateTime @updatedAt
+  recipeLines RecipeLine[]
+  reservations IngredientReservation[]
+  movements StockMovement[]
+  purchases PurchaseLine[]
+}
+model Recipe {
+  id String @id @default(cuid())
+  productId String? @unique
+  product Product? @relation(fields:[productId],references:[id],onDelete:Restrict)
+  addonId String? @unique
+  addon ProductAddon? @relation(fields:[addonId],references:[id],onDelete:Restrict)
+  yieldUnits Decimal @default(1) @db.Decimal(12,4)
+  note String?
+  updatedAt DateTime @updatedAt
+  lines RecipeLine[]
+}
+model RecipeLine {
+  id String @id @default(cuid())
+  recipeId String
+  recipe Recipe @relation(fields:[recipeId],references:[id],onDelete:Cascade)
+  ingredientId String
+  ingredient Ingredient @relation(fields:[ingredientId],references:[id],onDelete:Restrict)
+  quantity Decimal @db.Decimal(18,4)
+  @@unique([recipeId,ingredientId])
+}
+model StockMovement {
+  id String @id @default(cuid())
+  eventKey String @unique
+  ingredientId String
+  ingredient Ingredient @relation(fields:[ingredientId],references:[id],onDelete:Restrict)
+  kind String
+  quantity Decimal @db.Decimal(18,4)
+  value Decimal @db.Decimal(18,2)
+  balanceQuantity Decimal @db.Decimal(18,4)
+  balanceValue Decimal @db.Decimal(18,2)
+  orderId String?
+  order Order? @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  orderItemKey String?
+  purchaseLineId String?
+  note String
+  actorName String
+  createdAt DateTime @default(now())
+  @@index([ingredientId,createdAt])
+  @@index([orderId])
+}
+model BusinessAccount {
+  id String @id @default(cuid())
+  code String @unique
+  name String
+  kind String
+  isMoney Boolean @default(false)
+  isActive Boolean @default(true)
+  postings BusinessPosting[]
+  drawer CashDrawer?
+  payments BusinessPayment[]
+}
+model BusinessJournal {
+  id String @id @default(cuid())
+  eventKey String @unique
+  source String
+  sourceId String
+  date DateTime @db.Date
+  note String
+  actorId String
+  actorName String
+  orderId String?
+  order Order? @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  shiftId String?
+  shift CashShift? @relation(fields:[shiftId],references:[id],onDelete:Restrict)
+  reversalOfId String? @unique
+  reversalOf BusinessJournal? @relation("Reversal",fields:[reversalOfId],references:[id],onDelete:Restrict)
+  reversedBy BusinessJournal? @relation("Reversal")
+  createdAt DateTime @default(now())
+  postings BusinessPosting[]
+  payments BusinessPayment[]
+  @@index([date,source])
+  @@index([orderId])
+}
+model BusinessPosting {
+  id String @id @default(cuid())
+  journalId String
+  journal BusinessJournal @relation(fields:[journalId],references:[id],onDelete:Restrict)
+  accountId String
+  account BusinessAccount @relation(fields:[accountId],references:[id],onDelete:Restrict)
+  partyId String?
+  party BusinessParty? @relation(fields:[partyId],references:[id],onDelete:Restrict)
+  debit Decimal @default(0) @db.Decimal(18,2)
+  credit Decimal @default(0) @db.Decimal(18,2)
+  @@index([accountId,journalId])
+  @@index([partyId])
+}
+model BusinessPurchase {
+  id String @id @default(cuid())
+  supplierId String
+  supplier BusinessParty @relation(fields:[supplierId],references:[id],onDelete:Restrict)
+  invoiceNumber String
+  date DateTime @db.Date
+  status String @default("POSTED")
+  total Decimal @db.Decimal(18,2)
+  note String?
+  createdAt DateTime @default(now())
+  lines PurchaseLine[]
+  payments BusinessPayment[]
+  @@unique([supplierId,invoiceNumber])
+}
+model PurchaseLine {
+  id String @id @default(cuid())
+  purchaseId String
+  purchase BusinessPurchase @relation(fields:[purchaseId],references:[id],onDelete:Restrict)
+  ingredientId String
+  ingredient Ingredient @relation(fields:[ingredientId],references:[id],onDelete:Restrict)
+  quantity Decimal @db.Decimal(18,4)
+  totalCost Decimal @db.Decimal(18,2)
+  returnedQuantity Decimal @default(0) @db.Decimal(18,4)
+  returnedCost Decimal @default(0) @db.Decimal(18,2)
+}
+model BusinessPayment {
+  id String @id @default(cuid())
+  kind String
+  partyId String?
+  party BusinessParty? @relation(fields:[partyId],references:[id],onDelete:Restrict)
+  orderId String?
+  order Order? @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  purchaseId String?
+  purchase BusinessPurchase? @relation(fields:[purchaseId],references:[id],onDelete:Restrict)
+  payrollId String?
+  payroll PayrollRecord? @relation(fields:[payrollId],references:[id],onDelete:Restrict)
+  accountId String
+  account BusinessAccount @relation(fields:[accountId],references:[id],onDelete:Restrict)
+  journalId String
+  journal BusinessJournal @relation(fields:[journalId],references:[id],onDelete:Restrict)
+  amount Decimal @db.Decimal(18,2)
+  date DateTime @db.Date
+  note String
+  createdAt DateTime @default(now())
+  @@index([partyId,date])
+  @@index([orderId])
+  @@index([payrollId])
+}
+model CashDrawer {
+  id String @id @default(cuid())
+  name String @unique
+  accountId String @unique
+  account BusinessAccount @relation(fields:[accountId],references:[id],onDelete:Restrict)
+  isActive Boolean @default(true)
+  shifts CashShift[]
+}
+model CashShift {
+  id String @id @default(cuid())
+  drawerId String
+  drawer CashDrawer @relation(fields:[drawerId],references:[id],onDelete:Restrict)
+  openedById String
+  openedByName String
+  openingCash Decimal @db.Decimal(18,2)
+  openedAt DateTime @default(now())
+  closedAt DateTime?
+  expectedCash Decimal? @db.Decimal(18,2)
+  actualCash Decimal? @db.Decimal(18,2)
+  variance Decimal? @db.Decimal(18,2)
+  closeNote String?
+  journals BusinessJournal[]
+  orders Order[]
+}
+model CafeTable {
+  id String @id @default(cuid())
+  name String @unique
+  seats Int @default(4)
+  isActive Boolean @default(true)
+  sessions TableSession[]
+}
+model TableSession {
+  id String @id @default(cuid())
+  tableId String
+  table CafeTable @relation(fields:[tableId],references:[id],onDelete:Restrict)
+  waiterId String?
+  waiter Employee? @relation(fields:[waiterId],references:[id],onDelete:Restrict)
+  openedById String
+  guestCount Int @default(1)
+  openedAt DateTime @default(now())
+  closedAt DateTime?
+  orders Order[]
+}
+model BusinessSaleLine {
+  id String @id @default(cuid())
+  eventKey String @unique
+  orderId String
+  order Order @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  orderItemKey String
+  productName String
+  quantity Int
+  gross Decimal @db.Decimal(18,2)
+  discount Decimal @db.Decimal(18,2)
+  net Decimal @db.Decimal(18,2)
+  cost Decimal @db.Decimal(18,2)
+  date DateTime @db.Date
+  createdAt DateTime @default(now())
+  @@index([date])
+}
+model BusinessAudit {
+  id String @id @default(cuid())
+  actorId String
+  actorName String
+  action String
+  entity String
+  entityId String
+  details Json
+  createdAt DateTime @default(now())
+  @@index([entity,entityId])
+  @@index([createdAt])
+}
+model BusinessRequest {
+  key String @id
+  payloadHash String
+  result Json
+  createdAt DateTime @default(now())
+}
+
+model IngredientReservation {
+  id String @id @default(cuid())
+  orderId String
+  order Order @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  orderItemKey String
+  ingredientId String
+  ingredient Ingredient @relation(fields:[ingredientId],references:[id],onDelete:Restrict)
+  quantity Decimal @db.Decimal(18,4)
+  consumedAt DateTime?
+  releasedAt DateTime?
+  createdAt DateTime @default(now())
+  @@unique([orderId,orderItemKey,ingredientId])
+  @@index([ingredientId,consumedAt,releasedAt])
 }

@@ -26,7 +26,7 @@ const endpoint = z
     );
   }, "This push provider is unsupported.");
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requireAdmin("orders");
   return json({
     publicKey: process.env.VAPID_PUBLIC_KEY || null,
     configured: Boolean(
@@ -35,7 +35,7 @@ export const GET = handle(async () => {
   });
 });
 export const POST = handle(async (request: Request) => {
-  const user = await requireAdmin();
+  const user = await requireAdmin("orders");
   if (!process.env.VAPID_PRIVATE_KEY)
     throw badRequest("Background alerts are not configured on the server yet.");
   const data = await parseBody(
@@ -56,7 +56,7 @@ export const POST = handle(async (request: Request) => {
   return json({ id: sub.id });
 });
 export const DELETE = handle(async (request: Request) => {
-  const user = await requireAdmin();
+  const user = await requireAdmin("orders");
   const data = await parseBody(
     request,
     z.object({ endpoint: z.string().max(2048) }),

@@ -4,11 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { handle, json, parseBody, requireAdmin, forbidden } from "@/server/api";
 import { getSettings } from "@/server/settings";
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requireAdmin("admin");
   return json({ settings: await getSettings() });
 });
 export const PUT = handle(async (request: Request) => {
-  const user = await requireAdmin();
+  const user = await requireAdmin("admin");
   if (user.role !== "ADMIN") throw forbidden();
   const data = await parseBody(
     request,

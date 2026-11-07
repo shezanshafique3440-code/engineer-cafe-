@@ -1,7 +1,11 @@
 import QRCode from "qrcode";
 import type { OrderDTO } from "@/server/orders";
 import type { PublicSettings } from "@/server/settings";
-import { ORDER_TYPE_LABEL, PAYMENT_METHOD_LABEL, ORDER_STATUS_LABEL } from "./constants";
+import {
+  ORDER_TYPE_LABEL,
+  PAYMENT_METHOD_LABEL,
+  ORDER_STATUS_LABEL,
+} from "./constants";
 import { formatDate } from "./utils";
 
 /**
@@ -26,6 +30,7 @@ export type ReceiptOptions = {
   money: (amount: number) => string;
   /** Absolute origin, used for the tracking link behind the QR code. */
   origin: string;
+  tracking?: boolean;
 };
 
 /**
@@ -33,7 +38,10 @@ export type ReceiptOptions = {
  * null if generation fails so a printer jam is never caused by a missing
  * graphic — the slip simply prints without it.
  */
-async function trackingQr(order: OrderDTO, origin: string): Promise<string | null> {
+async function trackingQr(
+  order: OrderDTO,
+  origin: string,
+): Promise<string | null> {
   try {
     return await QRCode.toDataURL(`${origin}/orders/${order.id}`, {
       margin: 0,
@@ -77,7 +85,8 @@ async function inlineLogo(url: string | null): Promise<string | null> {
     const blob = await response.blob();
     return await new Promise<string | null>((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
+      reader.onloadend = () =>
+        resolve(typeof reader.result === "string" ? reader.result : null);
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
@@ -88,13 +97,15 @@ async function inlineLogo(url: string | null): Promise<string | null> {
 
 export async function buildReceiptHtml(
   order: OrderDTO,
-  { settings, money, origin }: ReceiptOptions,
+  { settings, money, origin, tracking = true }: ReceiptOptions,
 ): Promise<string> {
   const [qr, logo] = await Promise.all([
-    trackingQr(order, origin),
+    tracking ? trackingQr(order, origin) : Promise.resolve(null),
     inlineLogo(absoluteLogo(settings.logoUrl, origin)),
   ]);
   const isPaid = order.paymentStatus === "PAID";
+  const paymentLabel =
+    order.paymentStatus === "REFUNDED" ? "REFUNDED" : isPaid ? "PAID" : "DUE";
 
   const items = order.items
     .map((item) => {
@@ -276,15 +287,15 @@ export async function buildReceiptHtml(
     <div class="num">#${escapeHtml(order.orderNumber)}</div>
     <div class="meta">${escapeHtml(formatDate(order.placedAt, true))}</div>
     <div class="badges">
-      <span class="badge solid">${escapeHtml(ORDER_TYPE_LABEL[order.orderType])}</span>
+      <span class="badge solid">${escapeHtml(order.serviceMode === "DINE_IN" ? "Dine-in · " + (order.tableName ?? "Table") : ORDER_TYPE_LABEL[order.orderType])}</span>
       <span class="badge">${escapeHtml(ORDER_STATUS_LABEL[order.status])}</span>
     </div>
   </div>
 
   <hr class="dash">
 
-  ${order.scheduledAt ? `<p>Scheduled: ${escapeHtml(new Intl.DateTimeFormat("en-PK",{timeZone:"Asia/Karachi",dateStyle:"medium",timeStyle:"short"}).format(new Date(order.scheduledAt)))}</p>` : ""}
-  ${order.cashReceived !== null ? `${line("Cash received",money(order.cashReceived))}${line("Change",money(order.cashChange??0))}` : ""}
+  ${order.scheduledAt ? `<p>Scheduled: ${escapeHtml(new Intl.DateTimeFormat("en-PK", { timeZone: "Asia/Karachi", dateStyle: "medium", timeStyle: "short" }).format(new Date(order.scheduledAt)))}</p>` : ""}
+  ${order.cashReceived !== null ? `${line(order.businessTracked ? "Amount tendered" : "Cash received", money(order.cashReceived))}${line("Change", money(order.cashChange ?? 0))}` : ""}
   <div class="who">
     <div class="name">${escapeHtml(order.customerName)}</div>
     <div class="line">${escapeHtml(order.customerPhone)}</div>
@@ -304,11 +315,13 @@ export async function buildReceiptHtml(
   ${order.tax ? line("Tax", money(order.tax), "muted") : ""}
   <div class="row total"><span>TOTAL</span><span>${escapeHtml(money(order.total))}</span></div>
 
+  ${order.businessTracked ? `${line("Payments received", money(Number(order.amountPaid)))}${Number(order.amountRefunded) > 0 ? line("Refunded", money(Number(order.amountRefunded))) : ""}${line(order.status === "CANCELLED" ? "Refund still due" : "Balance due", money(Number(order.status === "CANCELLED" ? order.refundDue : order.remainingDue)))}` : ""}
+
   <hr class="dash">
 
   <div class="pay">
-    <span>${escapeHtml(PAYMENT_METHOD_LABEL[order.paymentMethod])}</span>
-    <span class="status">${isPaid ? "PAID" : "DUE"}</span>
+    <span>${escapeHtml(order.businessTracked ? "Payments recorded in cafe ledger" : PAYMENT_METHOD_LABEL[order.paymentMethod])}</span>
+    <span class="status">${paymentLabel}</span>
   </div>
 
   ${
@@ -328,7 +341,6 @@ export async function buildReceiptHtml(
 
 </body></html>`;
 }
-
 
 /**
  * Writes a slip into an already-opened window and prints it, once its images
