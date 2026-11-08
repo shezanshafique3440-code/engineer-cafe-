@@ -462,7 +462,7 @@ export async function businessRead(
       return { ...meta, employees: rows };
     }
     case "attendance": {
-      const [employees, attendance] = await Promise.all([
+      const [employees, attendance, todayAttendance] = await Promise.all([
         tx.employee.findMany({
           where: { isActive: true },
           select: { id: true, code: true, party: { select: { name: true } } },
@@ -478,10 +478,23 @@ export async function businessRead(
           orderBy: [{ date: "desc" }, { employeeId: "asc" }],
           take: 1000,
         }),
+        tx.attendance.findMany({
+          where: { date: dateValue(businessToday()) },
+          include: {
+            employee: {
+              select: { code: true, party: { select: { name: true } } },
+            },
+          },
+          orderBy: { employeeId: "asc" },
+        }),
       ]);
       return {
         ...meta,
         employees,
+        todayAttendance: todayAttendance.map((a) => ({
+          ...a,
+          version: a.updatedAt.toISOString(),
+        })),
         attendance: attendance.map((a) => ({
           ...a,
           version: a.updatedAt.toISOString(),

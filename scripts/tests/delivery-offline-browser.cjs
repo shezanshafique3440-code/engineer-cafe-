@@ -238,22 +238,21 @@ async function poll(fn, message) {
       waitUntil: "networkidle",
     });
     await page
+      .getByRole("button", { name: "Rider add / edit", exact: true })
+      .click();
+    await page
       .getByRole("heading", { name: "Add rider", exact: true })
       .waitFor();
-    const riderForm = page
-      .locator("form")
-      .filter({
-        has: page.getByRole("heading", { name: "Add rider", exact: true }),
-      });
+    const riderForm = page.locator("form").filter({
+      has: page.getByRole("heading", { name: "Add rider", exact: true }),
+    });
     const code = "B" + randomUUID().slice(0, 7);
     await riderForm.getByLabel("Unique rider code").fill(code);
     await riderForm.getByLabel("Rider name").fill("Browser Rider");
     await riderForm.getByLabel(/^Phone/).fill("03001234567");
     await riderForm.getByRole("button", { name: "Save", exact: true }).click();
     await page
-      .getByRole("cell")
-      .filter({ hasText: code.toUpperCase() })
-      .first()
+      .getByText(code.toUpperCase() + " · Active", { exact: true })
       .waitFor();
     await page.screenshot({
       path: (process.env.CAFE_TEST_ARTIFACTS || "/tmp") + "/riders-mobile.png",
@@ -282,13 +281,38 @@ async function poll(fn, message) {
       ),
     );
     checks += 2;
-    await page.goto('/offline-pos.html', {waitUntil:'networkidle'});
-    const switchedLogin = await context.request.post('/api/auth/login', {data:{email:'cashier@example.test',password:'Business-QA-123!'}});
-    eq(switchedLogin.status(),200);
-    await page.getByRole('button',{name:'Refresh prepared menu & shift',exact:true}).click();
-    await poll(()=>page.evaluate(async original=>(await window.CafeOfflinePOS.snapshot())?.user.id!==original,snapshot.user.id),'Prepared cashier did not switch safely');
-    eq((await page.evaluate(owner=>window.CafeOfflinePOS.list(owner),snapshot.user.id)).length,2);
-    console.log('PASS changing the signed-in cashier updates preparation without a reload loop and retains the original cashier bills.');
+    await page.goto("/offline-pos.html", { waitUntil: "networkidle" });
+    const switchedLogin = await context.request.post("/api/auth/login", {
+      data: { email: "cashier@example.test", password: "Business-QA-123!" },
+    });
+    eq(switchedLogin.status(), 200);
+    await page
+      .getByRole("button", {
+        name: "Refresh prepared menu & shift",
+        exact: true,
+      })
+      .click();
+    await poll(
+      () =>
+        page.evaluate(
+          async (original) =>
+            (await window.CafeOfflinePOS.snapshot())?.user.id !== original,
+          snapshot.user.id,
+        ),
+      "Prepared cashier did not switch safely",
+    );
+    eq(
+      (
+        await page.evaluate(
+          (owner) => window.CafeOfflinePOS.list(owner),
+          snapshot.user.id,
+        )
+      ).length,
+      2,
+    );
+    console.log(
+      "PASS changing the signed-in cashier updates preparation without a reload loop and retains the original cashier bills.",
+    );
     await context.close();
     // Block SW in a separate context so a dropped POST response is deterministic.
     const lost = await browser.newContext({
@@ -307,7 +331,10 @@ async function poll(fn, message) {
     await lp.goto("/admin/login");
     await lp.addScriptTag({ url: base + "/offline-pos-store.js" });
     const apiAuth = { Cookie: login.headers()["set-cookie"].split(";")[0] };
-    const preparationResponse = await lost.request.get("/api/admin/offline-pos", { headers: apiAuth });
+    const preparationResponse = await lost.request.get(
+      "/api/admin/offline-pos",
+      { headers: apiAuth },
+    );
     eq(preparationResponse.status(), 200, await preparationResponse.text());
     const prepared = await preparationResponse.json();
     const quote = await (

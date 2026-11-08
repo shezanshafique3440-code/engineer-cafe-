@@ -1,4 +1,13 @@
 (async () => {
+  const connection = document.getElementById("connection");
+  const showConnection = () => {
+    connection.textContent = navigator.onLine
+      ? "Online — saved bills automatically sync honge. Neeche bill ka status bhi check karein."
+      : "Internet band — bill is device par save hoga. Reconnect par sync hoga.";
+  };
+  showConnection();
+  window.addEventListener("online", showConnection);
+  window.addEventListener("offline", showConnection);
   const store = globalThis.CafeOfflinePOS,
     message = document.getElementById("message"),
     editor = document.getElementById("editor"),
@@ -245,7 +254,10 @@
           }
           try {
             await refresh();
-            if (snapshot.user.id !== b.ownerId) throw Error("Sign in as the original cashier before reviewing this bill.");
+            if (snapshot.user.id !== b.ownerId)
+              throw Error(
+                "Sign in as the original cashier before reviewing this bill.",
+              );
             if (!prepared) throw Error("Open your own cash shift first.");
             editing = b;
             form.elements.customerName.value = b.payload.customerName;
@@ -303,7 +315,10 @@
             : "Saved bills are synchronized.",
       );
     } catch (e) {
-      if (/original cashier|server\/session|POS access/i.test(e.message)) { prepared = false; editor.hidden = true; }
+      if (/original cashier|server\/session|POS access/i.test(e.message)) {
+        prepared = false;
+        editor.hidden = true;
+      }
       tell(e.message);
     }
     await list();
@@ -314,7 +329,10 @@
     if (!r.ok) {
       const error = Error(data.error || "Cannot prepare this counter.");
       error.status = r.status;
-      if (r.status === 401 || r.status === 403) { prepared = false; editor.hidden = true; }
+      if (r.status === 401 || r.status === 403) {
+        prepared = false;
+        editor.hidden = true;
+      }
       throw error;
     }
     const switched = snapshot?.user && snapshot.user.id !== data.user.id;
@@ -444,7 +462,13 @@
   await list();
   if (navigator.onLine) {
     editor.hidden = true;
-    try { await refresh(); reset(); await sync(); }
-    catch (e) { if (e.status !== 401 && e.status !== 403) showPrepared(); tell(e.message); }
+    try {
+      await refresh();
+      reset();
+      await sync();
+    } catch (e) {
+      if (e.status !== 401 && e.status !== 403) showPrepared();
+      tell(e.message);
+    }
   }
 })();

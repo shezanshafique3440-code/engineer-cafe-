@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { apiPost } from "@/lib/api-client";
 import { Button } from "@/components/ui";
 import {
   Form,
@@ -301,9 +302,103 @@ export function AttendancePanel({
   data: Row;
   reload: () => void;
 }) {
-  const [editing, setEditing] = useState<Row | null>(null);
+  const [editing, setEditing] = useState<Row | null>(null),
+    [quickBusy, setQuickBusy] = useState("");
+  const requests = useRef<Record<string, string>>({});
+  const submitting = useRef(false);
+  const quickAttendance = async (employee: Row, status: string) => {
+    if (submitting.current) return;
+    submitting.current = true;
+    const key = text(employee, "id") + ":" + text(data, "today") + ":" + status;
+    requests.current[key] ??= crypto.randomUUID();
+    setQuickBusy(text(employee, "id"));
+    try {
+      await apiPost("/api/admin/business/attendance", {
+        requestId: requests.current[key],
+        employeeId: employee.id,
+        date: data.today,
+        status,
+        overtimeHours: "0",
+        notes: "Daily attendance desk",
+      });
+      toast.success("Hazri save ho gayi.");
+      reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Hazri save nahi hui.");
+    } finally {
+      submitting.current = false;
+      setQuickBusy("");
+    }
+  };
   return (
     <div className="space-y-5">
+      <section aria-label="Aaj ki hazri">
+        <h2 className="mb-3 text-xl font-bold">
+          Aaj ki hazri · {text(data, "today")}
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {rows(data, "employees").map((e) => {
+            const recorded = rows(data, "todayAttendance").find(
+              (a) =>
+                a.employeeId === e.id && day(a.date) === text(data, "today"),
+            );
+            return (
+              <article className="surface p-4" key={text(e, "id")}>
+                <h3 className="font-bold">{text(e, "party.name")}</h3>
+                <p className="mb-3 text-sm text-charcoal-500">
+                  {text(e, "code")}
+                </p>
+                {recorded ? (
+                  <>
+                    <p className="font-semibold">
+                      {text(recorded, "status").replaceAll("_", " ")}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setEditing(recorded);
+                        document
+                          .getElementById("attendance-detail-form")
+                          ?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          });
+                      }}
+                    >
+                      Time / hazri edit karein
+                    </Button>
+                  </>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: "PRESENT", label: "Hazir" },
+                      { id: "ABSENT", label: "Ghair hazir" },
+                      { id: "PAID_LEAVE", label: "Paid chhutti" },
+                      { id: "UNPAID_LEAVE", label: "Unpaid chhutti" },
+                    ].map((s) => (
+                      <Button
+                        key={s.id}
+                        size="sm"
+                        variant={s.id === "PRESENT" ? "primary" : "secondary"}
+                        disabled={Boolean(quickBusy)}
+                        onClick={() => void quickAttendance(e, s.id)}
+                      >
+                        {s.label}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-charcoal-500">
+          Quick hazri overtime ya clock time add nahi karti. Time, half day aur
+          correction neeche form se karein.
+        </p>
+      </section>
+      <div id="attendance-detail-form" className="scroll-mt-24" />
       <Form
         key={text(editing ?? undefined, "id", "new")}
         title={editing ? "Edit attendance" : "Record attendance"}
@@ -335,7 +430,18 @@ export function AttendancePanel({
               "PAID_LEAVE",
               "UNPAID_LEAVE",
               "HALF_DAY",
-            ].map((value) => ({ value, label: value.replaceAll("_", " ") })),
+            ].map((value) => ({
+              value,
+              label: (
+                {
+                  PRESENT: "Hazir / Present",
+                  ABSENT: "Ghair hazir / Absent",
+                  PAID_LEAVE: "Paid chhutti",
+                  UNPAID_LEAVE: "Unpaid chhutti",
+                  HALF_DAY: "Half day",
+                } as Record<string, string>
+              )[value],
+            })),
             value: text(editing ?? undefined, "status", "PRESENT"),
           },
           {
@@ -711,23 +817,53 @@ export function PayrollPanel({
                 ) : null}
               </div>
             </div>
-            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-              {[
-                ["Base for period", p.basePay],
-                ["Unpaid leave deduction", p.unpaidDeduction],
-                ["Overtime", p.overtimePay],
-                ["Bonus", p.bonus],
-                ["Other deduction", p.manualDeduction],
-                ["Advance recovery", p.advanceApplied],
-                ["Salary payable", p.netPay],
-                ["Paid", p.paid],
-              ].map(([label, value]) => (
-                <div key={String(label)}>
-                  <dt className="text-xs text-charcoal-500">{String(label)}</dt>
-                  <dd className="mt-1 font-bold">{money(value)}</dd>
-                </div>
-              ))}
-            </dl>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl bg-cream-50 p-3">
+                <p className="text-xs text-charcoal-500">Total salary (net)</p>
+                <p className="font-bold">{money(p.netPay)}</p>
+              </div>
+              <div className="rounded-xl bg-cream-50 p-3">
+                <p className="text-xs text-charcoal-500">Di hui payment</p>
+                <p className="font-bold">{money(p.paid)}</p>
+              </div>
+              <div className="rounded-xl bg-chai-50 p-3">
+                <p className="text-xs text-charcoal-500">Baqi salary</p>
+                <p className="font-bold">
+                  {p.status === "POSTED"
+                    ? money(
+                        decimal(
+                          paise(text(p, "netPay", "0")) -
+                            paise(text(p, "paid", "0")),
+                        ),
+                      )
+                    : "Draft / abhi post nahi hui"}
+                </p>
+              </div>
+            </div>
+            <details className="mt-3">
+              <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold">
+                Salary ka breakdown / Details
+              </summary>
+              <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                {[
+                  ["Base for period", p.basePay],
+                  ["Unpaid leave deduction", p.unpaidDeduction],
+                  ["Overtime", p.overtimePay],
+                  ["Bonus", p.bonus],
+                  ["Other deduction", p.manualDeduction],
+                  ["Advance recovery", p.advanceApplied],
+                  ["Salary payable", p.netPay],
+                  ["Paid", p.paid],
+                ].map(([label, value]) => (
+                  <div key={String(label)}>
+                    <dt className="text-xs text-charcoal-500">
+                      {String(label)}
+                    </dt>
+                    <dd className="mt-1 font-bold">{money(value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </details>
             <p className="mt-4 text-xs text-charcoal-500">
               Attendance: {text(getSnapshot(p), "attendanceDays")} /{" "}
               {text(getSnapshot(p), "activeDays")} days recorded · Overtime{" "}

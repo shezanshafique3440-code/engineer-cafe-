@@ -26,6 +26,8 @@ import {
   ApprovalsPanel,
   AuditPanel,
 } from "./operations-panels";
+import { TASK_GUIDES, CAFE_TASKS } from "@/lib/cafe-tasks";
+import { TaskSteps } from "@/components/admin/task-steps";
 import { Notice, type Row } from "./shared";
 const SECTIONS = [
   ...BUSINESS_SECTIONS,
@@ -56,7 +58,7 @@ function Workspace() {
   const requested = params.get("section") ?? allowed[0]?.id;
   const section = allowed.find((s) => s.id === requested) ?? allowed[0];
   const today = businessToday();
-  const [from, setFrom] = useState(today.slice(0, 7) + "-01"),
+  const [from, setFrom] = useState(today),
     [to, setTo] = useState(today),
     [data, setData] = useState<Row | null>(null),
     [loading, setLoading] = useState(false),
@@ -145,14 +147,18 @@ function Workspace() {
     <div className="min-w-0 space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-chai-700">
-            Cafe office
-          </p>
+          <Link
+            href="/admin"
+            className="inline-flex min-h-11 items-center text-sm font-bold text-chai-700"
+          >
+            ← Roz ka kaam / Home
+          </Link>
           <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">
             {section.label}
           </h1>
           <p className="mt-2 text-sm text-charcoal-500">
-            Orders, people, ingredients and money in one connected record.
+            {CAFE_TASKS.find((t) => t.id === section.id)?.hint ??
+              "Apna kaam chunein aur neeche diye steps follow karein."}
           </p>
         </div>
         <Button
@@ -164,6 +170,7 @@ function Workspace() {
           Refresh
         </Button>
       </header>
+      {TASK_GUIDES[section.id] && <TaskSteps {...TASK_GUIDES[section.id]} />}
       <div className="surface grid gap-3 p-4 md:grid-cols-[2fr_1fr_1fr]">
         <Select
           label="Workspace"
@@ -172,10 +179,48 @@ function Workspace() {
             router.push("/admin/business?section=" + e.target.value)
           }
         >
-          {allowed.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.label}
-            </option>
+          {[
+            {
+              label: "Roz ka kaam",
+              ids: [
+                "overview",
+                "tables",
+                "delivery",
+                "cash",
+                "attendance",
+                "inventory",
+                "purchases",
+                "expenses",
+                "staff",
+                "payroll",
+                "receivables",
+                "approvals",
+              ],
+            },
+            {
+              label: "Extra / Detailed tools",
+              ids: [
+                "recipes",
+                "procurement",
+                "stockcounts",
+                "suppliers",
+                "customers",
+                "ledger",
+                "audit",
+                "setup",
+              ],
+            },
+          ].map((group) => (
+            <optgroup label={group.label} key={group.label}>
+              {allowed
+                .filter((s) => group.ids.includes(s.id))
+                .map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {CAFE_TASKS.find((t) => t.id === s.id)?.label ?? s.label} ·{" "}
+                    {s.label}
+                  </option>
+                ))}
+            </optgroup>
           ))}
         </Select>
         <Input
@@ -194,6 +239,32 @@ function Workspace() {
             if (e.target.value) setTo(e.target.value);
           }}
         />
+      </div>
+      <div
+        className="flex flex-wrap items-center gap-2"
+        aria-label="Report dates"
+      >
+        <span className="text-sm text-charcoal-500">Report ki dates:</span>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setFrom(today);
+            setTo(today);
+          }}
+        >
+          Aaj
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setFrom(today.slice(0, 7) + "-01");
+            setTo(today);
+          }}
+        >
+          Is mahine
+        </Button>
       </div>
       <nav className="flex flex-wrap gap-2" aria-label="Business quick links">
         {allowed

@@ -1,4 +1,5 @@
 "use client";
+import { TaskSteps } from "@/components/admin/task-steps";
 import { useSession } from "@/context/session-context";
 import { pakistanTime } from "@/lib/experience";
 
@@ -125,6 +126,17 @@ export function KitchenBoard() {
   ).length;
   return (
     <div>
+      <div className="mb-5">
+        <TaskSteps
+          title="Kitchen ka kaam"
+          steps={[
+            "Naya ticket dekhein",
+            "Kaam shuru: Preparing",
+            "Tayyar: Ready",
+          ]}
+          tip="Ready hone ka matlab payment receive hona nahi. Handover aur cash cashier check karega."
+        />
+      </div>
       <PageHeader
         title="Kitchen live"
         description="One shared view from order placed to handover. Oldest tickets first."

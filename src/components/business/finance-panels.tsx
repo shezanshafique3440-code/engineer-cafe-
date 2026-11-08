@@ -5,6 +5,7 @@ import {
   profileCapabilities,
 } from "@/lib/business-access";
 import { paise, decimal } from "@/lib/business-math";
+import { ClosingChecklist } from "@/components/admin/closing-checklist";
 import { useState } from "react";
 import { Button, Input } from "@/components/ui";
 import { downloadCsv } from "@/lib/csv";
@@ -204,7 +205,8 @@ export function OverviewPanel({ data }: { data: Row }) {
 export function CashPanel({ data, reload }: { data: Row; reload: () => void }) {
   const [closing, setClosing] = useState<Row | null>(null),
     [reviewing, setReviewing] = useState<Row | null>(null),
-    [coins, setCoins] = useState<Record<string, string>>({});
+    [coins, setCoins] = useState<Record<string, string>>({}),
+    [preClosing, setPreClosing] = useState<Row | null>(null);
   const denominations = [
     "5000",
     "1000",
@@ -247,7 +249,7 @@ export function CashPanel({ data, reload }: { data: Row; reload: () => void }) {
                   className="mt-3"
                   variant="secondary"
                   onClick={() =>
-                    setClosing({
+                    setPreClosing({
                       ...object(d, "activeShift"),
                       balance: d.balance,
                     })
@@ -279,6 +281,23 @@ export function CashPanel({ data, reload }: { data: Row; reload: () => void }) {
           </article>
         ))}
       </div>
+      {preClosing && (
+        <ClosingChecklist
+          onCancel={() => setPreClosing(null)}
+          onContinue={() => {
+            setClosing(preClosing);
+            setPreClosing(null);
+            setTimeout(
+              () =>
+                document
+                  .getElementById("cash-count-form")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+              0,
+            );
+          }}
+        />
+      )}
+      <div id="cash-count-form" className="scroll-mt-24" />
       {reviewing && (
         <Form
           key={text(reviewing, "id")}

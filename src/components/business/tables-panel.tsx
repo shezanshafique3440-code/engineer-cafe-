@@ -1,6 +1,6 @@
 "use client";
-import Link from "next/link";
 import { paise, decimal } from "@/lib/business-math";
+import { CounterPOS } from "@/components/admin/counter-pos";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button, Checkbox } from "@/components/ui";
@@ -23,7 +23,9 @@ export function TablesPanel({
   const [payment, setPayment] = useState<Row | null>(null),
     [closing, setClosing] = useState<Row | null>(null),
     [moving, setMoving] = useState<Row | null>(null),
-    [tickets, setTickets] = useState<string[]>([]);
+    [tickets, setTickets] = useState<string[]>([]),
+    [ordering, setOrdering] = useState<Row | null>(null),
+    [openingTable, setOpeningTable] = useState("");
   const tables = rows(data, "tables");
   const print = async (table: Row, session: Row) => {
     const orders = rows(session, "orders").filter(
@@ -121,46 +123,60 @@ export function TablesPanel({
           </div>
         </details>
       )}
-      <Form
-        title="Open a table bill"
-        module="tables"
-        disabled={!data.integrationActive}
-        fields={[
-          {
-            name: "tableId",
-            label: "Available table",
-            type: "select",
-            options: options(tables.filter((t) => t.isActive && !t.busy)),
-          },
-          {
-            name: "waiterId",
-            label: "Assigned waiter",
-            type: "select",
-            required: false,
-            options: rows(data, "waiters").map((w) => ({
-              value: text(w, "id"),
-              label: text(w, "code") + " · " + text(w, "party.name"),
-            })),
-          },
-          {
-            name: "guestCount",
-            label: "Guests",
-            type: "number",
-            step: "1",
-            min: "1",
-            max: "100",
-            value: "1",
-          },
-        ]}
-        build={(v) => ({
-          ...v,
-          action: "OPEN",
-          guestCount: Number(v.guestCount),
-          waiterId: v.waiterId || undefined,
-        })}
-        onDone={reload}
-        submitLabel="Open table"
-      />
+      <div id="open-table-form" className="scroll-mt-24" />
+      <details
+        className="surface p-4"
+        open={Boolean(openingTable) || undefined}
+      >
+        <summary className="min-h-11 cursor-pointer py-2 font-bold">
+          Khali table kholein / Open a table
+        </summary>
+        <Form
+          key={"open:" + openingTable}
+          title="Open a table bill"
+          module="tables"
+          disabled={!data.integrationActive}
+          fields={[
+            {
+              name: "tableId",
+              label: "Available table",
+              type: "select",
+              value: openingTable,
+              options: options(tables.filter((t) => t.isActive && !t.busy)),
+            },
+            {
+              name: "waiterId",
+              label: "Assigned waiter",
+              type: "select",
+              required: false,
+              options: rows(data, "waiters").map((w) => ({
+                value: text(w, "id"),
+                label: text(w, "code") + " · " + text(w, "party.name"),
+              })),
+            },
+            {
+              name: "guestCount",
+              label: "Guests",
+              type: "number",
+              step: "1",
+              min: "1",
+              max: "100",
+              value: "1",
+            },
+          ]}
+          build={(v) => ({
+            ...v,
+            action: "OPEN",
+            guestCount: Number(v.guestCount),
+            waiterId: v.waiterId || undefined,
+          })}
+          onDone={() => {
+            setOpeningTable("");
+            reload();
+          }}
+          submitLabel="Open table"
+        />
+      </details>
       {moving && (
         <Form
           key={text(moving, "id")}
@@ -282,6 +298,31 @@ export function TablesPanel({
           submitLabel="Confirm close"
         />
       )}
+      {ordering && (
+        <section id="table-order-desk" className="surface scroll-mt-24 p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-bold">
+              {text(ordering, "tableName")} · Order lein
+            </h2>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setOrdering(null);
+                reload();
+              }}
+            >
+              ← Tables aur bill par wapas
+            </Button>
+          </div>
+          <CounterPOS
+            key={text(ordering, "id")}
+            mode="TABLE"
+            sessionId={text(ordering, "id")}
+            embedded
+            onRecorded={reload}
+          />
+        </section>
+      )}
       <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {tables.map((table) => {
           const session = rows(table, "sessions")[0];
@@ -301,6 +342,26 @@ export function TablesPanel({
                   This table is assigned to another waiter.
                 </p>
               ) : null}
+              {!table.busy && Boolean(data.integrationActive) && (
+                <Button
+                  className="mt-3"
+                  onClick={() => {
+                    setOpeningTable(text(table, "id"));
+                    setTimeout(
+                      () =>
+                        document
+                          .getElementById("open-table-form")
+                          ?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          }),
+                      0,
+                    );
+                  }}
+                >
+                  Yeh table kholein
+                </Button>
+              )}
               {session && (
                 <>
                   <p className="mt-3 text-sm">
@@ -317,6 +378,15 @@ export function TablesPanel({
                       <dd className="font-bold">{money(session.paid)}</dd>
                     </div>
                   </dl>
+                  <p className="mt-3 rounded-xl bg-chai-50 p-3 font-bold">
+                    Baqi payment:{" "}
+                    {money(
+                      decimal(
+                        paise(text(session, "total", "0")) -
+                          paise(text(session, "paid", "0")),
+                      ),
+                    )}
+                  </p>
                   <ul className="my-4 space-y-2 text-xs">
                     {rows(session, "orders").map((o) => (
                       <li
@@ -331,14 +401,26 @@ export function TablesPanel({
                     ))}
                   </ul>
                   <div className="flex flex-wrap gap-2">
-                    <Link
-                      className="btn-primary text-xs"
-                      href={
-                        "/admin/table-orders?session=" + text(session, "id")
-                      }
-                    >
-                      Add items / send ticket
-                    </Link>
+                    {canBusiness(user, "table-orders") && (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setOrdering({ ...session, tableName: table.name });
+                          setTimeout(
+                            () =>
+                              document
+                                .getElementById("table-order-desk")
+                                ?.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "start",
+                                }),
+                            0,
+                          );
+                        }}
+                      >
+                        Add items / send ticket
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="secondary"

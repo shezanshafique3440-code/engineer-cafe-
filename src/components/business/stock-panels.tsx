@@ -1,5 +1,6 @@
 "use client";
 import { decimal, divideRound, paise } from "@/lib/business-math";
+import Link from "next/link";
 import { useState } from "react";
 import { Button, Input, Select } from "@/components/ui";
 import { canBusiness } from "@/lib/business-access";
@@ -30,13 +31,15 @@ export function IngredientsPanel({
   reload: () => void;
 }) {
   const [editing, setEditing] = useState<Row | null>(null),
-    [adjusting, setAdjusting] = useState<Row | null>(null);
+    [adjusting, setAdjusting] = useState<Row | null>(null),
+    [task, setTask] = useState("list");
   const { user } = useSession();
   const edit = canBusiness(user, "inventory"),
     items = rows(data, "ingredients");
   const done = () => {
     setEditing(null);
     setAdjusting(null);
+    setTask("list");
     reload();
   };
   return (
@@ -46,175 +49,254 @@ export function IngredientsPanel({
         1 litre = 1,000 mL. Open orders reserve ingredients; cooking consumes
         them.
       </Notice>
-      {edit && (
+      <div className="flex flex-wrap gap-2" aria-label="Stock ka kaam">
+        <Button
+          variant={task === "list" ? "primary" : "secondary"}
+          onClick={() => setTask("list")}
+        >
+          Stock list
+        </Button>
+        {edit && (
+          <>
+            <Button
+              variant={task === "add" ? "primary" : "secondary"}
+              onClick={() => {
+                setEditing(null);
+                setTask("add");
+              }}
+            >
+              Naya ingredient
+            </Button>
+            <Button
+              variant={task === "adjust" ? "primary" : "secondary"}
+              onClick={() => setTask("adjust")}
+            >
+              Maal kam / zaya / correction
+            </Button>
+            <Link
+              className="btn-secondary"
+              href="/admin/business?section=purchases"
+            >
+              Maal khareeda
+            </Link>
+          </>
+        )}
+      </div>
+      {edit && task !== "list" && (
         <div className="grid gap-5 xl:grid-cols-2">
-          <Form
-            key={text(editing ?? undefined, "id", "new")}
-            module="ingredients"
-            title={editing ? "Edit ingredient" : "Add ingredient"}
-            fields={[
-              {
-                name: "name",
-                label: "Ingredient",
-                value: text(editing ?? undefined, "name"),
-              },
-              {
-                name: "unit",
-                label: "Stock unit",
-                type: "select",
-                options: [
-                  { value: "G", label: "Grams (g)" },
-                  { value: "ML", label: "Millilitres (mL)" },
-                  { value: "PCS", label: "Pieces" },
-                ],
-                value: text(editing ?? undefined, "unit", "G"),
-              },
-              {
-                name: "reorderAt",
-                label: "Low-stock alert quantity",
-                type: "number",
-                value: text(editing ?? undefined, "reorderAt", "0"),
-                min: "0",
-                step: "0.0001",
-              },
-              {
-                name: "isActive",
-                label: "Active",
-                type: "checkbox",
-                value: editing ? Boolean(editing.isActive) : true,
-              },
-            ]}
-            build={(v) => ({
-              ...v,
-              action: "SAVE",
-              id: editing?.id,
-              version: editing?.version,
-            })}
-            onDone={done}
-          />
-          <Form
-            key={"adjust:" + text(adjusting ?? undefined, "id", "new")}
-            module="ingredients"
-            title="Opening stock / stock adjustment"
-            description="A stock count is the actual total counted; other actions use the quantity added or removed. Explain waste, staff meals and corrections."
-            fields={[
-              {
-                name: "ingredientId",
-                label: "Ingredient",
-                type: "select",
-                options: items.map((i) => ({
-                  value: text(i, "id"),
-                  label: text(i, "name") + " · " + text(i, "unit"),
-                })),
-                value: text(adjusting ?? undefined, "id"),
-              },
-              {
-                name: "kind",
-                label: "Action",
-                type: "select",
-                options: [
-                  ...(!data.integrationActive
-                    ? [{ value: "OPENING", label: "Opening stock" }]
-                    : []),
-                  { value: "COUNT", label: "Physical stock count" },
-                  { value: "WASTE", label: "Wastage / spoilage" },
-                  {
-                    value: "STAFF_MEAL",
-                    label: "Staff meal / complimentary use",
-                  },
-                  { value: "IN", label: "Stock found / other receipt" },
-                  { value: "OUT", label: "Other stock removal" },
-                ],
-                value: !data.integrationActive ? "OPENING" : "WASTE",
-              },
-              {
-                name: "quantity",
-                label: "Quantity in the stock unit",
-                type: "number",
-                min: "0",
-                step: "0.0001",
-              },
-              {
-                name: "value",
-                label: "Total cost value of stock added (Rs.)",
-                type: "number",
-                min: "0",
-                value: "0",
-                hint: "Used for opening stock and positive adjustments. Use the purchase screen for supplier deliveries.",
-              },
-              {
-                name: "date",
-                label: "Accounting date",
-                type: "date",
-                value: text(data, "today"),
-              },
-              noteField,
-            ]}
-            build={(v) => ({
-              ...v,
-              action: "ADJUST",
-              version: text(
-                items.find((i) => i.id === v.ingredientId),
-                "version",
-              ),
-            })}
-            onDone={done}
-          />
+          {task === "add" && (
+            <Form
+              key={text(editing ?? undefined, "id", "new")}
+              module="ingredients"
+              title={editing ? "Edit ingredient" : "Add ingredient"}
+              fields={[
+                {
+                  name: "name",
+                  label: "Ingredient",
+                  value: text(editing ?? undefined, "name"),
+                },
+                {
+                  name: "unit",
+                  label: "Stock unit",
+                  type: "select",
+                  options: [
+                    { value: "G", label: "Grams (g)" },
+                    { value: "ML", label: "Millilitres (mL)" },
+                    { value: "PCS", label: "Pieces" },
+                  ],
+                  value: text(editing ?? undefined, "unit", "G"),
+                },
+                {
+                  name: "reorderAt",
+                  label: "Low-stock alert quantity",
+                  type: "number",
+                  value: text(editing ?? undefined, "reorderAt", "0"),
+                  min: "0",
+                  step: "0.0001",
+                },
+                {
+                  name: "isActive",
+                  label: "Active",
+                  type: "checkbox",
+                  value: editing ? Boolean(editing.isActive) : true,
+                },
+              ]}
+              build={(v) => ({
+                ...v,
+                action: "SAVE",
+                id: editing?.id,
+                version: editing?.version,
+              })}
+              onDone={done}
+            />
+          )}
+          {task === "adjust" && (
+            <Form
+              key={"adjust:" + text(adjusting ?? undefined, "id", "new")}
+              module="ingredients"
+              title="Opening stock / stock adjustment"
+              description="A stock count is the actual total counted; other actions use the quantity added or removed. Explain waste, staff meals and corrections."
+              fields={[
+                {
+                  name: "ingredientId",
+                  label: "Ingredient",
+                  type: "select",
+                  options: items.map((i) => ({
+                    value: text(i, "id"),
+                    label: text(i, "name") + " · " + text(i, "unit"),
+                  })),
+                  value: text(adjusting ?? undefined, "id"),
+                },
+                {
+                  name: "kind",
+                  label: "Action",
+                  type: "select",
+                  options: [
+                    ...(!data.integrationActive
+                      ? [{ value: "OPENING", label: "Opening stock" }]
+                      : []),
+                    {
+                      value: "COUNT",
+                      label: "Asal stock gin kar likhein / Count",
+                    },
+                    { value: "WASTE", label: "Maal zaya / kharab hua" },
+                    {
+                      value: "STAFF_MEAL",
+                      label: "Staff ka khana / Complimentary",
+                    },
+                    { value: "IN", label: "Stock found / other receipt" },
+                    { value: "OUT", label: "Other stock removal" },
+                  ],
+                  value: !data.integrationActive ? "OPENING" : "WASTE",
+                },
+                {
+                  name: "quantity",
+                  label: "Quantity in the stock unit",
+                  type: "number",
+                  min: "0",
+                  step: "0.0001",
+                },
+                {
+                  name: "value",
+                  label: "Total cost value of stock added (Rs.)",
+                  visible: (v) =>
+                    ["OPENING", "IN", "COUNT"].includes(String(v.kind)),
+                  type: "number",
+                  min: "0",
+                  value: "0",
+                  hint: "Used for opening stock and positive adjustments. Use the purchase screen for supplier deliveries.",
+                },
+                {
+                  name: "date",
+                  label: "Accounting date",
+                  type: "date",
+                  value: text(data, "today"),
+                },
+                noteField,
+              ]}
+              build={(v) => ({
+                ...v,
+                action: "ADJUST",
+                version: text(
+                  items.find((i) => i.id === v.ingredientId),
+                  "version",
+                ),
+              })}
+              onDone={done}
+            />
+          )}
         </div>
       )}
-      <Table
-        headers={[
-          "Ingredient",
-          "On hand",
-          "Reserved",
-          "Available",
-          "Unit",
-          "Stock value",
-          "Reorder at",
-          ...(edit ? ["Actions"] : []),
-        ]}
-        empty={!items.length}
+      <div
+        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+        aria-label="Available stock"
       >
         {items.map((i) => (
-          <tr key={text(i, "id")}>
-            <Cell>
-              <strong>{text(i, "name")}</strong>
-              {Boolean(i.low) && (
-                <span className="mt-1 block text-xs font-semibold text-chilli-600">
-                  Low stock
-                </span>
-              )}
-              {!i.isActive && <span className="block text-xs">Inactive</span>}
-            </Cell>
-            <Cell>{text(i, "quantity")}</Cell>
-            <Cell>{text(i, "reserved")}</Cell>
-            <Cell>{text(i, "available")}</Cell>
-            <Cell>{text(i, "unit")}</Cell>
-            <Cell>{edit ? money(i.stockValue) : "—"}</Cell>
-            <Cell>{text(i, "reorderAt")}</Cell>
-            {edit && (
-              <Cell>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setEditing(i)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setAdjusting(i)}
-                  >
-                    Adjust
-                  </Button>
-                </div>
-              </Cell>
+          <article key={text(i, "id")} className="surface p-4">
+            <h2 className="font-bold">{text(i, "name")}</h2>
+            <p className="mt-2 text-xl font-bold">
+              {text(i, "available")}{" "}
+              <span className="text-sm">{text(i, "unit")}</span>
+            </p>
+            <p className="mt-1 text-xs text-charcoal-500">
+              Available · On hand {text(i, "quantity")} · Reserved{" "}
+              {text(i, "reserved")}
+            </p>
+            {Boolean(i.low) && (
+              <p className="mt-2 font-bold text-chilli-600">
+                Maal kam hai / Low stock
+              </p>
             )}
-          </tr>
+            {!i.isActive && <p className="text-sm">Inactive</p>}
+          </article>
         ))}
-      </Table>
+      </div>
+      <details className="surface p-4">
+        <summary className="min-h-11 cursor-pointer py-2 font-bold">
+          Detailed stock / Edit ingredient
+        </summary>
+        <Table
+          headers={[
+            "Ingredient",
+            "On hand",
+            "Reserved",
+            "Available",
+            "Unit",
+            "Stock value",
+            "Reorder at",
+            ...(edit ? ["Actions"] : []),
+          ]}
+          empty={!items.length}
+        >
+          {items.map((i) => (
+            <tr key={text(i, "id")}>
+              <Cell>
+                <strong>{text(i, "name")}</strong>
+                {Boolean(i.low) && (
+                  <span className="mt-1 block text-xs font-semibold text-chilli-600">
+                    Low stock
+                  </span>
+                )}
+                {!i.isActive && <span className="block text-xs">Inactive</span>}
+              </Cell>
+              <Cell>{text(i, "quantity")}</Cell>
+              <Cell>{text(i, "reserved")}</Cell>
+              <Cell>{text(i, "available")}</Cell>
+              <Cell>{text(i, "unit")}</Cell>
+              <Cell>{edit ? money(i.stockValue) : "—"}</Cell>
+              <Cell>{text(i, "reorderAt")}</Cell>
+              {edit && (
+                <Cell>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setEditing(i);
+                        setTask("add");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setAdjusting(i);
+                        setTask("adjust");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    >
+                      Adjust
+                    </Button>
+                  </div>
+                </Cell>
+              )}
+            </tr>
+          ))}
+        </Table>
+      </details>
       <h2 className="text-xl font-bold">Latest stock movements</h2>
       <Table
         headers={[

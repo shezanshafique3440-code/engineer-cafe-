@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { TaskSteps } from "./task-steps";
 import { OfflineCounterPanel } from "./offline-counter-panel";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -31,9 +32,13 @@ type SalesContext = {
 export function CounterPOS({
   mode = "COUNTER",
   sessionId = "",
+  embedded = false,
+  onRecorded,
 }: {
   mode?: "COUNTER" | "TABLE";
   sessionId?: string;
+  embedded?: boolean;
+  onRecorded?: () => void;
 }) {
   const [session, setSession] = useState(sessionId);
   return (
@@ -43,7 +48,13 @@ export function CounterPOS({
         scope={mode === "TABLE" ? `table:${session}` : "pos"}
       >
         <StorefrontProvider>
-          <Counter mode={mode} session={session} setSession={setSession} />
+          <Counter
+            mode={mode}
+            session={session}
+            setSession={setSession}
+            embedded={embedded}
+            onRecorded={onRecorded}
+          />
         </StorefrontProvider>
       </CartProvider>
     </FavoritesProvider>
@@ -53,10 +64,14 @@ function Counter({
   mode,
   session,
   setSession,
+  embedded,
+  onRecorded,
 }: {
   mode: "COUNTER" | "TABLE";
   session: string;
   setSession: (id: string) => void;
+  embedded: boolean;
+  onRecorded?: () => void;
 }) {
   const { user } = useSession();
   const cart = useCart(),
@@ -66,6 +81,7 @@ function Counter({
     [context, setContext] = useState<SalesContext | null>(null),
     [error, setError] = useState(""),
     [query, setQuery] = useState(""),
+    [category, setCategory] = useState(""),
     [slug, setSlug] = useState<string | null>(null),
     [cash, setCash] = useState(""),
     [name, setName] = useState(""),
@@ -162,6 +178,14 @@ function Counter({
         payload,
       );
       setReceipt(result.order);
+      setTimeout(
+        () =>
+          document
+            .getElementById("counter-receipt")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+        0,
+      );
+      onRecorded?.();
       cart.clear({ silent: true });
       setCash("");
       setApprovalId("");
@@ -197,7 +221,7 @@ function Counter({
       ? !session || !context?.enabled
       : (!credit && (!cash || Number(cash) < saleTotal)) || (credit && !party));
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 pb-24 xl:pb-0">
       <h1 className="text-3xl font-bold">
         {table ? "Waiter order desk" : "Counter POS"}
       </h1>
@@ -206,23 +230,37 @@ function Counter({
           ? "Choose an open table and send its next kitchen ticket. The cashier settles the combined bill."
           : "Receive payment, calculate change and send the ticket to the kitchen."}
       </p>
+      <div className="mt-4">
+        <TaskSteps
+          compact
+          title={table ? "Table ka order" : "Naya bill banayein"}
+          steps={
+            table
+              ? ["Items chunein", "Bill check", "Kitchen bhejein"]
+              : ["Items chunein", "Payment lein", "Receipt dein"]
+          }
+          current={!cart.lines.length ? (receipt ? 2 : 0) : 1}
+        />
+      </div>
       {!table && <OfflineCounterPanel />}
-      <div className="my-4 flex flex-wrap gap-2">
-        <Link
-          className="btn-secondary text-xs"
-          href="/admin/business?section=tables"
-        >
-          Tables & bills
-        </Link>
-        {!table && (
+      {!embedded && (
+        <div className="my-4 flex flex-wrap gap-2">
           <Link
             className="btn-secondary text-xs"
-            href="/admin/business?section=cash"
+            href="/admin/business?section=tables"
           >
-            Open / close cash shift
+            Tables & bills
           </Link>
-        )}
-      </div>
+          {!table && (
+            <Link
+              className="btn-secondary text-xs"
+              href="/admin/business?section=cash"
+            >
+              Open / close cash shift
+            </Link>
+          )}
+        </div>
+      )}
       {context?.enabled && !table && (
         <p className="mb-4 rounded-xl bg-chai-50 p-3 text-sm">
           {context.shift
@@ -230,7 +268,7 @@ function Counter({
             : "No cash shift is open under your login. Open a drawer before taking cash; bank/wallet receipts use the selected account."}
         </p>
       )}
-      {table && context && (
+      {table && context && !embedded && (
         <div className="surface mb-4 p-4">
           <Select
             label="Open table bill"
@@ -253,6 +291,7 @@ function Counter({
       )}
       {receipt && (
         <div
+          id="counter-receipt"
           role="status"
           className="surface my-5 flex flex-wrap items-center justify-between gap-3 p-4"
         >
@@ -295,15 +334,50 @@ function Counter({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
+          <div
+            className="mt-3 flex flex-wrap gap-2"
+            aria-label="Menu categories"
+          >
+            {["", ...new Set(products.map((p) => p.category.name))].map((c) => (
+              <button
+                type="button"
+                key={c}
+                aria-pressed={category === c}
+                className={
+                  category === c
+                    ? "btn-primary min-h-11 text-xs"
+                    : "btn-secondary min-h-11 text-xs"
+                }
+                onClick={() => setCategory(c)}
+              >
+                {c || "Sab items"}
+              </button>
+            ))}
+          </div>
+          {!error &&
+            products.length > 0 &&
+            !products.some(
+              (p) =>
+                (!category || p.category.name === category) &&
+                `${p.name} ${p.category.name}`
+                  .toLowerCase()
+                  .includes(query.toLowerCase()),
+            ) && (
+              <p className="mt-4 rounded-xl bg-cream-50 p-4 text-sm">
+                Koi item nahi mila. Search ya category badlein.
+              </p>
+            )}
           {error ? (
             <ErrorState description={error} onRetry={() => void load()} />
           ) : (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {products
-                .filter((p) =>
-                  `${p.name} ${p.category.name}`
-                    .toLowerCase()
-                    .includes(query.toLowerCase()),
+                .filter(
+                  (p) =>
+                    (!category || p.category.name === category) &&
+                    `${p.name} ${p.category.name}`
+                      .toLowerCase()
+                      .includes(query.toLowerCase()),
                 )
                 .map((p) => (
                   <button
@@ -329,7 +403,10 @@ function Counter({
             </div>
           )}
         </section>
-        <section className="surface min-w-0 self-start p-4 xl:sticky xl:top-24">
+        <section
+          id="counter-bill"
+          className="surface min-w-0 scroll-mt-24 self-start p-4 xl:sticky xl:top-24"
+        >
           <h2 className="mb-3 text-lg font-bold">
             {table ? "Current table ticket" : "Current sale"}
           </h2>
@@ -466,34 +543,44 @@ function Counter({
             </div>
           </dl>
           <div className="space-y-3">
-            <Input
-              label="Customer name (optional)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <details className="rounded-xl border border-cream-200 p-3">
+              <summary className="min-h-11 cursor-pointer py-2 text-sm font-bold">
+                Customer name / Extra details
+              </summary>
+              <Input
+                label="Customer name (optional)"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </details>
             {!table && (
               <>
                 {context?.enabled && (
                   <>
-                    <Checkbox
-                      label="Approved customer credit"
-                      checked={credit}
-                      onChange={(e) => setCredit(e.target.checked)}
-                    />
-                    {credit && (
-                      <Select
-                        label="Credit customer"
-                        value={party}
-                        onChange={(e) => setParty(e.target.value)}
-                      >
-                        <option value="">Choose approved customer…</option>
-                        {context.customers.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name} · limit {money(Number(c.creditLimit))}
-                          </option>
-                        ))}
-                      </Select>
-                    )}
+                    <details className="rounded-xl border border-cream-200 p-3">
+                      <summary className="min-h-11 cursor-pointer py-2 text-sm font-bold">
+                        Udhaar sale (approved customer)
+                      </summary>
+                      <Checkbox
+                        label="Approved customer credit"
+                        checked={credit}
+                        onChange={(e) => setCredit(e.target.checked)}
+                      />
+                      {credit && (
+                        <Select
+                          label="Credit customer"
+                          value={party}
+                          onChange={(e) => setParty(e.target.value)}
+                        >
+                          <option value="">Choose approved customer…</option>
+                          {context.customers.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} · limit {money(Number(c.creditLimit))}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
+                    </details>
                     <Select
                       label="Payment received into"
                       value={account}
@@ -519,6 +606,41 @@ function Counter({
                   value={cash}
                   onChange={(e) => setCash(e.target.value)}
                 />
+                {!credit && Boolean(cart.lines.length) && (
+                  <div
+                    className="flex flex-wrap gap-2"
+                    aria-label="Cash shortcuts"
+                  >
+                    {[
+                      ...new Set([
+                        saleTotal,
+                        Math.ceil(saleTotal / 100) * 100,
+                        Math.ceil(saleTotal / 500) * 500,
+                        1000,
+                      ]),
+                    ]
+                      .filter((n) => n >= saleTotal && n > 0)
+                      .map((n) => (
+                        <button
+                          type="button"
+                          key={n}
+                          className="btn-secondary min-h-11 text-sm"
+                          onClick={() => setCash(String(n))}
+                        >
+                          {n === saleTotal ? "Exact " : ""}
+                          {money(n)}
+                        </button>
+                      ))}
+                  </div>
+                )}
+                {credit && (
+                  <p
+                    role="status"
+                    className="rounded-xl bg-chai-50 p-3 font-bold"
+                  >
+                    Udhaar sale — customer ka balance barhega.
+                  </p>
+                )}
                 {!credit && (
                   <p className="text-lg font-bold">
                     Change: {money(Math.max(0, Number(cash) - saleTotal))}
@@ -541,6 +663,25 @@ function Counter({
           </div>
         </section>
       </div>
+      {cart.lines.length > 0 && (
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 lg:bottom-0 border-t border-cream-300 bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-lg xl:hidden lg:left-64">
+          <button
+            type="button"
+            className="btn-primary flex w-full items-center justify-between"
+            onClick={() =>
+              document
+                .getElementById("counter-bill")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+          >
+            <span>
+              {cart.lines.reduce((n, l) => n + l.quantity, 0)} items · Bill
+              dekhein
+            </span>
+            <span>{money(saleTotal)}</span>
+          </button>
+        </div>
+      )}
       {slug && (
         <ProductDialog
           slug={slug}

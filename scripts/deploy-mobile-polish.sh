@@ -122,7 +122,7 @@ const data = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 if (!Array.isArray(data.products)) throw new Error('Meal catalog response is invalid.');
 console.log('PASS: live meal catalog and public premium pages respond.');
 JS
-for route in /api/admin/kitchen /api/admin/insights /api/admin/offline-pos /api/admin/business/delivery; do
+for route in /api/admin/kitchen /api/admin/insights /api/admin/offline-pos /api/admin/business/delivery /api/admin/day-summary; do
   status=$(curl --silent --show-error --max-time 30 -o /dev/null -w '%{http_code}' "http://127.0.0.1:3100$route")
   if [ "$status" != "401" ]; then
     echo "Protected premium endpoint returned unexpected status: $route $status"

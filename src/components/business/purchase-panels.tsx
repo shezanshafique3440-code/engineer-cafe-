@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui";
 import {
@@ -199,6 +200,20 @@ export function PurchasesPanel({
         food cost when ingredients are used. Enter quantities in each
         ingredient’s stock unit.
       </Notice>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          className="btn-secondary"
+          href="/admin/business?section=suppliers"
+        >
+          Supplier add / payment
+        </Link>
+        <Link
+          className="btn-secondary"
+          href="/admin/business?section=inventory"
+        >
+          Ingredient / stock dekhein
+        </Link>
+      </div>
       <Form
         module="purchases"
         title="Receive supplier invoice"

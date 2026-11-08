@@ -432,6 +432,11 @@ export async function deliveryRead(tx: DB, start: Date, end: Date) {
       status: o.status,
       total: o.total,
       paymentStatus: o.paymentStatus,
+      paymentMethod: o.paymentMethod,
+      businessCredit: o.businessCredit,
+      remainingDue: decimal(
+        BigInt(o.total) * 100n - paise(o.amountPaid) + paise(o.amountRefunded),
+      ),
       riderId: o.riderId,
       riderName: o.rider?.party.name,
       commission: o.deliveryCommission,

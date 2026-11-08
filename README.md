@@ -557,3 +557,5 @@ but the status code is still wrong. Unmatched routes outside `/menu`
 ## Riders and offline counter
 
 See [Riders and offline POS](docs/delivery-and-offline.md) for delivery assignments, 15% commission accounting, rider cash reconciliation, cash-only offline billing, durable synchronization and test/deployment details.
+
+See [Simple cafe workflows](docs/easy-cafe-workflows.md) for the role-based daily home, inline table billing, quick attendance, closing checklist and client preview instructions.

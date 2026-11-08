@@ -2,7 +2,8 @@
 
 import { canBusiness } from "@/lib/business-access";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { CAFE_TASKS } from "@/lib/cafe-tasks";
 import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
@@ -32,7 +33,7 @@ import { NewOrderAlert } from "./new-order-alert";
 import { useDialogFocus } from "@/hooks/use-dialog-focus";
 import { cn, initials } from "@/lib/utils";
 
-const NAV = [
+const EXTRA_NAV = [
   { href: "/admin/business", label: "Cafe business system", icon: BarChart3 },
   {
     href: "/admin/table-orders",
@@ -58,6 +59,9 @@ const NAV = [
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [advanced, setAdvanced] = useState(false);
+  const [query, setQuery] = useState("");
   const { user, logout } = useSession();
   const settings = useSettings();
   const capFor = (href: string) =>
@@ -80,14 +84,73 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       "/admin/analytics": "insights",
       "/admin/settings": "settings",
     })[href] ?? "admin";
-  const visibleNav = NAV.filter((item) =>
+  const mainNav = [
+    { href: "/admin", label: "Roz ka kaam / Home", icon: LayoutDashboard },
+    ...CAFE_TASKS.filter((task) => canBusiness(user, task.cap))
+      .filter((task) =>
+        [
+          "pos",
+          "tables",
+          "kitchen",
+          "orders",
+          "delivery",
+          "cash",
+          "inventory",
+          "purchases",
+          "attendance",
+          "staff",
+          "overview",
+        ].includes(task.id),
+      )
+      .map((task) => ({
+        href: task.href,
+        label: task.label,
+        icon:
+          task.id === "kitchen"
+            ? ChefHat
+            : task.id === "overview"
+              ? BarChart3
+              : task.id === "staff" || task.id === "attendance"
+                ? Users
+                : task.id === "inventory" || task.id === "purchases"
+                  ? Package
+                  : ShoppingBag,
+      })),
+  ];
+  const extraNav = EXTRA_NAV.filter((item) =>
     capFor(item.href) === "business"
       ? Boolean(user && user.role !== "CUSTOMER")
       : canBusiness(user, capFor(item.href)),
+  ).filter(
+    (item) =>
+      !["/admin", "/admin/pos", "/admin/kitchen", "/admin/orders"].includes(
+        item.href,
+      ),
   );
+  const visibleNav = [
+    ...mainNav,
+    ...(advanced || query.trim() ? extraNav : []),
+  ];
+
+  const quickPaths =
+    user?.businessProfile === "CHEF"
+      ? ["/admin/kitchen", "/admin/orders"]
+      : user?.businessProfile === "WAITER"
+        ? ["/admin/business?section=tables", "/admin/kitchen"]
+        : ["/admin/pos", "/admin/business?section=tables"];
+  const quickNav = mainNav.filter(
+    (item) => item.href === "/admin" || quickPaths.includes(item.href),
+  );
+  const quickLabel = (href: string) =>
+    ({
+      "/admin": "Home",
+      "/admin/pos": "Naya bill",
+      "/admin/business?section=tables": "Tables",
+      "/admin/kitchen": "Kitchen",
+      "/admin/orders": "Orders",
+    })[href] ?? "Open";
 
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
   const [offline, setOffline] = useState(false);
   const drawer = useRef<HTMLDivElement>(null);
   useDialogFocus(open, drawer, () => setOpen(false));
@@ -108,8 +171,20 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const isActive = (href: string) =>
-    href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+  const isActive = (href: string) => {
+    const [path, query] = href.split("?");
+    if (path === "/admin") return pathname === path;
+    if (query)
+      return (
+        pathname === path &&
+        searchParams.get("section") ===
+          new URLSearchParams(query).get("section")
+      );
+    return (
+      pathname === path &&
+      !(path === "/admin/business" && searchParams.has("section"))
+    );
+  };
 
   const sidebar = (
     <div className="admin-sidebar flex h-full flex-col bg-charcoal-900 text-cream-100">
@@ -133,12 +208,22 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <input
           type="search"
           aria-label="Find an admin page"
-          placeholder="Find a page…"
+          placeholder="Kaam dhoondein…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           className="min-h-11 w-full rounded-xl border border-charcoal-700 bg-charcoal-800 py-2 pl-10 pr-3 text-base text-cream-50 placeholder:text-charcoal-300"
         />
       </div>
+      <button
+        type="button"
+        aria-expanded={advanced}
+        onClick={() => setAdvanced((v) => !v)}
+        className="mx-3 mt-3 min-h-11 rounded-xl border border-charcoal-700 px-3 text-left text-sm text-cream-100"
+      >
+        {advanced
+          ? "− Extra tools band karein"
+          : "+ Extra tools / Website settings"}
+      </button>
       <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Admin">
         {visibleNav
           .filter((item) =>
@@ -267,8 +352,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             role="status"
             className="flex items-start gap-2 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
           >
-            <WifiOff className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> You’re
-            offline. Reconnect before saving changes.
+            <WifiOff className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <span>
+              Internet band hai.{" "}
+              {canBusiness(user, "pos") ? (
+                <a href="/offline-pos.html" className="font-bold underline">
+                  Offline cash counter kholein.
+                </a>
+              ) : (
+                "Changes save karne ke liye reconnect karein."
+              )}
+            </span>
           </div>
         )}
         <main
@@ -280,26 +374,25 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </div>
       <nav
         aria-label="Admin quick navigation"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-cream-200 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+        style={{
+          gridTemplateColumns: `repeat(${quickNav.length + 1}, minmax(0, 1fr))`,
+        }}
+        className="fixed inset-x-0 bottom-0 z-40 grid border-t border-cream-200 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
       >
-        {visibleNav
-          .filter((item) =>
-            ["/admin", "/admin/orders", "/admin/kitchen"].includes(item.href),
-          )
-          .map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActive(item.href) ? "page" : undefined}
-              className={cn(
-                "flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold",
-                isActive(item.href) ? "text-chai-700" : "text-charcoal-500",
-              )}
-            >
-              <item.icon className="h-5 w-5" aria-hidden />
-              {item.label}
-            </Link>
-          ))}
+        {quickNav.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={isActive(item.href) ? "page" : undefined}
+            className={cn(
+              "flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold",
+              isActive(item.href) ? "text-chai-700" : "text-charcoal-500",
+            )}
+          >
+            <item.icon className="h-5 w-5" aria-hidden />
+            {quickLabel(item.href)}
+          </Link>
+        ))}
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -308,7 +401,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           className="flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold text-charcoal-500"
         >
           <Menu className="h-5 w-5" aria-hidden />
-          More
+          Menu
         </button>
       </nav>
     </div>
