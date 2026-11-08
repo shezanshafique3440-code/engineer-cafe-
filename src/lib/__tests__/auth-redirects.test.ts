@@ -16,14 +16,21 @@ after(() => {
 });
 
 async function redirect(path: string, role?: string) {
-  const headers = new Headers({ host: "esellerstore.vip", "x-forwarded-proto": "https" });
+  const headers = new Headers({
+    host: "esellerstore.vip",
+    "x-forwarded-proto": "https",
+  });
   if (role) {
-    const token = await new SignJWT({ role }).setProtectedHeader({ alg: "HS256" })
-      .setIssuer("engineer-cafe").setExpirationTime("5m")
+    const token = await new SignJWT({ role })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuer("engineer-cafe")
+      .setExpirationTime("5m")
       .sign(new TextEncoder().encode(process.env.AUTH_SECRET));
     headers.set("cookie", `ec_session=${token}`);
   }
-  return middleware(new NextRequest(`http://localhost:3100${path}`, { headers }));
+  return middleware(
+    new NextRequest(`http://localhost:3100${path}`, { headers }),
+  );
 }
 
 test("account login redirect uses HTTPS public domain behind a localhost reverse proxy", async () => {
@@ -39,15 +46,18 @@ test("admin gate retains the return path on the public domain", async () => {
   const location = new URL(response.headers.get("location")!);
   assert.equal(location.origin, "https://esellerstore.vip");
   assert.equal(location.pathname, "/admin/login");
-  assert.equal(location.searchParams.get("next"), "/admin/orders?status=PENDING");
+  assert.equal(
+    location.searchParams.get("next"),
+    "/admin/orders?status=PENDING",
+  );
 });
 
-test("signed-in staff leave the login page for the public admin URL", async () => {
+test("login remains reachable when a staff token may have been revoked", async () => {
   const response = await redirect("/admin/login", "ADMIN");
-  assert.equal(response.headers.get("location"), "https://esellerstore.vip/admin");
+  assert.equal(response.headers.get("location"), null);
 });
 
-test("signed-in customers leave the login page for the public account URL", async () => {
+test("customer login remains reachable when its token may be stale", async () => {
   const response = await redirect("/login", "CUSTOMER");
-  assert.equal(response.headers.get("location"), "https://esellerstore.vip/account");
+  assert.equal(response.headers.get("location"), null);
 });

@@ -3,7 +3,7 @@ import { hashPassword } from "@/server/auth";
 import type { SessionUser } from "@/lib/types";
 import { badRequest, forbidden } from "@/server/api";
 import { businessToday, dateValue, paise, quantity } from "@/lib/business-math";
-import { canBusiness } from "@/lib/business-access";
+import { canBusiness, profileCapabilities } from "@/lib/business-access";
 import { audit, hash, type DB, versionCheck } from "./core";
 import { schemas, type Module } from "./validation";
 import { adjustIngredient, stockReadiness } from "./inventory";
@@ -724,16 +724,34 @@ export async function businessAction(
           }))
         )
           throw badRequest("Choose an active employee.");
+        const permissions = [...new Set(d.permissions)];
+        if (
+          permissions.some(
+            (cap) => !profileCapabilities(d.profile).includes(cap),
+          )
+        )
+          throw badRequest(
+            "Individual permissions must belong to the selected profile. Owner-only access cannot be granted to staff.",
+          );
         const result = await tx.staffAccess.upsert({
           where: { userId: target.id },
           create: {
             userId: target.id,
             profile: d.profile,
             employeeId: d.employeeId,
+            customPermissions: d.customPermissions,
+            permissions,
           },
-          update: { profile: d.profile, employeeId: d.employeeId },
+          update: {
+            profile: d.profile,
+            employeeId: d.employeeId,
+            customPermissions: d.customPermissions,
+            permissions,
+          },
         });
         await audit(tx, actor, "GRANT_ACCESS", "User", target.id, {
+          customPermissions: d.customPermissions,
+          permissions,
           profile: d.profile,
           employeeId: d.employeeId ?? null,
         });

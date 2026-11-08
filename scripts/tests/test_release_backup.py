@@ -159,6 +159,39 @@ if '-w' in args:sys.stdout.write('200')
         with tarfile.open(path) as archive:
             return archive.extractfile(member).read()
 
+    def enable_notification_worker(self):
+        self.worker_state = self.base / 'worker-state'
+        self.worker_state.write_text('running')
+        self.env['QA_WORKER_STATE'] = str(self.worker_state)
+        self.command('pm2', """#!/usr/bin/env python3
+import os,sys
+from pathlib import Path
+args=sys.argv[1:]
+with open(os.environ['QA_PM2_LOG'],'a') as f:f.write(' '.join(args)+'\\n')
+if args[0]=='save':sys.exit(0)
+if len(args)<2 or args[1] not in ['engineer-cafe','engineer-cafe-notifications']:sys.exit(97)
+state=Path(os.environ['QA_WORKER_STATE'] if args[1].endswith('notifications') else os.environ['QA_STATE'])
+if args[0]=='pid':print('1234' if state.read_text()=='running' else '0')
+if args[0]=='stop':state.write_text('stopped')
+if args[0]=='restart':state.write_text('running')
+if args[0]=='describe':print('cafe fixture process')
+""")
+
+    def test_failed_backup_restores_the_running_notification_worker(self):
+        self.enable_notification_worker()
+        result = self.deploy(QA_FAIL_DUMP='1')
+        self.assertEqual(result.returncode, 41, result.stdout + result.stderr)
+        self.assert_old_running()
+        self.assertEqual(self.worker_state.read_text(), 'running')
+
+    def test_failed_build_rollback_restores_the_notification_worker(self):
+        self.enable_notification_worker()
+        result = self.deploy(QA_FAIL_BUILD='1')
+        self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
+        self.assert_old_running()
+        self.assertEqual(self.worker_state.read_text(), 'running')
+        self.assertEqual((self.snapshot() / 'worker-was-running').read_text().strip(), '1')
+
     def test_snapshot_and_later_rollback_keep_new_orders_uploads_and_environment(self):
         result = self.deploy()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

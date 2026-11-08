@@ -45,13 +45,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (pathname === "/admin/login" && isStaff) {
-    const url = new URL(pathname, env.siteUrl);
-    url.pathname = "/admin";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
   if (pathname.startsWith("/account") && !role) {
     const url = new URL(pathname, env.siteUrl);
     url.pathname = "/login";
@@ -59,13 +52,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if ((pathname === "/login" || pathname === "/register") && role) {
-    const url = new URL(pathname, env.siteUrl);
-    url.pathname = isStaff ? "/admin" : "/account";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
+  // Signed roles can be stale after revocation. Keep login pages reachable.
   return NextResponse.next();
 }
 

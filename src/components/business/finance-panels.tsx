@@ -1,5 +1,9 @@
 "use client";
 import Link from "next/link";
+import {
+  BUSINESS_CAPABILITIES,
+  profileCapabilities,
+} from "@/lib/business-access";
 import { paise, decimal } from "@/lib/business-math";
 import { useState } from "react";
 import { Button, Input } from "@/components/ui";
@@ -705,7 +709,7 @@ export function SetupPanel({
         />
         <Form
           title="Staff access"
-          description="Owner/Admin accounts retain full access. Waiter, chef and cashier profiles cannot read payroll or the owner ledger."
+          description="Owner/Admin accounts retain full access. Select a profile, then optionally restrict this individual login to selected modules. With custom access enabled, no checked modules means no access. Owner-only payroll and ledger remain protected."
           module="setup"
           fields={[
             {
@@ -735,10 +739,29 @@ export function SetupPanel({
                 label: text(e, "code") + " · " + text(e, "party.name"),
               })),
             },
+            {
+              name: "customPermissions",
+              label: "Restrict this login to individual permissions",
+              type: "checkbox",
+            },
+            ...BUSINESS_CAPABILITIES.map((cap) => ({
+              name: `permission_${cap}`,
+              label: `Allow ${cap.replaceAll("-", " ")}`,
+              type: "checkbox" as const,
+              visible: (v: Record<string, string | boolean>) =>
+                Boolean(v.customPermissions) &&
+                profileCapabilities(String(v.profile)).includes(cap),
+            })),
           ]}
           build={(v) => ({
             ...v,
             action: "ACCESS",
+            customPermissions: Boolean(v.customPermissions),
+            permissions: v.customPermissions
+              ? profileCapabilities(String(v.profile)).filter(
+                  (cap) => v[`permission_${cap}`],
+                )
+              : [],
             employeeId: v.employeeId || null,
           })}
           onDone={reload}

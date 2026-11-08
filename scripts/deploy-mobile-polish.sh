@@ -69,6 +69,7 @@ source .env
 set +a
 npm run typecheck
 npm run lint
+node --import tsx src/lib/__tests__/business.test.ts
 node --import tsx src/lib/__tests__/mobile-utils.test.ts
 node --import tsx src/lib/__tests__/auth-redirects.test.ts
 node --import tsx src/lib/__tests__/premium.test.ts

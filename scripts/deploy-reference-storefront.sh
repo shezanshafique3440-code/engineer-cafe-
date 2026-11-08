@@ -53,6 +53,9 @@ printf '%s\n' "$APP" > "$BACKUP/app-path"
 cp -p .env "$BACKUP/previous.env"
 printf '%s\n' "$OLD $TARGET" > "$BACKUP/additive-release"
 pm2 describe engineer-cafe > "$BACKUP/pm2-description.txt"
+WORKER_WAS_RUNNING=0
+if pm2 pid engineer-cafe-notifications 2>/dev/null | awk '$1 ~ /^[0-9]+$/ && $1>0 { found=1 } END { exit !found }'; then WORKER_WAS_RUNNING=1; fi
+printf '%s\n' "$WORKER_WAS_RUNNING" > "$BACKUP/worker-was-running"
 git archive --format=tar.gz "$OLD" > "$BACKUP/previous-code.tar.gz"
 git show "$TARGET:scripts/rollback-cafe-release.sh" > "$BACKUP/rollback.sh"
 git show "$TARGET:scripts/deploy-mobile-polish.sh" > "$BACKUP/deploy-reviewed.sh"
@@ -69,6 +72,7 @@ on_error() {
   elif [ "$STOP_REQUESTED" -eq 1 ]; then
     # No working files have changed while the backup is being taken.
     pm2 restart engineer-cafe || echo "Inspect engineer-cafe in PM2."
+    if [ "$WORKER_WAS_RUNNING" -eq 1 ]; then pm2 restart engineer-cafe-notifications || echo "Inspect engineer-cafe-notifications in PM2."; fi
   fi
   echo "Backup directory: $BACKUP"
   exit "$code"
@@ -101,7 +105,7 @@ for archive in previous-code.tar.gz build.tar.gz uploads.tar.gz dependencies.tar
 done
 (
   cd "$BACKUP"
-  sha256sum previous-commit target-commit app-path additive-release previous.env pm2-description.txt previous-code.tar.gz build.tar.gz uploads.tar.gz dependencies.tar.gz database.dump rollback.sh deploy-reviewed.sh > SHA256SUMS
+  sha256sum previous-commit target-commit app-path additive-release worker-was-running previous.env pm2-description.txt previous-code.tar.gz build.tar.gz uploads.tar.gz dependencies.tar.gz database.dump rollback.sh deploy-reviewed.sh > SHA256SUMS
   if [ -f previous-theme ]; then sha256sum previous-theme >> SHA256SUMS; fi
   sha256sum --status --check SHA256SUMS
 )

@@ -38,32 +38,32 @@ const PROFILE_CAPS: Record<BusinessProfile, string[]> = {
   WAITER: ["orders", "kitchen", "tables", "table-orders"],
   CHEF: ["orders", "kitchen", "stock-read"],
 };
+export const BUSINESS_CAPABILITIES = [
+  ...new Set(Object.values(PROFILE_CAPS).flat()),
+];
+export function profileCapabilities(profile?: string | null): string[] {
+  return profile && Object.hasOwn(PROFILE_CAPS, profile)
+    ? PROFILE_CAPS[profile as BusinessProfile]
+    : [];
+}
 export function canBusiness(
-  user: { role: string; businessProfile?: string | null } | null | undefined,
+  user:
+    | {
+        role: string;
+        businessProfile?: string | null;
+        businessPermissions?: string[] | null;
+      }
+    | null
+    | undefined,
   cap: string,
 ) {
   if (!user) return false;
   if (user.role === "ADMIN") return true;
   if (user.role !== "STAFF") return false;
-  if (!user.businessProfile)
-    return [
-      "admin",
-      "orders",
-      "payments",
-      "kitchen",
-      "tables",
-      "pos",
-      "catalog",
-      "customers",
-      "settings",
-      "insights",
-      "cash",
-      "table-orders",
-      "stock-read",
-    ].includes(cap);
+  const caps = profileCapabilities(user.businessProfile);
+  if (!caps.includes(cap)) return false;
   return (
-    PROFILE_CAPS[user.businessProfile as BusinessProfile]?.includes(cap) ??
-    false
+    user.businessPermissions == null || user.businessPermissions.includes(cap)
   );
 }
 export const BUSINESS_SECTIONS = [

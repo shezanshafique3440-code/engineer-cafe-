@@ -14,6 +14,7 @@ export type SessionUser = {
   email: string;
   role: Role;
   businessProfile?: string | null;
+  businessPermissions?: string[] | null;
   employeeId?: string | null;
 };
 

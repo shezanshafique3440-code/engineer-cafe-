@@ -522,6 +522,8 @@ model BusinessConfig {
   updatedAt DateTime @updatedAt
 }
 model StaffAccess {
+  customPermissions Boolean @default(false)
+  permissions String[] @default([])
   id String @id @default(cuid())
   userId String @unique
   user User @relation(fields:[userId],references:[id],onDelete:Cascade)

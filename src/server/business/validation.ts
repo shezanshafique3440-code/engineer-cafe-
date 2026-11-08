@@ -1,3 +1,4 @@
+import { BUSINESS_CAPABILITIES } from "@/lib/business-access";
 import { dateValue } from "@/lib/business-math";
 import { z } from "zod";
 import { cartLineSchema } from "@/lib/validation";
@@ -395,6 +396,18 @@ export const schemas = {
     z.object({
       ...base,
       action: z.literal("ACCESS"),
+      customPermissions: z.boolean().default(false),
+      permissions: z
+        .array(
+          z
+            .string()
+            .refine(
+              (value) => BUSINESS_CAPABILITIES.includes(value),
+              "Unknown staff permission.",
+            ),
+        )
+        .max(30)
+        .default([]),
       userId: z.string(),
       profile: z.enum(["MANAGER", "CASHIER", "WAITER", "CHEF"]),
       employeeId: z.string().nullable().optional(),

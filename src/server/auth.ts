@@ -18,7 +18,10 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
@@ -32,9 +35,13 @@ export async function createSessionToken(user: SessionUser): Promise<string> {
     .sign(secretKey());
 }
 
-export async function readSessionToken(token: string): Promise<SessionUser | null> {
+export async function readSessionToken(
+  token: string,
+): Promise<SessionUser | null> {
   try {
-    const { payload } = await jwtVerify(token, secretKey(), { issuer: "engineer-cafe" });
+    const { payload } = await jwtVerify(token, secretKey(), {
+      issuer: "engineer-cafe",
+    });
     if (!payload.sub || typeof payload.email !== "string") return null;
     return {
       id: payload.sub,
@@ -82,10 +89,34 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   if (!session) return null;
   const user = await prisma.user.findUnique({
     where: { id: session.id },
-    select: { id: true, name: true, email: true, role: true, isActive: true, staffAccess: { select: { profile:true,employeeId:true } } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isActive: true,
+      staffAccess: {
+        select: {
+          profile: true,
+          employeeId: true,
+          customPermissions: true,
+          permissions: true,
+        },
+      },
+    },
   });
   if (!user || !user.isActive) return null;
-  return { id: user.id, name: user.name, email: user.email, role: user.role, businessProfile:user.staffAccess?.profile??null, employeeId:user.staffAccess?.employeeId??null };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    businessProfile: user.staffAccess?.profile ?? null,
+    businessPermissions: user.staffAccess?.customPermissions
+      ? user.staffAccess.permissions
+      : null,
+    employeeId: user.staffAccess?.employeeId ?? null,
+  };
 }
 
 export function isStaff(role: Role | undefined | null): boolean {

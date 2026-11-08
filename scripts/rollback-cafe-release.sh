@@ -115,6 +115,9 @@ curl --retry 10 --retry-connrefused --retry-delay 2 --max-time 30 --fail --silen
   http://127.0.0.1:3100/admin/login -o /dev/null
 curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 \
   https://esellerstore.vip/ -o /dev/null
+if [ -f "$BACKUP/worker-was-running" ] && [ "$(cat "$BACKUP/worker-was-running")" = "1" ]; then
+  pm2 restart engineer-cafe-notifications --update-env
+fi
 pm2 save
 trap - EXIT
 echo "PASS: previous code and build restored: $PREVIOUS"

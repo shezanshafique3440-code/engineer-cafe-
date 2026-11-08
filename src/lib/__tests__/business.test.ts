@@ -136,3 +136,50 @@ test("waiter order reads use the assigned employee identifier", () => {
   });
   assert.deepEqual(waiterOrderScope({ businessProfile: "CASHIER" }), {});
 });
+
+test("unassigned and unknown staff profiles fail closed", () => {
+  for (const profile of [undefined, null, "", "UNKNOWN", "constructor", "__proto__", "toString"]) {
+    for (const capability of [
+      "admin",
+      "settings",
+      "catalog",
+      "pos",
+      "orders",
+      "payments",
+      "finance",
+      "setup",
+    ])
+      assert.equal(
+        canBusiness({ role: "STAFF", businessProfile: profile }, capability),
+        false,
+      );
+  }
+});
+test("individual grants restrict a profile without granting owner-only access", () => {
+  const staff = {
+    role: "STAFF",
+    businessProfile: "CASHIER",
+    businessPermissions: ["orders"],
+  };
+  assert.equal(canBusiness(staff, "orders"), true);
+  assert.equal(canBusiness(staff, "payments"), false);
+  assert.equal(
+    canBusiness({ ...staff, businessPermissions: [] }, "orders"),
+    false,
+  );
+  assert.equal(
+    canBusiness({ ...staff, businessPermissions: null }, "payments"),
+    true,
+  );
+  assert.equal(
+    canBusiness(
+      { ...staff, businessPermissions: ["finance", "payroll", "settings"] },
+      "finance",
+    ),
+    false,
+  );
+  assert.equal(
+    canBusiness({ role: "ADMIN", businessPermissions: [] }, "setup"),
+    true,
+  );
+});
