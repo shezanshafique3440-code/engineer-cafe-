@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { handle, json, parseQuery, requireAdmin } from "@/server/api";
+import { handle, json, parseQuery, requirePermission } from "@/server/api";
 import { serializeOrder } from "@/server/orders";
 
 const querySchema = z.object({
@@ -8,7 +8,7 @@ const querySchema = z.object({
   status: z
     .enum(["ALL", "PENDING", "CONFIRMED", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"])
     .default("ALL"),
-  orderType: z.enum(["ALL", "DELIVERY", "PICKUP"]).default("ALL"),
+  orderType: z.enum(["ALL", "DELIVERY", "PICKUP", "DINE_IN"]).default("ALL"),
   from: z.string().max(30).optional(),
   to: z.string().max(30).optional(),
   page: z.coerce.number().int().min(1).max(999).default(1),
@@ -16,7 +16,7 @@ const querySchema = z.object({
 });
 
 export const GET = handle(async (request: Request) => {
-  await requireAdmin();
+  await requirePermission("orders");
   const q = parseQuery(request, querySchema);
 
   const createdAt: { gte?: Date; lte?: Date } = {};

@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { handle, json, parseQuery, requireAdmin } from "@/server/api";
+import { handle, json, parseQuery, requirePermission } from "@/server/api";
 
 const querySchema = z.object({
   status: z.enum(["ALL", "PENDING", "APPROVED", "HIDDEN"]).default("ALL"),
 });
 
 export const GET = handle(async (request: Request) => {
-  await requireAdmin();
+  await requirePermission("moderation");
   const q = parseQuery(request, querySchema);
   const reviews = await prisma.review.findMany({
     where: q.status === "ALL" ? {} : { status: q.status },

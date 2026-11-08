@@ -38,6 +38,7 @@ export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
 export const ORDER_TYPE_LABEL: Record<OrderType, string> = {
   DELIVERY: "Delivery",
   PICKUP: "Pickup",
+  DINE_IN: "Dine-in",
 };
 
 /**

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { handle, json, parseQuery, requireAdmin } from "@/server/api";
+import { handle, json, parseQuery, requirePermission } from "@/server/api";
 
 const querySchema = z.object({
   search: z.string().max(80).optional(),
@@ -10,7 +10,7 @@ const querySchema = z.object({
 });
 
 export const GET = handle(async (request: Request) => {
-  await requireAdmin();
+  await requirePermission("customers");
   const q = parseQuery(request, querySchema);
 
   const where = {

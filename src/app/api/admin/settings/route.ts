@@ -1,17 +1,17 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { settingsSchema } from "@/lib/validation";
-import { handle, json, parseBody, requireAdmin } from "@/server/api";
+import { handle, json, parseBody, requirePermission } from "@/server/api";
 import { getSettings } from "@/server/settings";
 
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requirePermission("settings");
   const settings = await getSettings();
   return json({ settings });
 });
 
 export const PUT = handle(async (request: Request) => {
-  await requireAdmin();
+  await requirePermission("settings");
   const data = await parseBody(request, settingsSchema);
   await getSettings(); // ensure the row exists
 

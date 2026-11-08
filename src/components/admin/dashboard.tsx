@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { apiGet } from "@/lib/api-client";
 import { useMoney } from "@/context/settings-context";
+import { OperationsOverview } from "./operations-overview";
 import { PageHeader, StatCard, TableSkeleton } from "./ui";
 import { ErrorState } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
@@ -119,6 +120,7 @@ export function AdminDashboard() {
         }
       />
 
+      <OperationsOverview />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Today's Sales"

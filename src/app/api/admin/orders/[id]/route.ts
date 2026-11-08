@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { orderStatusSchema } from "@/lib/validation";
-import { handle, json, notFound, parseBody, requireAdmin, badRequest } from "@/server/api";
+import { handle, json, notFound, parseBody, requirePermission, badRequest } from "@/server/api";
 import { findOrder, serializeOrder, transitionOrder } from "@/server/orders";
 
 export const GET = handle(async (_r: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requirePermission("orders");
   const { id } = await ctx.params;
   const order = await findOrder({ OR: [{ id }, { orderNumber: id.toUpperCase() }] });
   if (!order) throw notFound("Order not found.");
@@ -12,7 +12,7 @@ export const GET = handle(async (_r: Request, ctx: { params: Promise<{ id: strin
 });
 
 export const PATCH = handle(async (request: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requirePermission("orders");
   const { id } = await ctx.params;
   const data = await parseBody(request, orderStatusSchema);
 

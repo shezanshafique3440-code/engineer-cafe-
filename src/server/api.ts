@@ -2,7 +2,8 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { ZodError, type ZodTypeAny, type output as ZodOutput } from "zod";
 import { Prisma } from "@prisma/client";
-import { getCurrentUser, isStaff } from "./auth";
+import { getCurrentUser } from "./auth";
+import { can, type Permission } from "@/lib/permissions";
 import type { SessionUser } from "@/lib/types";
 
 export class HttpError extends Error {
@@ -113,6 +114,12 @@ export async function requireUser(): Promise<SessionUser> {
 
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
-  if (!isStaff(user.role)) throw forbidden("Admin access required.");
+  if (user.role !== "ADMIN") throw forbidden("Admin access required.");
+  return user;
+}
+
+export async function requirePermission(permission: Permission): Promise<SessionUser> {
+  const user = await requireUser();
+  if (!can(user, permission)) throw forbidden(`Permission required: ${permission}.`);
   return user;
 }

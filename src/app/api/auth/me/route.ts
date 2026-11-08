@@ -31,7 +31,7 @@ export const PATCH = handle(async (request: Request) => {
   const user = await prisma.user.update({
     where: { id: session.id },
     data: { name: data.name, phone: data.phone || null },
-    select: { id: true, name: true, email: true, role: true },
+    select: { id: true, name: true, email: true, role: true, permissions: true },
   });
   await setSessionCookie(user);
   return json({ user });

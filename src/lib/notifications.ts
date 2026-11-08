@@ -40,7 +40,7 @@ export function toWhatsAppNumber(raw: string | null | undefined): string | null 
 export type NotifiableOrder = {
   orderNumber: string;
   status: OrderStatus;
-  orderType: "DELIVERY" | "PICKUP";
+  orderType: "DELIVERY" | "PICKUP" | "DINE_IN";
   customerName: string;
   customerPhone: string;
   total: number;
@@ -75,7 +75,7 @@ export function orderStatusMessage(
   const name = firstName(order.customerName);
   const ref = `#${order.orderNumber}`;
   const eta = order.estimatedMinutes;
-  const isPickup = order.orderType === "PICKUP";
+  const isPickup = order.orderType !== "DELIVERY";
 
   const opening: Record<OrderStatus, string> = {
     PENDING: `Assalam-o-Alaikum ${name}! ${options.cafeName} se. Aap ka order ${ref} humein mil gaya hai — hum abhi confirm kar rahe hain.`,

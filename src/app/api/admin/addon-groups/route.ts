@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { handle, json, requireAdmin } from "@/server/api";
+import { handle, json, requirePermission } from "@/server/api";
 
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requirePermission("catalogue");
   const groups = await prisma.addonGroup.findMany({
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     include: { addons: { orderBy: { sortOrder: "asc" } } },

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Offline counter · Engineer Cafe</title>
+    <style>
+      body {
+        font: 16px system-ui;
+        background: #faf6ed;
+        color: #2f2824;
+        max-width: 1000px;
+        margin: 30px auto;
+        padding: 20px;
+      }
+      section {
+        background: white;
+        padding: 20px;
+        border: 1px solid #e4dacb;
+        border-radius: 14px;
+        margin: 16px 0;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        margin: 12px 0;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        padding: 10px;
+        border: 1px solid #bfa98b;
+        border-radius: 7px;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      button {
+        cursor: pointer;
+        background: #92571e;
+        color: white;
+        margin: 5px;
+      }
+      .line {
+        border-top: 1px solid #ddd;
+        padding: 12px;
+      }
+      .bad {
+        color: #a32020;
+      }
+      small {
+        display: block;
+      }
+      #message {
+        white-space: pre-wrap;
+      }
+    </style>
+    <script src="/pos-store.js" defer></script>
+    <script src="/pos-offline.js" defer></script>
+  </head>
+  <body>
+    <h1>Offline counter</h1>
+    <p>
+      Offline bills are provisional until the server validates them. Keep cash
+      and printed bills for reconciliation.
+    </p>
+    <p id="message" role="status"></p>
+    <section id="editor" hidden>
+      <h2 id="cashier"></h2>
+      <form id="sale">
+        <label
+          >Order type<select name="orderType">
+            <option value="PICKUP">Takeaway / pickup</option>
+            <option value="DINE_IN">Dine-in</option>
+            <option value="DELIVERY">Delivery</option>
+          </select></label
+        ><label>Table number<input name="tableNumber" /></label
+        ><label
+          >Customer name<input
+            name="customerName"
+            value="Counter customer"
+            required
+            minlength="2" /></label
+        ><label>Phone<input name="customerPhone" /></label
+        ><label>Address<input name="addressLine" /></label>
+        <div id="lines"></div>
+        <button type="button" id="add">Add product</button
+        ><label
+          ><span>Cash collected now</span><input name="paid" type="checkbox"
+        /></label>
+        <p id="total"></p>
+        <button type="submit">Save provisional bill</button>
+      </form>
+    </section>
+    <section>
+      <h2>Local bills</h2>
+      <button id="sync">Synchronize now</button
+      ><a href="/admin/pos">Return to online POS</a>
+      <div id="bills"></div>
+    </section>
+  </body>
+</html>

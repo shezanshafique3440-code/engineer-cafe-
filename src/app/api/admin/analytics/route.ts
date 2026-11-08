@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { handle, json, parseQuery, requireAdmin } from "@/server/api";
+import { handle, json, parseQuery, requirePermission } from "@/server/api";
 
 const querySchema = z.object({ days: z.coerce.number().int().min(7).max(365).default(30) });
 
@@ -11,7 +11,7 @@ function dayKey(date: Date): string {
 }
 
 export const GET = handle(async (request: Request) => {
-  await requireAdmin();
+  await requirePermission("finance");
   const { days } = parseQuery(request, querySchema);
 
   const since = new Date();
@@ -39,7 +39,7 @@ export const GET = handle(async (request: Request) => {
   }
 
   const productTotals = new Map<string, { name: string; quantity: number; revenue: number }>();
-  const typeTotals = { DELIVERY: 0, PICKUP: 0 };
+  const typeTotals = { DELIVERY: 0, PICKUP: 0, DINE_IN: 0 };
   const paymentTotals: Record<string, number> = {};
   let grossSales = 0;
   let countedOrders = 0;

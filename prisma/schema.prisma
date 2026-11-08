@@ -27,6 +27,7 @@ enum OrderStatus {
 }
 
 enum OrderType {
+  DINE_IN
   DELIVERY
   PICKUP
 }
@@ -84,6 +85,11 @@ model User {
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  permissions   String[]    @default([])
+  employee      Employee?
+  shifts        CashShift[]
+  cashierOrders Order[]     @relation("CashierOrders")
 
   addresses Address[]
   orders    Order[]
@@ -157,6 +163,8 @@ model Product {
   soldCount       Int        @default(0)
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+
+  recipe RecipeLine[]
 
   addonGroups AddonGroupOnProduct[]
   orderItems  OrderItem[]
@@ -250,8 +258,24 @@ model Coupon {
 }
 
 model Order {
-  id          String @id @default(cuid())
-  orderNumber String @unique
+  id               String          @id @default(cuid())
+  orderNumber      String          @unique
+  source           String          @default("WEB")
+  clientId         String?         @unique
+  requestHash      String?
+  cashierId        String?
+  cashier          User?           @relation("CashierOrders", fields: [cashierId], references: [id], onDelete: Restrict)
+  shiftId          String?
+  shift            CashShift?      @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  tableNumber      String?
+  riderId          String?
+  rider            Rider?          @relation(fields: [riderId], references: [id], onDelete: Restrict)
+  commissionRate   Int             @default(15)
+  commission       Int             @default(0)
+  commissionPaidAt DateTime?
+  costRecorded     Boolean         @default(false)
+  payments         OrderPayment[]
+  stockMovements   StockMovement[]
 
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -310,6 +334,7 @@ model OrderItem {
   productName  String
   productSlug  String
   productImage String?
+  unitCost     Int     @default(0)
   unitPrice    Int // base price after product discount, excluding addons
   addonsTotal  Int     @default(0)
   quantity     Int
@@ -404,7 +429,7 @@ model CafeSetting {
   openingHours String  @default("Mon–Sun · 8:00 AM – 2:00 AM")
 
   /// Storefront and admin palette. One of the presets in globals.css.
-  theme        String  @default("chai")
+  theme String @default("chai")
 
   deliveryFee      Int    @default(80)
   freeDeliveryOver Int?   @default(1500)
@@ -423,4 +448,175 @@ model CafeSetting {
   isAcceptingOrders    Boolean @default(true)
 
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+// Operations: additive records; financial/stock history is never deleted.
+model InventoryItem {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  unit        String
+  quantity    Decimal         @default(0) @db.Decimal(14, 3)
+  lowStock    Decimal         @default(0) @db.Decimal(14, 3)
+  averageCost Decimal         @default(0) @db.Decimal(14, 4)
+  isActive    Boolean         @default(true)
+  recipes     RecipeLine[]
+  purchases   PurchaseLine[]
+  movements   StockMovement[]
+}
+
+model RecipeLine {
+  productId       String
+  inventoryItemId String
+  quantity        Decimal       @db.Decimal(14, 3)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  item            InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+
+  @@id([productId, inventoryItemId])
+}
+
+model StockMovement {
+  id              String        @id @default(cuid())
+  inventoryItemId String
+  item            InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  quantity        Decimal       @db.Decimal(14, 3)
+  unitCost        Decimal       @db.Decimal(14, 4)
+  reason          String
+  orderId         String?
+  order           Order?        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  createdAt       DateTime      @default(now())
+
+  @@index([orderId])
+}
+
+model Supplier {
+  id        String            @id @default(cuid())
+  name      String
+  phone     String?
+  address   String?
+  isActive  Boolean           @default(true)
+  purchases Purchase[]
+  payments  SupplierPayment[]
+}
+
+model Purchase {
+  id         String         @id @default(cuid())
+  reference  String         @unique
+  supplierId String
+  supplier   Supplier       @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  total      Int
+  createdAt  DateTime       @default(now())
+  lines      PurchaseLine[]
+}
+
+model PurchaseLine {
+  id              String        @id @default(cuid())
+  purchaseId      String
+  purchase        Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  inventoryItemId String
+  item            InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  quantity        Decimal       @db.Decimal(14, 3)
+  unitCost        Decimal       @db.Decimal(14, 4)
+  lineTotal       Int
+}
+
+model SupplierPayment {
+  id         String   @id @default(cuid())
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  amount     Int
+  reference  String   @unique
+  createdAt  DateTime @default(now())
+}
+
+model Employee {
+  id             String          @id @default(cuid())
+  userId         String?         @unique
+  user           User?           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  name           String
+  phone          String?
+  title          String
+  monthlySalary  Int             @default(0)
+  isActive       Boolean         @default(true)
+  attendance     Attendance[]
+  salaryPayments SalaryPayment[]
+}
+
+model Attendance {
+  id         String    @id @default(cuid())
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  day        String
+  clockIn    DateTime  @default(now())
+  clockOut   DateTime?
+
+  @@unique([employeeId, day])
+}
+
+model SalaryPayment {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  period     String
+  amount     Int
+  reference  String   @unique
+  paidAt     DateTime @default(now())
+
+  @@unique([employeeId, period])
+}
+
+model CashShift {
+  id           String         @id @default(cuid())
+  cashierId    String
+  cashier      User           @relation(fields: [cashierId], references: [id], onDelete: Restrict)
+  activeKey    String?        @unique
+  openedAt     DateTime       @default(now())
+  closedAt     DateTime?
+  openingCash  Int
+  expectedCash Int?
+  closingCash  Int?
+  variance     Int?
+  handoverToId String?
+  note         String?
+  orders       Order[]
+  payments     OrderPayment[]
+  movements    CashMovement[]
+}
+
+model CashMovement {
+  id        String    @id @default(cuid())
+  shiftId   String
+  shift     CashShift @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  amount    Int
+  reason    String
+  createdAt DateTime  @default(now())
+}
+
+model OrderPayment {
+  id        String        @id @default(cuid())
+  orderId   String
+  order     Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  shiftId   String
+  shift     CashShift     @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  amount    Int
+  method    PaymentMethod
+  reference String        @unique
+  createdAt DateTime      @default(now())
+}
+
+model Rider {
+  id       String  @id @default(cuid())
+  code     String  @unique
+  name     String
+  phone    String
+  isActive Boolean @default(true)
+  orders   Order[]
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  category    String
+  description String
+  amount      Int
+  reference   String   @unique
+  incurredAt  DateTime @default(now())
 }

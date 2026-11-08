@@ -18,7 +18,9 @@ async function readRole(request: NextRequest): Promise<string | null> {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secretKey(), { issuer: "engineer-cafe" });
+    const { payload } = await jwtVerify(token, secretKey(), {
+      issuer: "engineer-cafe",
+    });
     return typeof payload.role === "string" ? payload.role : null;
   } catch {
     return null;
@@ -43,13 +45,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (pathname === "/admin/login" && isStaff) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
   if (pathname.startsWith("/account") && !role) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -57,13 +52,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if ((pathname === "/login" || pathname === "/register") && role) {
-    const url = request.nextUrl.clone();
-    url.pathname = isStaff ? "/admin" : "/account";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
+  // Login pages remain reachable: token roles can be stale after revocation.
+  // Database-backed authorization on every API request is authoritative.
   return NextResponse.next();
 }
 

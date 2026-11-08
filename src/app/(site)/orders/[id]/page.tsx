@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getCurrentUser, isStaff } from "@/server/auth";
+import { getCurrentUser } from "@/server/auth";
+import { can } from "@/lib/permissions";
 import { findOrder, serializeOrder } from "@/server/orders";
 import { buildMetadata } from "@/lib/seo";
 import { OrderTracker } from "@/components/cart/order-tracker";
@@ -31,7 +32,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
 
   // An order attached to an account is only visible to that customer or staff.
   if (!order) notFound();
-  if (order.userId && !isStaff(user?.role) && order.userId !== user?.id) notFound();
+  if (!(can(user, "orders") || (can(user, "pos") && order.cashierId === user?.id) || (order.userId && order.userId === user?.id) || (!order.userId && order.source === "WEB" && id === order.id))) notFound();
 
   return (
     <Suspense fallback={<div className="container py-16" />}>

@@ -16,7 +16,7 @@ export const POST = handle(async (request: Request) => {
 
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
-  const session = { id: user.id, name: user.name, email: user.email, role: user.role };
+  const session = { id: user.id, name: user.name, email: user.email, role: user.role, permissions: user.permissions };
   await setSessionCookie(session);
   return json({ user: session });
 });

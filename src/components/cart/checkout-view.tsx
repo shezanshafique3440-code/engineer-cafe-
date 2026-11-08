@@ -69,15 +69,12 @@ export function CheckoutView() {
   }, [user]);
 
   useEffect(() => {
-    // Pickup orders can't be paid on delivery.
-    if (orderType === "PICKUP" && paymentMethod === "CASH_ON_DELIVERY") {
-      setPaymentMethod(settings.cashAtCounterEnabled ? "CASH_AT_COUNTER" : "ONLINE");
-    }
-    if (orderType === "DELIVERY" && paymentMethod === "CASH_AT_COUNTER") {
-      setPaymentMethod(settings.codEnabled ? "CASH_ON_DELIVERY" : "ONLINE");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderType]);
+    const available: PaymentMethod[] = [];
+    if (orderType === "DELIVERY" && settings.codEnabled) available.push("CASH_ON_DELIVERY");
+    if (orderType === "PICKUP" && settings.cashAtCounterEnabled) available.push("CASH_AT_COUNTER");
+    if (settings.onlinePaymentEnabled) available.push("ONLINE");
+    if (!available.includes(paymentMethod) && available[0]) setPaymentMethod(available[0]);
+  }, [orderType, paymentMethod, settings.codEnabled, settings.cashAtCounterEnabled, settings.onlinePaymentEnabled]);
 
   const applyAddress = (address: Address) => {
     setForm((current) => ({
@@ -124,7 +121,7 @@ export function CheckoutView() {
 
       clear({ silent: true });
       toast.success(`Order ${data.order.orderNumber} placed!`);
-      router.push(`/orders/${data.order.orderNumber}?placed=1`);
+      router.push(`/orders/${data.order.id}?placed=1`);
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.fields) setErrors(error.fields);

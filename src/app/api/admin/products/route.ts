@@ -2,7 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { productSchema } from "@/lib/validation";
-import { handle, json, parseBody, parseQuery, requireAdmin } from "@/server/api";
+import { handle, json, parseBody, parseQuery, requirePermission } from "@/server/api";
 
 const querySchema = z.object({
   search: z.string().max(80).optional(),
@@ -13,7 +13,7 @@ const querySchema = z.object({
 });
 
 export const GET = handle(async (request: Request) => {
-  await requireAdmin();
+  await requirePermission("catalogue");
   const q = parseQuery(request, querySchema);
 
   const where = {
@@ -54,7 +54,7 @@ export const GET = handle(async (request: Request) => {
 });
 
 export const POST = handle(async (request: Request) => {
-  await requireAdmin();
+  await requirePermission("catalogue");
   const data = await parseBody(request, productSchema);
   const slug = slugify(data.slug || data.name);
 

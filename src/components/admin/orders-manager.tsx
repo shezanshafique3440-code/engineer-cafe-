@@ -224,7 +224,7 @@ function OrdersManagerInner() {
         >
           <option value="ALL">All types</option>
           <option value="DELIVERY">Delivery</option>
-          <option value="PICKUP">Pickup</option>
+          <option value="PICKUP">Pickup</option><option value="DINE_IN">Dine-in</option>
         </Select>
         <div>
           <label htmlFor="from-date" className="label">From</label>

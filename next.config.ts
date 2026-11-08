@@ -9,6 +9,7 @@ const remotePatterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   images: {
     remotePatterns,

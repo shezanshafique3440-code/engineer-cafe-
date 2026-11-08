@@ -7,6 +7,7 @@ import {
   LayoutDashboard, ShoppingBag, Package, FolderTree, Users, Ticket,
   Star, BarChart3, Settings, Mail, LogOut, Menu, X, ExternalLink,
 } from "lucide-react";
+import { can, PAGE_PERMISSIONS } from "@/lib/permissions";
 import { Logo } from "@/components/layout/logo";
 import { useSession } from "@/context/session-context";
 import { useSettings } from "@/context/settings-context";
@@ -15,6 +16,12 @@ import { cn, initials } from "@/lib/utils";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/pos", label: "Point of sale", icon: ShoppingBag },
+  { href: "/admin/inventory", label: "Inventory & purchases", icon: Package },
+  { href: "/admin/people", label: "Employees & access", icon: Users },
+  { href: "/admin/shifts", label: "Cashier shifts", icon: Ticket },
+  { href: "/admin/delivery", label: "Riders & commissions", icon: ShoppingBag },
+  { href: "/admin/finance", label: "Financial reports", icon: BarChart3 },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/categories", label: "Categories", icon: FolderTree },
@@ -50,7 +57,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Admin">
-        {NAV.map((item) => (
+        {NAV.filter(item => can(user, PAGE_PERMISSIONS[item.href])).map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -126,7 +133,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             {"// engineer cafe admin"}
           </p>
           <div className="ml-auto">
-            <NewOrderAlert />
+            {can(user, "orders") && <NewOrderAlert />}
           </div>
         </header>
 

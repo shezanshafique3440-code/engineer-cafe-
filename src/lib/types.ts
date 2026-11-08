@@ -13,6 +13,7 @@ export type SessionUser = {
   name: string;
   email: string;
   role: Role;
+  permissions?: string[];
 };
 
 export type AddonDTO = {

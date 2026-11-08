@@ -1,5 +1,6 @@
 "use client";
 
+import { can, PAGE_PERMISSIONS } from "@/lib/permissions";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -26,7 +27,8 @@ export function LoginForm({ adminMode = false }: { adminMode?: boolean }) {
       setUser(data.user);
       toast.success(`Welcome back, ${data.user.name.split(" ")[0]}!`);
 
-      const next = searchParams.get("next");
+      const requested = searchParams.get("next");
+      const next = requested?.startsWith("/") && !requested.startsWith("//") ? requested : null;
       const isStaff = data.user.role === "ADMIN" || data.user.role === "STAFF";
 
       if (adminMode && !isStaff) {
@@ -35,7 +37,7 @@ export function LoginForm({ adminMode = false }: { adminMode?: boolean }) {
         return;
       }
 
-      router.push(next || (isStaff && adminMode ? "/admin" : "/account"));
+      router.push(next || (isStaff && adminMode ? Object.entries(PAGE_PERMISSIONS).find(([, permission]) => can(data.user, permission))?.[0] || "/admin" : "/account"));
       router.refresh();
     } catch (error) {
       if (error instanceof ApiError) {

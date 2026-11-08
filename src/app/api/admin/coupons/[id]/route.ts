@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { couponSchema } from "@/lib/validation";
-import { handle, json, parseBody, requireAdmin } from "@/server/api";
+import { handle, json, parseBody, requirePermission } from "@/server/api";
 
 function toDate(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -9,7 +9,7 @@ function toDate(value: string | null | undefined): Date | null {
 }
 
 export const PUT = handle(async (request: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requirePermission("promotions");
   const { id } = await ctx.params;
   const data = await parseBody(request, couponSchema);
   const coupon = await prisma.coupon.update({
@@ -32,7 +32,7 @@ export const PUT = handle(async (request: Request, ctx: { params: Promise<{ id: 
 });
 
 export const DELETE = handle(async (_r: Request, ctx: { params: Promise<{ id: string }> }) => {
-  await requireAdmin();
+  await requirePermission("promotions");
   const { id } = await ctx.params;
 
   const used = await prisma.order.count({ where: { couponId: id } });

@@ -1,5 +1,5 @@
 import "server-only";
-import type { CafeSetting, OrderType } from "@prisma/client";
+import type { CafeSetting, OrderType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { badRequest } from "./api";
 
@@ -15,6 +15,8 @@ export type PricedLine = {
   productName: string;
   productSlug: string;
   productImage: string | null;
+  unitCost: number;
+  costRecorded: boolean;
   unitPrice: number;
   addons: { id: string; name: string; groupName: string; price: number }[];
   addonsTotal: number;
@@ -52,13 +54,15 @@ export async function priceCart(
     userId?: string | null;
   },
   settings: CafeSetting,
+  db: Prisma.TransactionClient = prisma,
 ): Promise<Quote> {
   const productIds = [...new Set(input.lines.map((l) => l.productId))];
 
   const products = productIds.length
-    ? await prisma.product.findMany({
+    ? await db.product.findMany({
         where: { id: { in: productIds } },
         include: {
+          recipe: { include: { item: true } },
           addonGroups: {
             include: { addonGroup: { include: { addons: true } } },
           },
@@ -132,6 +136,8 @@ export async function priceCart(
       productName: product.name,
       productSlug: product.slug,
       productImage: product.image,
+      unitCost: Math.round(product.recipe.reduce((sum, r) => sum + Number(r.quantity) * Number(r.item.averageCost), 0)),
+      costRecorded: product.recipe.length > 0,
       unitPrice,
       addons: chosen,
       addonsTotal,
@@ -149,7 +155,7 @@ export async function priceCart(
     code: input.couponCode ?? "",
     subtotal,
     userId: input.userId ?? null,
-  });
+  }, db);
 
   const discountedSubtotal = Math.max(0, subtotal - discount);
 
@@ -195,7 +201,7 @@ export async function applyCoupon(args: {
   code: string;
   subtotal: number;
   userId: string | null;
-}): Promise<{
+}, db: Prisma.TransactionClient = prisma): Promise<{
   discount: number;
   coupon: { id: string; code: string; description: string | null } | null;
   couponError: string | null;
@@ -203,7 +209,7 @@ export async function applyCoupon(args: {
   const code = args.code?.trim().toUpperCase();
   if (!code) return { discount: 0, coupon: null, couponError: null };
 
-  const coupon = await prisma.coupon.findUnique({ where: { code } });
+  const coupon = await db.coupon.findUnique({ where: { code } });
   if (!coupon) return { discount: 0, coupon: null, couponError: "That promo code doesn't exist." };
   if (!coupon.isActive)
     return { discount: 0, coupon: null, couponError: "This promo code is no longer active." };
@@ -226,7 +232,7 @@ export async function applyCoupon(args: {
     if (!args.userId) {
       return { discount: 0, coupon: null, couponError: "Please login to use this promo code." };
     }
-    const used = await prisma.order.count({
+    const used = await db.order.count({
       where: { couponId: coupon.id, userId: args.userId, status: { not: "CANCELLED" } },
     });
     if (used >= coupon.perUserLimit)

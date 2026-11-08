@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { couponSchema } from "@/lib/validation";
-import { handle, json, parseBody, requireAdmin } from "@/server/api";
+import { handle, json, parseBody, requirePermission } from "@/server/api";
 
 function toDate(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -9,13 +9,13 @@ function toDate(value: string | null | undefined): Date | null {
 }
 
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requirePermission("promotions");
   const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } });
   return json({ coupons });
 });
 
 export const POST = handle(async (request: Request) => {
-  await requireAdmin();
+  await requirePermission("promotions");
   const data = await parseBody(request, couponSchema);
   const coupon = await prisma.coupon.create({
     data: {

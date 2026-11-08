@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { categorySchema } from "@/lib/validation";
-import { handle, json, parseBody, requireAdmin } from "@/server/api";
+import { handle, json, parseBody, requirePermission } from "@/server/api";
 
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requirePermission("catalogue");
   const categories = await prisma.category.findMany({
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     include: { _count: { select: { products: true } } },
@@ -15,7 +15,7 @@ export const GET = handle(async () => {
 });
 
 export const POST = handle(async (request: Request) => {
-  await requireAdmin();
+  await requirePermission("catalogue");
   const data = await parseBody(request, categorySchema);
   const category = await prisma.category.create({
     data: {

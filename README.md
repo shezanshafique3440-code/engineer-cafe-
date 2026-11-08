@@ -2,6 +2,8 @@
 
 > Chai. Paratha. Aur Engineering Wali Vibes.
 
+Cafe operations: [Proposal audit](docs/proposal-audit.md) · [POS, inventory, staff, shifts, delivery, reports and offline guide](docs/operations-guide.md).
+
 A production-ready ordering platform for a Pakistani chai & paratha cafe — full storefront,
 customer accounts, cart, checkout, order tracking and a complete admin panel. Every price,
 discount and total is calculated on the server; the menu is entirely database-driven.
@@ -35,7 +37,7 @@ cp .env.example .env          # then fill in DATABASE_URL, AUTH_SECRET, seed cre
 # 3. Create the schema
 npm run db:migrate            # or: npm run db:deploy  (production)
 
-# 4. Load the menu (74 items, 7 categories, add-ons, coupons)
+# 4. Load the menu (35 items, 4 categories, add-ons, coupons)
 npm run db:seed
 
 # 5. Run

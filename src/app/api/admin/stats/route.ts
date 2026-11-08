@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { handle, json, requireAdmin } from "@/server/api";
+import { handle, json, requirePermission } from "@/server/api";
 
 const REVENUE_STATUSES = ["CONFIRMED", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
 
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requirePermission("dashboard");
 
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);

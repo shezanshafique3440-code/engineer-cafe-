@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { handle, json, requireAdmin } from "@/server/api";
+import { handle, json, requirePermission } from "@/server/api";
 
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requirePermission("moderation");
   const messages = await prisma.contactMessage.findMany({
     orderBy: { createdAt: "desc" },
     take: 200,

@@ -41,6 +41,7 @@ export function SessionProvider({
 
   const logout = useCallback(async () => {
     await apiPost("/api/auth/logout").catch(() => undefined);
+    await import("@/lib/offline-pos").then(m => m.posStore()).then(s => s.clearSnapshot()).catch(() => undefined);
     setUser(null);
   }, []);
 

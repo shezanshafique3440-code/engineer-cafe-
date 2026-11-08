@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { handle, json, requireAdmin } from "@/server/api";
+import { handle, json, requirePermission } from "@/server/api";
 
 /**
  * A deliberately tiny endpoint the admin shell polls so staff hear a new order
@@ -7,7 +7,7 @@ import { handle, json, requireAdmin } from "@/server/api";
  * stats endpoint is far too heavy to call on a timer.
  */
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requirePermission("orders");
 
   const [pendingCount, latest] = await Promise.all([
     prisma.order.count({ where: { status: "PENDING" } }),

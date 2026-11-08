@@ -1,5 +1,6 @@
 import { handle, json, notFound } from "@/server/api";
-import { getCurrentUser, isStaff } from "@/server/auth";
+import { getCurrentUser } from "@/server/auth";
+import { can } from "@/lib/permissions";
 import { findOrder, serializeOrder } from "@/server/orders";
 
 /**
@@ -17,7 +18,7 @@ export const GET = handle(
     });
     if (!order) throw notFound("We couldn't find that order.");
 
-    if (order.userId && !isStaff(user?.role) && order.userId !== user?.id) {
+    if (!(can(user, "orders") || (can(user, "pos") && order.cashierId === user?.id) || (order.userId && order.userId === user?.id) || (!order.userId && order.source === "WEB" && id === order.id))) {
       throw notFound("We couldn't find that order.");
     }
 
