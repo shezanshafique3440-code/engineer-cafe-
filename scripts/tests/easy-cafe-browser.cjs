@@ -63,14 +63,17 @@ async function poll(f) {
     }
     fs.mkdirSync(artifacts, { recursive: true });
     for (const [email, primary, forbidden, ip] of [
-      ["cashier@example.test", "Naya bill", "Salary dein", 101],
-      ["waiter@example.test", "Tables / Order lein", "Naya bill", 102],
-      ["chef@example.test", "Kitchen orders", "Riders ka hisaab", 103],
+      ["cashier@example.test", "New sale", "Pay salaries", 101],
+      ["waiter@example.test", "Tables & orders", "New sale", 102],
+      ["chef@example.test", "Kitchen orders", "Riders & deliveries", 103],
     ]) {
       const a = await login(email, ip);
       await a.page.goto("/admin");
       await a.page
-        .getByRole("heading", { name: "Aaj kya karna hai?", exact: true })
+        .getByRole("heading", {
+          name: "What would you like to do?",
+          exact: true,
+        })
         .waitFor();
       eq(
         await a.page
@@ -95,7 +98,7 @@ async function poll(f) {
         eq(summary.shift, null);
         eq(summary.unassigned, null);
       }
-      await a.page.getByLabel("Abhi ka status", { exact: true }).waitFor();
+      await a.page.getByLabel("Current status", { exact: true }).waitFor();
       await a.page.screenshot({
         path: artifacts + "/" + email.split("@")[0] + "-home-mobile.png",
         fullPage: true,
@@ -109,8 +112,50 @@ async function poll(f) {
       page = a.page;
     await page.goto("/admin");
     await page
-      .getByRole("heading", { name: "Aaj kya karna hai?", exact: true })
+      .getByRole("heading", { name: "What would you like to do?", exact: true })
       .waitFor();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const adminNav = page.getByRole("navigation", {
+      name: "Admin",
+      exact: true,
+    });
+    for (const label of [
+      "Dashboard",
+      "Products",
+      "Categories",
+      "Customers",
+      "Coupons",
+      "Reviews",
+      "Messages",
+      "Analytics",
+      "Settings",
+      "Rewards & scheduling",
+      "QR menu studio",
+    ]) {
+      const link = adminNav.getByRole("link", { name: label, exact: true });
+      eq(await link.count(), 1, "Missing admin tool: " + label);
+      eq(
+        await link.evaluate((el) => Boolean(el.closest("details:not([open])"))),
+        false,
+        "Admin tool is hidden: " + label,
+      );
+    }
+    await page.goto("/admin/dashboard");
+    await page
+      .getByRole("heading", { name: "Dashboard", exact: true })
+      .waitFor();
+    await page.waitForFunction(
+      () =>
+        !document.body.innerText.includes("Unable to load dashboard.") &&
+        document.querySelector("main table"),
+    );
+    eq(
+      await page
+        .getByText("Unable to load dashboard.", { exact: true })
+        .count(),
+      0,
+    );
+    await page.goto("/admin");
     const limited = await login("cashier@example.test", 105);
     const limitedUser = (await limited.get("/api/auth/me")).user;
     await a.post("setup", {
@@ -151,13 +196,16 @@ async function poll(f) {
         );
         if (section === "home")
           await page
-            .getByRole("heading", { name: "Aaj kya karna hai?", exact: true })
+            .getByRole("heading", {
+              name: "What would you like to do?",
+              exact: true,
+            })
             .waitFor();
         else {
           await page.getByLabel("Workspace", { exact: true }).waitFor();
           await page
             .locator("main")
-            .getByLabel("Kaam ka tareeqa", { exact: true })
+            .getByLabel("Task steps", { exact: true })
             .waitFor();
           await page.waitForFunction(() =>
             document.querySelector(
@@ -181,7 +229,7 @@ async function poll(f) {
         );
         checks++;
         if (width === 1440 && section === "home") {
-          await page.getByLabel("Abhi ka status", { exact: true }).waitFor();
+          await page.getByLabel("Current status", { exact: true }).waitFor();
           await page.screenshot({ path: artifacts + "/easy-home-desktop.png" });
         }
         if (
@@ -220,7 +268,7 @@ async function poll(f) {
       .getByLabel("Customer name (optional)", { exact: true })
       .fill(customer);
     const billShortcut = page.getByRole("button", {
-      name: /items · Bill dekhein/,
+      name: /items · View bill/,
     });
     const shortcutBox = await billShortcut.boundingBox(),
       menuBox = await page
@@ -295,9 +343,9 @@ async function poll(f) {
       .click();
     eq((await ticketResponse).status(), 201);
     eq(new URL(page.url()).searchParams.get("section"), "tables");
-    await card.getByText("Baqi payment: Rs. 20.00", { exact: true }).waitFor();
+    await card.getByText("Balance due: Rs. 20.00", { exact: true }).waitFor();
     await desk
-      .getByRole("button", { name: "← Tables aur bill par wapas", exact: true })
+      .getByRole("button", { name: "← Back to tables & bills", exact: true })
       .click();
     await card
       .getByRole("button", { name: "Receive payment", exact: true })
@@ -317,7 +365,7 @@ async function poll(f) {
     await pay
       .getByRole("button", { name: "Record receipt", exact: true })
       .click();
-    await card.getByText("Baqi payment: Rs. 0.00", { exact: true }).waitFor();
+    await card.getByText("Balance due: Rs. 0.00", { exact: true }).waitFor();
     // One-click attendance never overwrites an existing daily entry.
     const employeeName = "Easy Employee " + randomUUID().slice(0, 5);
     const employee = await a.post("staff", {
@@ -341,13 +389,13 @@ async function poll(f) {
         exact: true,
       }),
     });
-    await emp.getByRole("button", { name: "Hazir", exact: true }).click();
+    await emp.getByRole("button", { name: "Present", exact: true }).click();
     await emp.getByText("PRESENT", { exact: true }).waitFor();
     eq(
-      await emp.getByRole("button", { name: "Hazir", exact: true }).count(),
+      await emp.getByRole("button", { name: "Present", exact: true }).count(),
       0,
     );
-    await page.getByRole("button", { name: "Is mahine", exact: true }).click();
+    await page.getByRole("button", { name: "This month", exact: true }).click();
     await emp.getByText("PRESENT", { exact: true }).waitFor();
     // Close checklist checks durable local bills, then requires explicit review.
     await page.goto("/admin/business?section=cash");
@@ -361,26 +409,28 @@ async function poll(f) {
     await cashCard
       .getByRole("button", { name: "Count & close shift", exact: true })
       .click();
-    const check = page.getByLabel("Closing se pehle", { exact: true });
+    const check = page.getByLabel("Before closing", { exact: true });
     await check
-      .getByText("Is login ke is device par koi offline bill pending nahi.", {
-        exact: true,
-      })
+      .getByText(
+        "No offline bills are pending for this login on this device.",
+        {
+          exact: true,
+        },
+      )
       .waitFor();
     eq(
       await check
-        .getByRole("button", { name: "Agla step: Cash ginein", exact: true })
+        .getByRole("button", { name: "Next: Count cash", exact: true })
         .isDisabled(),
       true,
     );
     await check
-      .getByLabel(
-        "Maine pending kaam aur doosre devices ke bills check kar liye hain",
-        { exact: true },
-      )
+      .getByLabel("I have reviewed pending work and bills on other devices", {
+        exact: true,
+      })
       .check();
     await check
-      .getByRole("button", { name: "Agla step: Cash ginein", exact: true })
+      .getByRole("button", { name: "Next: Count cash", exact: true })
       .click();
     await page.getByLabel(/^Count method/).waitFor();
     await page.screenshot({
@@ -413,19 +463,18 @@ async function poll(f) {
       .getByRole("button", { name: "Count & close shift", exact: true })
       .click();
     await check
-      .getByText("1 offline bills abhi pending / conflict mein hain.", {
+      .getByText("1 offline bills are pending or need review.", {
         exact: true,
       })
       .waitFor();
     await check
-      .getByLabel(
-        "Maine pending kaam aur doosre devices ke bills check kar liye hain",
-        { exact: true },
-      )
+      .getByLabel("I have reviewed pending work and bills on other devices", {
+        exact: true,
+      })
       .check();
     eq(
       await check
-        .getByRole("button", { name: "Agla step: Cash ginein", exact: true })
+        .getByRole("button", { name: "Next: Count cash", exact: true })
         .isDisabled(),
       true,
     );

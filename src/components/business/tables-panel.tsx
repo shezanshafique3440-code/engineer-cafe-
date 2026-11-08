@@ -129,7 +129,7 @@ export function TablesPanel({
         open={Boolean(openingTable) || undefined}
       >
         <summary className="min-h-11 cursor-pointer py-2 font-bold">
-          Khali table kholein / Open a table
+          Open an available table
         </summary>
         <Form
           key={"open:" + openingTable}
@@ -302,7 +302,7 @@ export function TablesPanel({
         <section id="table-order-desk" className="surface scroll-mt-24 p-4">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-bold">
-              {text(ordering, "tableName")} · Order lein
+              {text(ordering, "tableName")} · Take order
             </h2>
             <Button
               variant="secondary"
@@ -311,7 +311,7 @@ export function TablesPanel({
                 reload();
               }}
             >
-              ← Tables aur bill par wapas
+              ← Back to tables & bills
             </Button>
           </div>
           <CounterPOS
@@ -359,7 +359,7 @@ export function TablesPanel({
                     );
                   }}
                 >
-                  Yeh table kholein
+                  Open this table
                 </Button>
               )}
               {session && (
@@ -379,7 +379,7 @@ export function TablesPanel({
                     </div>
                   </dl>
                   <p className="mt-3 rounded-xl bg-chai-50 p-3 font-bold">
-                    Baqi payment:{" "}
+                    Balance due:{" "}
                     {money(
                       decimal(
                         paise(text(session, "total", "0")) -

@@ -42,7 +42,7 @@ const EXTRA_NAV = [
   },
   { href: "/admin/pos", label: "Counter POS", icon: ShoppingBag },
   { href: "/admin/experience", label: "Rewards & scheduling", icon: Sparkles },
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/kitchen", label: "Kitchen live", icon: ChefHat },
   { href: "/admin/insights", label: "Business insights", icon: Sparkles },
   { href: "/admin/qr-studio", label: "QR menu studio", icon: QrCode },
@@ -60,13 +60,13 @@ const EXTRA_NAV = [
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [advanced, setAdvanced] = useState(false);
   const [query, setQuery] = useState("");
   const { user, logout } = useSession();
   const settings = useSettings();
   const capFor = (href: string) =>
     ({
       "/admin": "orders",
+      "/admin/dashboard": "insights",
       "/admin/business": "business",
       "/admin/pos": "pos",
       "/admin/table-orders": "table-orders",
@@ -85,37 +85,21 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       "/admin/settings": "settings",
     })[href] ?? "admin";
   const mainNav = [
-    { href: "/admin", label: "Roz ka kaam / Home", icon: LayoutDashboard },
-    ...CAFE_TASKS.filter((task) => canBusiness(user, task.cap))
-      .filter((task) =>
-        [
-          "pos",
-          "tables",
-          "kitchen",
-          "orders",
-          "delivery",
-          "cash",
-          "inventory",
-          "purchases",
-          "attendance",
-          "staff",
-          "overview",
-        ].includes(task.id),
-      )
-      .map((task) => ({
-        href: task.href,
-        label: task.label,
-        icon:
-          task.id === "kitchen"
-            ? ChefHat
-            : task.id === "overview"
-              ? BarChart3
-              : task.id === "staff" || task.id === "attendance"
-                ? Users
-                : task.id === "inventory" || task.id === "purchases"
-                  ? Package
-                  : ShoppingBag,
-      })),
+    { href: "/admin", label: "Daily home", icon: LayoutDashboard },
+    ...CAFE_TASKS.filter((task) => canBusiness(user, task.cap)).map((task) => ({
+      href: task.href,
+      label: task.label,
+      icon:
+        task.id === "kitchen"
+          ? ChefHat
+          : task.id === "overview"
+            ? BarChart3
+            : task.id === "staff" || task.id === "attendance"
+              ? Users
+              : task.id === "inventory" || task.id === "purchases"
+                ? Package
+                : ShoppingBag,
+    })),
   ];
   const extraNav = EXTRA_NAV.filter((item) =>
     capFor(item.href) === "business"
@@ -127,10 +111,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         item.href,
       ),
   );
-  const visibleNav = [
-    ...mainNav,
-    ...(advanced || query.trim() ? extraNav : []),
-  ];
+  const visibleNav = [...mainNav, ...extraNav];
 
   const quickPaths =
     user?.businessProfile === "CHEF"
@@ -144,7 +125,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const quickLabel = (href: string) =>
     ({
       "/admin": "Home",
-      "/admin/pos": "Naya bill",
+      "/admin/pos": "New sale",
       "/admin/business?section=tables": "Tables",
       "/admin/kitchen": "Kitchen",
       "/admin/orders": "Orders",
@@ -208,44 +189,66 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <input
           type="search"
           aria-label="Find an admin page"
-          placeholder="Kaam dhoondein…"
+          placeholder="Search admin tools…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           className="min-h-11 w-full rounded-xl border border-charcoal-700 bg-charcoal-800 py-2 pl-10 pr-3 text-base text-cream-50 placeholder:text-charcoal-300"
         />
       </div>
-      <button
-        type="button"
-        aria-expanded={advanced}
-        onClick={() => setAdvanced((v) => !v)}
-        className="mx-3 mt-3 min-h-11 rounded-xl border border-charcoal-700 px-3 text-left text-sm text-cream-100"
-      >
-        {advanced
-          ? "− Extra tools band karein"
-          : "+ Extra tools / Website settings"}
-      </button>
+      {extraNav.length > 0 && (
+        <button
+          type="button"
+          className="mx-3 mt-3 min-h-11 rounded-xl border border-charcoal-700 px-3 text-left text-sm font-semibold text-cream-100"
+          onClick={(event) =>
+            event.currentTarget
+              .closest(".admin-sidebar")
+              ?.querySelector("[data-admin-website-tools]")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" })
+          }
+        >
+          Website & admin tools ↓
+        </button>
+      )}
       <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Admin">
-        {visibleNav
-          .filter((item) =>
+        {[
+          { label: "Daily operations & business", items: mainNav },
+          { label: "Website & administration", items: extraNav },
+        ].map((group) => {
+          const items = group.items.filter((item) =>
             item.label.toLowerCase().includes(query.trim().toLowerCase()),
-          )
-          .map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              aria-current={isActive(item.href) ? "page" : undefined}
-              className={cn(
-                "flex items-center gap-3 min-h-11 rounded-xl px-3.5 py-2.5 text-sm font-medium transition",
-                isActive(item.href)
-                  ? "bg-chai-600 text-cream-50"
-                  : "text-charcoal-300 hover:bg-charcoal-800 hover:text-cream-50",
-              )}
+          );
+          return items.length ? (
+            <section
+              key={group.label}
+              data-admin-website-tools={
+                group.items === extraNav ? "true" : undefined
+              }
+              aria-label={group.label}
+              className="mb-4"
             >
-              <item.icon className="h-4 w-4 shrink-0" aria-hidden />
-              {item.label}
-            </Link>
-          ))}
+              <h2 className="px-3 py-3 text-xs font-bold uppercase tracking-wide text-charcoal-300">
+                {group.label}
+              </h2>
+              {items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  aria-current={isActive(item.href) ? "page" : undefined}
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition",
+                    isActive(item.href)
+                      ? "bg-chai-600 text-cream-50"
+                      : "text-charcoal-300 hover:bg-charcoal-800 hover:text-cream-50",
+                  )}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" aria-hidden />
+                  {item.label}
+                </Link>
+              ))}
+            </section>
+          ) : null;
+        })}
         {!visibleNav.some((item) =>
           item.label.toLowerCase().includes(query.trim().toLowerCase()),
         ) && (
@@ -354,13 +357,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           >
             <WifiOff className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             <span>
-              Internet band hai.{" "}
+              You are offline.{" "}
               {canBusiness(user, "pos") ? (
                 <a href="/offline-pos.html" className="font-bold underline">
-                  Offline cash counter kholein.
+                  Open the offline cash counter.
                 </a>
               ) : (
-                "Changes save karne ke liye reconnect karein."
+                "Reconnect before saving changes."
               )}
             </span>
           </div>

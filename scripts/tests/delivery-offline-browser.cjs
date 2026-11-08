@@ -238,7 +238,7 @@ async function poll(fn, message) {
       waitUntil: "networkidle",
     });
     await page
-      .getByRole("button", { name: "Rider add / edit", exact: true })
+      .getByRole("button", { name: "Add / edit rider", exact: true })
       .click();
     await page
       .getByRole("heading", { name: "Add rider", exact: true })

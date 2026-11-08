@@ -87,8 +87,8 @@ export function DeliveryPanel({
         Number(order.remainingDue) > 0 &&
           !order.businessCredit &&
           order.paymentMethod !== "ONLINE"
-          ? `#${text(order, "orderNumber")}: Delivery ho gayi aur customer se baqi ${money(order.remainingDue)} cash mil gaya? Confirm par receipt aur commission record hogi.`
-          : `#${text(order, "orderNumber")}: Delivery complete ho gayi?`,
+          ? `#${text(order, "orderNumber")}: Has delivery been completed and the remaining ${money(order.remainingDue)} received in cash? Confirming records the receipt and commission.`
+          : `#${text(order, "orderNumber")}: Has this delivery been completed?`,
       )
     )
       return;
@@ -114,14 +114,14 @@ export function DeliveryPanel({
     <div className="space-y-5">
       <details className="surface p-4">
         <summary className="min-h-11 cursor-pointer py-2 font-semibold">
-          Commission ka rule / Details
+          Commission rules & details
         </summary>
         <p className="mt-2 text-sm">
-          Net food amount (discount ke baad) ka 15% commission delivery complete
-          hone par banta hai. Tax aur delivery fee shamil nahi. Cancellation par
-          commission reverse hoti hai; actual payouts history mein rehte hain.
-          Negative due rider se recover karna hai. Balances current hain;
-          earned/paid selected dates ke hain.
+          Commission is 15% of the food amount after discounts, excluding tax
+          and delivery fees. It is earned when delivery is completed and
+          reversed on cancellation. Actual payouts stay in history. A negative
+          amount due is recoverable from the rider. Balances are current; earned
+          and paid amounts follow the selected dates.
         </p>
       </details>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -156,12 +156,12 @@ export function DeliveryPanel({
             </p>
             <dl className="my-3 space-y-2">
               <div className="flex justify-between gap-2">
-                <dt>Rider ke paas cash</dt>
+                <dt>Cash held by rider</dt>
                 <dd className="font-bold">{money(r.cashHeld)}</dd>
               </div>
               <div className="flex justify-between gap-2">
                 <dt>
-                  {Number(r.due) < 0 ? "Wapas lena hai" : "Commission deni hai"}
+                  {Number(r.due) < 0 ? "Amount to recover" : "Commission due"}
                 </dt>
                 <dd className="font-bold">{money(Math.abs(Number(r.due)))}</dd>
               </div>
@@ -176,7 +176,7 @@ export function DeliveryPanel({
                     showTask("cash");
                   }}
                 >
-                  Cash jama
+                  Receive cash
                 </Button>
               )}
               {canBusiness(user, "finance") && (
@@ -208,15 +208,15 @@ export function DeliveryPanel({
       <div
         className="flex flex-wrap gap-2"
         role="group"
-        aria-label="Rider ka kaam"
+        aria-label="Rider actions"
       >
         {[
-          { id: "assign", label: "1. Delivery dein" },
-          { id: "cash", label: "2. Cash jama" },
+          { id: "assign", label: "1. Assign delivery" },
+          { id: "cash", label: "2. Receive cash" },
           ...(canBusiness(user, "finance")
-            ? [{ id: "payout", label: "3. Commission dein" }]
+            ? [{ id: "payout", label: "3. Pay commission" }]
             : []),
-          { id: "profile", label: "Rider add / edit" },
+          { id: "profile", label: "Add / edit rider" },
         ].map((t) => (
           <button
             type="button"
@@ -462,7 +462,7 @@ export function DeliveryPanel({
         Active and recently completed deliveries (latest 300)
       </h2>
       <section aria-label="Active deliveries">
-        <h2 className="mb-3 text-xl font-bold">Delivery orders / Agla kaam</h2>
+        <h2 className="mb-3 text-xl font-bold">Active delivery orders</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {orders
             .filter(
@@ -481,15 +481,14 @@ export function DeliveryPanel({
                     {text(o, "addressLine")}
                   </p>
                   <p className="text-sm">
-                    Rider:{" "}
-                    <strong>{text(o, "riderName", "Assign nahi hua")}</strong>
+                    Rider: <strong>{text(o, "riderName", "Unassigned")}</strong>
                   </p>
                   <p className="text-sm">
                     {text(o, "status").replaceAll("_", " ")} ·{" "}
                     {text(o, "paymentStatus")}
                   </p>
                   <p className="font-semibold">
-                    Customer se baqi: {money(o.remainingDue)}
+                    Customer balance due: {money(o.remainingDue)}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {!o.riderId && (
@@ -511,7 +510,7 @@ export function DeliveryPanel({
                           );
                         }}
                       >
-                        Rider assign karein
+                        Assign rider
                       </Button>
                     )}
                     {next &&
@@ -529,11 +528,11 @@ export function DeliveryPanel({
                           {
                             (
                               {
-                                CONFIRMED: "Order confirm",
-                                PREPARING: "Tayyar karna shuru",
-                                READY: "Khana ready",
-                                OUT_FOR_DELIVERY: "Rider rawana",
-                                DELIVERED: "Delivery complete",
+                                CONFIRMED: "Confirm order",
+                                PREPARING: "Start preparing",
+                                READY: "Mark ready",
+                                OUT_FOR_DELIVERY: "Dispatch rider",
+                                DELIVERED: "Complete delivery",
                               } as Record<string, string>
                             )[next]
                           }
@@ -546,7 +545,7 @@ export function DeliveryPanel({
                         encodeURIComponent(text(o, "orderNumber"))
                       }
                     >
-                      Order dekhein
+                      View order
                     </Link>
                   </div>
                 </article>
@@ -557,7 +556,7 @@ export function DeliveryPanel({
           (o) => !["DELIVERED", "CANCELLED"].includes(text(o, "status")),
         ) && (
           <p className="surface p-4 text-sm">
-            Koi active delivery nahi. Naya delivery order yahan aayega.
+            No active deliveries. New delivery orders will appear here.
           </p>
         )}
       </section>

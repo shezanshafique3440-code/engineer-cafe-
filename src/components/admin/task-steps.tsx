@@ -18,7 +18,7 @@ export function TaskSteps({
           ? "rounded-2xl border border-chai-200 bg-chai-50 p-3"
           : "rounded-2xl border border-chai-200 bg-chai-50 p-4 sm:p-5"
       }
-      aria-label="Kaam ka tareeqa"
+      aria-label="Task steps"
     >
       <p className={compact ? "sr-only" : "font-bold text-charcoal-900"}>
         {title}
@@ -50,7 +50,7 @@ export function TaskSteps({
       {tip && (
         <details className="mt-3 text-sm text-charcoal-600">
           <summary className="min-h-11 cursor-pointer py-3 font-semibold">
-            Madad / Zaroori baat
+            Help & important information
           </summary>
           <p className="pb-2">{tip}</p>
         </details>

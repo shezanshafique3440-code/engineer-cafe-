@@ -205,13 +205,13 @@ export function PurchasesPanel({
           className="btn-secondary"
           href="/admin/business?section=suppliers"
         >
-          Supplier add / payment
+          Supplier setup / payment
         </Link>
         <Link
           className="btn-secondary"
           href="/admin/business?section=inventory"
         >
-          Ingredient / stock dekhein
+          Ingredients / stock
         </Link>
       </div>
       <Form

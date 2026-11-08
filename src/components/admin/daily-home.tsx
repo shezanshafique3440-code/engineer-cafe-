@@ -46,7 +46,7 @@ export function DailyHome() {
       setData(await apiGet<Summary>("/api/admin/day-summary"));
       setError("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Dobara try karein.");
+      setError(e instanceof Error ? e.message : "Please try again.");
     }
   }, []);
   useEffect(() => {
@@ -62,14 +62,14 @@ export function DailyHome() {
   const tasks = tasksFor(user);
   const groups = [
     ...(user?.role === "ADMIN" || user?.businessProfile === "MANAGER"
-      ? [{ id: "owner", label: "Hisaab aur management" }]
+      ? [{ id: "owner", label: "Reports & management" }]
       : []),
-    { id: "daily", label: "Roz ka kaam" },
-    { id: "stock", label: "Maal aur kharchay" },
+    { id: "daily", label: "Daily operations" },
+    { id: "stock", label: "Stock & expenses" },
     { id: "team", label: "Staff" },
     ...(user?.role === "ADMIN" || user?.businessProfile === "MANAGER"
       ? []
-      : [{ id: "owner", label: "Hisaab aur management" }]),
+      : [{ id: "owner", label: "Reports & management" }]),
   ];
   return (
     <div className="space-y-6">
@@ -81,9 +81,11 @@ export function DailyHome() {
               ? "Owner"
               : (user?.businessProfile ?? "Staff")}
           </p>
-          <h1 className="mt-1 text-3xl font-extrabold">Aaj kya karna hai?</h1>
+          <h1 className="mt-1 text-3xl font-extrabold">
+            What would you like to do?
+          </h1>
           <p className="mt-2 text-charcoal-600">
-            Apna kaam chunein. Agla step usi screen par milega.
+            Choose a task. Each screen guides you through the next step.
           </p>
         </div>
         <Button variant="secondary" onClick={() => void load()}>
@@ -96,52 +98,48 @@ export function DailyHome() {
           href={tasks[0].href}
           className="btn-primary flex min-h-14 items-center justify-between gap-3 px-5 text-lg"
         >
-          <span>Shuru karein: {tasks[0].label}</span>
+          <span>Start: {tasks[0].label}</span>
           <ArrowRight className="h-5 w-5 shrink-0" />
         </Link>
       )}
       {error && (
         <p role="alert" className="surface p-4 text-chilli-600">
-          Live status load nahi hua: {error}{" "}
+          Could not load live status: {error}{" "}
           <button className="underline" onClick={() => void load()}>
-            Dobara load karein
+            Try again
           </button>
         </p>
       )}
       {data && (
         <div
           className="grid grid-cols-2 gap-3 xl:grid-cols-4"
-          aria-label="Abhi ka status"
+          aria-label="Current status"
         >
           {data.orders !== null && (
             <Status
               href="/admin/orders"
-              label="Orders baqi"
+              label="Pending orders"
               value={String(data.orders)}
             />
           )}
           {data.tables !== null && (
             <Status
               href="/admin/business?section=tables"
-              label="Khulay tables"
+              label="Open tables"
               value={String(data.tables)}
             />
           )}
           {canBusiness(user, "cash") && (
             <Status
               href="/admin/business?section=cash"
-              label="Aapka cash drawer"
-              value={
-                data.shift
-                  ? "Open · " + data.shift.drawer.name
-                  : "Abhi band hai"
-              }
+              label="Your cash drawer"
+              value={data.shift ? "Open · " + data.shift.drawer.name : "Closed"}
             />
           )}
           {data.unassigned !== null && (
             <Status
               href="/admin/business?section=delivery"
-              label="Rider assign karna hai"
+              label="Awaiting rider assignment"
               value={String(data.unassigned)}
             />
           )}
@@ -149,16 +147,17 @@ export function DailyHome() {
       )}
       {data && !data.integrationActive && (
         <div className="surface border border-chai-300 p-4">
-          <p className="font-bold">Business setup abhi active nahi hai.</p>
+          <p className="font-bold">Business integration is not active yet.</p>
           <p className="mt-1 text-sm">
-            Owner pehle real stock, recipes aur opening balances check kare.
+            The owner should review real stock, recipes and opening balances
+            first.
           </p>
           {canBusiness(user, "setup") && (
             <Link
               className="btn-primary mt-3"
               href="/admin/business?section=setup"
             >
-              Setup check karein
+              Review setup
             </Link>
           )}
         </div>
@@ -166,10 +165,10 @@ export function DailyHome() {
       {canBusiness(user, "cash") && data?.integrationActive && !data.shift && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-chai-50 p-4">
           <p className="font-semibold">
-            Cash sale se pehle apni shift kholein.
+            Open your own shift before taking cash payments.
           </p>
           <Link className="btn-primary" href="/admin/business?section=cash">
-            Cash opening karein
+            Open cash shift
           </Link>
         </div>
       )}
@@ -206,38 +205,38 @@ export function DailyHome() {
       })}
       {!tasks.length && (
         <p className="surface p-5">
-          Aapke login ko abhi kaam assign nahi hua. Owner se staff access check
-          karwayein.
+          No tasks are assigned to this login yet. Ask the owner to review your
+          staff access.
         </p>
       )}
       <TaskSteps
-        title="Roz ka simple routine"
+        title="Daily routine"
         steps={
           user?.businessProfile === "CHEF"
             ? [
-                "Naya kitchen ticket dekhein",
-                "Preparing karein",
-                "Tayyar ho to Ready karein",
+                "Check new kitchen tickets",
+                "Mark Preparing",
+                "Mark Ready when prepared",
               ]
             : user?.businessProfile === "WAITER"
               ? [
-                  "Apna table chunein",
-                  "Order kitchen bhejein",
-                  "Payment ke liye cashier ko batayein",
+                  "Choose your table",
+                  "Send the order to the kitchen",
+                  "Ask the cashier to settle payment",
                 ]
               : [
-                  "Subah cash opening",
-                  "Orders aur payments",
-                  "Raat cash closing",
+                  "Open the cash shift",
+                  "Record orders and payments",
+                  "Count cash and close the shift",
                 ]
         }
-        tip="Har staff apna login use kare. Recorded payment dobara enter na karein."
+        tip="Each employee should use their own login. Do not record a payment twice."
       />
       <Link
         href="/admin/business"
         className="inline-flex min-h-11 items-center text-sm font-semibold underline"
       >
-        Saare workspaces / Full office
+        All business workspaces
       </Link>
     </div>
   );

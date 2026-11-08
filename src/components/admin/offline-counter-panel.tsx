@@ -25,7 +25,7 @@ export function OfflineCounterPanel() {
       setBills(await store.list(ownerId));
       if (!navigator.onLine) {
         setMessage(
-          "Internet band hai. Prepared offline counter se bill banayein.",
+          "You are offline. Use the prepared offline counter to create cash bills.",
         );
         return;
       }
@@ -83,18 +83,18 @@ export function OfflineCounterPanel() {
         <h2 className="text-sm font-bold">
           {snapshot?.shift
             ? "✓ Offline counter ready"
-            : "Offline counter tayyari"}
+            : "Offline counter preparation"}
         </h2>
         <a
           className="inline-flex min-h-11 items-center text-sm font-bold text-chai-700 underline"
           href="/offline-pos.html"
         >
-          Offline counter kholein
+          Open offline counter
         </a>
       </div>
       <details>
         <summary className="cursor-pointer text-xs font-semibold">
-          Device status / Sync / Madad
+          Device status / Sync / Help
         </summary>
         <p className="text-sm text-charcoal-600">{message}</p>
         {snapshot?.shift && (
@@ -118,7 +118,7 @@ export function OfflineCounterPanel() {
 
         <details className="text-xs text-charcoal-500">
           <summary className="min-h-11 cursor-pointer py-3 font-semibold">
-            Offline billing ki madad
+            Offline billing help
           </summary>
           <p>
             Offline bills are provisional. Cash-only takeaway, prepared dine-in
@@ -130,8 +130,8 @@ export function OfflineCounterPanel() {
       </details>
       {outstanding.length > 0 && (
         <p role="status" className="text-sm font-semibold text-chai-700">
-          {outstanding.length} bills abhi sync / review hone hain. Offline
-          counter kholein.
+          {outstanding.length} bills need synchronization or review. Open the
+          offline counter.
         </p>
       )}
     </section>

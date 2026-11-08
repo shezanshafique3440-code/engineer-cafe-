@@ -88,13 +88,12 @@ assert.ok(["localhost", "127.0.0.1"].includes(new URL(base).hostname));
       .getByRole("button", { name: "Count & close shift", exact: true })
       .click();
     await page
-      .getByLabel(
-        "Maine pending kaam aur doosre devices ke bills check kar liye hain",
-        { exact: true },
-      )
+      .getByLabel("I have reviewed pending work and bills on other devices", {
+        exact: true,
+      })
       .check();
     await page
-      .getByRole("button", { name: "Agla step: Cash ginein", exact: true })
+      .getByRole("button", { name: "Next: Count cash", exact: true })
       .click();
     await page.getByLabel(/^Count method/).selectOption("notes");
     await page.getByLabel("Rs. 100 · pieces", { exact: true }).fill("2");

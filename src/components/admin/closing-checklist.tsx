@@ -29,7 +29,7 @@ export function ClosingChecklist({
       } catch {
         if (active)
           setError(
-            "Is device ke offline bills check nahi ho sake. Offline counter khol kar pehle check karein.",
+            "Could not check offline bills on this device. Open the offline counter and check them first.",
           );
       }
     })();
@@ -38,45 +38,45 @@ export function ClosingChecklist({
     };
   }, [user]);
   return (
-    <section className="surface space-y-4 p-5" aria-label="Closing se pehle">
-      <h2 className="text-xl font-bold">Closing se pehle</h2>
+    <section className="surface space-y-4 p-5" aria-label="Before closing">
+      <h2 className="text-xl font-bold">Before closing</h2>
       <ol className="list-inside list-decimal space-y-2 text-sm">
-        <li>Offline bills synced hon.</li>
-        <li>Pending table payments aur rider cash check hon.</li>
-        <li>Ab drawer ka actual cash ginein.</li>
+        <li>Make sure offline bills are synchronized.</li>
+        <li>Review outstanding table payments and rider cash.</li>
+        <li>Count the actual cash in the drawer.</li>
       </ol>
       {pending === null && !error && (
-        <p role="status">Offline bills check ho rahe hain…</p>
+        <p role="status">Checking offline bills…</p>
       )}
       {pending !== null && (
         <p role="status" className="font-semibold">
           {pending
-            ? `${pending} offline bills abhi pending / conflict mein hain.`
-            : "Is login ke is device par koi offline bill pending nahi."}
+            ? `${pending} offline bills are pending or need review.`
+            : "No offline bills are pending for this login on this device."}
         </p>
       )}
       {error && <p role="alert">{error}</p>}
       {(error || (pending ?? 0) > 0) && (
         <a className="btn-primary" href="/offline-pos.html">
-          Offline bills check / sync karein
+          Review / sync offline bills
         </a>
       )}
       <div className="flex flex-wrap gap-2">
         <Link className="btn-secondary" href="/admin/business?section=tables">
-          Tables check karein
+          Review tables
         </Link>
         <Link className="btn-secondary" href="/admin/business?section=delivery">
-          Rider cash check karein
+          Review rider cash
         </Link>
       </div>
       <Checkbox
-        label="Maine pending kaam aur doosre devices ke bills check kar liye hain"
+        label="I have reviewed pending work and bills on other devices"
         checked={checked}
         onChange={(e) => setChecked(e.target.checked)}
       />
       <p className="text-xs text-charcoal-500">
-        Yeh check sirf is browser ke is login ke bills dekh sakta hai. Doosre
-        devices aur cashiers ka kaam bhi verify karein.
+        This check only covers this browser and login. Also verify work on other
+        devices and cashier accounts.
       </p>
       <div className="flex flex-wrap gap-3">
         <Button
@@ -85,10 +85,10 @@ export function ClosingChecklist({
           }
           onClick={onContinue}
         >
-          Agla step: Cash ginein
+          Next: Count cash
         </Button>
         <Button variant="secondary" onClick={onCancel}>
-          Wapas
+          Back
         </Button>
       </div>
     </section>

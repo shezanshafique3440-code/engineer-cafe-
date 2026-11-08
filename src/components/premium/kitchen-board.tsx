@@ -128,13 +128,13 @@ export function KitchenBoard() {
     <div>
       <div className="mb-5">
         <TaskSteps
-          title="Kitchen ka kaam"
+          title="Kitchen workflow"
           steps={[
-            "Naya ticket dekhein",
-            "Kaam shuru: Preparing",
-            "Tayyar: Ready",
+            "Check new tickets",
+            "Start work: Preparing",
+            "Prepared: Ready",
           ]}
-          tip="Ready hone ka matlab payment receive hona nahi. Handover aur cash cashier check karega."
+          tip="Ready does not mean payment has been received. The cashier handles payment and handover."
         />
       </div>
       <PageHeader

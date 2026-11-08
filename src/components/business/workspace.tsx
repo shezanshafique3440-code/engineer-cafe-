@@ -151,14 +151,14 @@ function Workspace() {
             href="/admin"
             className="inline-flex min-h-11 items-center text-sm font-bold text-chai-700"
           >
-            ← Roz ka kaam / Home
+            ← Daily home
           </Link>
           <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">
             {section.label}
           </h1>
           <p className="mt-2 text-sm text-charcoal-500">
             {CAFE_TASKS.find((t) => t.id === section.id)?.hint ??
-              "Apna kaam chunein aur neeche diye steps follow karein."}
+              "Choose a task and follow the steps below."}
           </p>
         </div>
         <Button
@@ -181,7 +181,7 @@ function Workspace() {
         >
           {[
             {
-              label: "Roz ka kaam",
+              label: "Daily operations",
               ids: [
                 "overview",
                 "tables",
@@ -198,7 +198,7 @@ function Workspace() {
               ],
             },
             {
-              label: "Extra / Detailed tools",
+              label: "Additional tools & reports",
               ids: [
                 "recipes",
                 "procurement",
@@ -244,7 +244,7 @@ function Workspace() {
         className="flex flex-wrap items-center gap-2"
         aria-label="Report dates"
       >
-        <span className="text-sm text-charcoal-500">Report ki dates:</span>
+        <span className="text-sm text-charcoal-500">Report dates:</span>
         <Button
           size="sm"
           variant="secondary"
@@ -253,7 +253,7 @@ function Workspace() {
             setTo(today);
           }}
         >
-          Aaj
+          Today
         </Button>
         <Button
           size="sm"
@@ -263,7 +263,7 @@ function Workspace() {
             setTo(today);
           }}
         >
-          Is mahine
+          This month
         </Button>
       </div>
       <nav className="flex flex-wrap gap-2" aria-label="Business quick links">

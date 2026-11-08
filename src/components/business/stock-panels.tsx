@@ -49,7 +49,7 @@ export function IngredientsPanel({
         1 litre = 1,000 mL. Open orders reserve ingredients; cooking consumes
         them.
       </Notice>
-      <div className="flex flex-wrap gap-2" aria-label="Stock ka kaam">
+      <div className="flex flex-wrap gap-2" aria-label="Stock actions">
         <Button
           variant={task === "list" ? "primary" : "secondary"}
           onClick={() => setTask("list")}
@@ -65,19 +65,19 @@ export function IngredientsPanel({
                 setTask("add");
               }}
             >
-              Naya ingredient
+              Add ingredient
             </Button>
             <Button
               variant={task === "adjust" ? "primary" : "secondary"}
               onClick={() => setTask("adjust")}
             >
-              Maal kam / zaya / correction
+              Waste / stock adjustment
             </Button>
             <Link
               className="btn-secondary"
               href="/admin/business?section=purchases"
             >
-              Maal khareeda
+              Receive purchases
             </Link>
           </>
         )}
@@ -157,12 +157,12 @@ export function IngredientsPanel({
                       : []),
                     {
                       value: "COUNT",
-                      label: "Asal stock gin kar likhein / Count",
+                      label: "Physical stock count",
                     },
-                    { value: "WASTE", label: "Maal zaya / kharab hua" },
+                    { value: "WASTE", label: "Waste / spoilage" },
                     {
                       value: "STAFF_MEAL",
-                      label: "Staff ka khana / Complimentary",
+                      label: "Staff meal / complimentary use",
                     },
                     { value: "IN", label: "Stock found / other receipt" },
                     { value: "OUT", label: "Other stock removal" },
@@ -223,9 +223,7 @@ export function IngredientsPanel({
               {text(i, "reserved")}
             </p>
             {Boolean(i.low) && (
-              <p className="mt-2 font-bold text-chilli-600">
-                Maal kam hai / Low stock
-              </p>
+              <p className="mt-2 font-bold text-chilli-600">Low stock</p>
             )}
             {!i.isActive && <p className="text-sm">Inactive</p>}
           </article>

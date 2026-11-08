@@ -2,8 +2,8 @@
   const connection = document.getElementById("connection");
   const showConnection = () => {
     connection.textContent = navigator.onLine
-      ? "Online — saved bills automatically sync honge. Neeche bill ka status bhi check karein."
-      : "Internet band — bill is device par save hoga. Reconnect par sync hoga.";
+      ? "Online — saved bills sync automatically. Check each bill status below."
+      : "Offline — bills are saved on this device and synchronized on reconnect.";
   };
   showConnection();
   window.addEventListener("online", showConnection);

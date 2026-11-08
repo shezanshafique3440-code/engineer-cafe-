@@ -321,10 +321,12 @@ export function AttendancePanel({
         overtimeHours: "0",
         notes: "Daily attendance desk",
       });
-      toast.success("Hazri save ho gayi.");
+      toast.success("Attendance saved.");
       reload();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Hazri save nahi hui.");
+      toast.error(
+        e instanceof Error ? e.message : "Could not save attendance.",
+      );
     } finally {
       submitting.current = false;
       setQuickBusy("");
@@ -332,9 +334,9 @@ export function AttendancePanel({
   };
   return (
     <div className="space-y-5">
-      <section aria-label="Aaj ki hazri">
+      <section aria-label="Today's attendance">
         <h2 className="mb-3 text-xl font-bold">
-          Aaj ki hazri · {text(data, "today")}
+          Today&apos;s attendance · {text(data, "today")}
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {rows(data, "employees").map((e) => {
@@ -366,16 +368,16 @@ export function AttendancePanel({
                           });
                       }}
                     >
-                      Time / hazri edit karein
+                      Edit attendance / times
                     </Button>
                   </>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {[
-                      { id: "PRESENT", label: "Hazir" },
-                      { id: "ABSENT", label: "Ghair hazir" },
-                      { id: "PAID_LEAVE", label: "Paid chhutti" },
-                      { id: "UNPAID_LEAVE", label: "Unpaid chhutti" },
+                      { id: "PRESENT", label: "Present" },
+                      { id: "ABSENT", label: "Absent" },
+                      { id: "PAID_LEAVE", label: "Paid leave" },
+                      { id: "UNPAID_LEAVE", label: "Unpaid leave" },
                     ].map((s) => (
                       <Button
                         key={s.id}
@@ -394,8 +396,8 @@ export function AttendancePanel({
           })}
         </div>
         <p className="mt-2 text-xs text-charcoal-500">
-          Quick hazri overtime ya clock time add nahi karti. Time, half day aur
-          correction neeche form se karein.
+          Quick attendance does not add clock times or overtime. Use the form
+          below for times, half days and corrections.
         </p>
       </section>
       <div id="attendance-detail-form" className="scroll-mt-24" />
@@ -434,10 +436,10 @@ export function AttendancePanel({
               value,
               label: (
                 {
-                  PRESENT: "Hazir / Present",
-                  ABSENT: "Ghair hazir / Absent",
-                  PAID_LEAVE: "Paid chhutti",
-                  UNPAID_LEAVE: "Unpaid chhutti",
+                  PRESENT: "Present",
+                  ABSENT: "Absent",
+                  PAID_LEAVE: "Paid leave",
+                  UNPAID_LEAVE: "Unpaid leave",
                   HALF_DAY: "Half day",
                 } as Record<string, string>
               )[value],
@@ -823,11 +825,11 @@ export function PayrollPanel({
                 <p className="font-bold">{money(p.netPay)}</p>
               </div>
               <div className="rounded-xl bg-cream-50 p-3">
-                <p className="text-xs text-charcoal-500">Di hui payment</p>
+                <p className="text-xs text-charcoal-500">Paid</p>
                 <p className="font-bold">{money(p.paid)}</p>
               </div>
               <div className="rounded-xl bg-chai-50 p-3">
-                <p className="text-xs text-charcoal-500">Baqi salary</p>
+                <p className="text-xs text-charcoal-500">Salary remaining</p>
                 <p className="font-bold">
                   {p.status === "POSTED"
                     ? money(
@@ -836,13 +838,13 @@ export function PayrollPanel({
                             paise(text(p, "paid", "0")),
                         ),
                       )
-                    : "Draft / abhi post nahi hui"}
+                    : "Draft / not posted"}
                 </p>
               </div>
             </div>
             <details className="mt-3">
               <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold">
-                Salary ka breakdown / Details
+                Salary breakdown
               </summary>
               <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                 {[

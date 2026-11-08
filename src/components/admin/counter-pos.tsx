@@ -233,11 +233,11 @@ function Counter({
       <div className="mt-4">
         <TaskSteps
           compact
-          title={table ? "Table ka order" : "Naya bill banayein"}
+          title={table ? "Table order" : "Create a new sale"}
           steps={
             table
-              ? ["Items chunein", "Bill check", "Kitchen bhejein"]
-              : ["Items chunein", "Payment lein", "Receipt dein"]
+              ? ["Choose items", "Check bill", "Send to kitchen"]
+              : ["Choose items", "Take payment", "Print receipt"]
           }
           current={!cart.lines.length ? (receipt ? 2 : 0) : 1}
         />
@@ -350,7 +350,7 @@ function Counter({
                 }
                 onClick={() => setCategory(c)}
               >
-                {c || "Sab items"}
+                {c || "All items"}
               </button>
             ))}
           </div>
@@ -364,7 +364,7 @@ function Counter({
                   .includes(query.toLowerCase()),
             ) && (
               <p className="mt-4 rounded-xl bg-cream-50 p-4 text-sm">
-                Koi item nahi mila. Search ya category badlein.
+                No items found. Try another search or category.
               </p>
             )}
           {error ? (
@@ -559,7 +559,7 @@ function Counter({
                   <>
                     <details className="rounded-xl border border-cream-200 p-3">
                       <summary className="min-h-11 cursor-pointer py-2 text-sm font-bold">
-                        Udhaar sale (approved customer)
+                        Credit sale (approved customer)
                       </summary>
                       <Checkbox
                         label="Approved customer credit"
@@ -638,7 +638,7 @@ function Counter({
                     role="status"
                     className="rounded-xl bg-chai-50 p-3 font-bold"
                   >
-                    Udhaar sale — customer ka balance barhega.
+                    Credit sale — the customer balance will increase.
                   </p>
                 )}
                 {!credit && (
@@ -675,8 +675,7 @@ function Counter({
             }
           >
             <span>
-              {cart.lines.reduce((n, l) => n + l.quantity, 0)} items · Bill
-              dekhein
+              {cart.lines.reduce((n, l) => n + l.quantity, 0)} items · View bill
             </span>
             <span>{money(saleTotal)}</span>
           </button>

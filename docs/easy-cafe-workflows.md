@@ -1,32 +1,24 @@
-# Simple cafe workflows — client preview
+# Daily cafe workflows
 
-This release changes the staff workspace, not the public storefront or existing business records. It keeps all permissions, receipt IDs, stock reservations, financial posting, commission rules and the original migrations. There are no new dependencies, migrations, seeds, imported opening balances or database switches.
+The admin interface uses English throughout. The sidebar openly lists **Daily operations & business** and **Website & administration**. Use **Website & admin tools** to jump to Dashboard, Products, Categories, Customers, Coupons, Reviews, Messages, Analytics, Settings and the other original tools. These links remain subject to the existing staff permissions. The original dashboard is available at `/admin/dashboard` for users with insights access; `/admin` is the daily task home.
 
-## Client ka roz ka routine
+## Daily routine
 
-1. Apna login use karein. **Home / Roz ka kaam** par sirf allowed kaam milenge. Cashier ka pehla task **Naya bill**, waiter ka **Tables**, chef ka **Kitchen**, owner/manager ka **Aaj ka hisaab** hai.
-2. Cashier pehle **Cash opening / closing** mein apni shift khole. Home par own drawer ka live status, open orders/tables aur unassigned deliveries dikhti hain. Counts are current pending work, not today's revenue.
-3. **Naya bill**: category ya search se items chunein, quantity check karein, received account choose karein, actual cash enter karein. Exact/rounded-cash buttons speed up entry but never submit payment. Then **Record payment & send ticket**; receipt confirmation follows. Customer name, approved discounts and credit are separate optional tools. A credit sale stays visibly labelled even if its disclosure is closed.
-4. **Tables**: free table card se table kholein. **Add items / send ticket** opens the order desk inside the same tables screen. After sending, the running bill updates. Return to the table, receive payment, and close the settled table. Pending cash is shown explicitly. Other waiters' private table sessions remain hidden by the existing server scope.
-5. **Kitchen**: ticket dekhein → Preparing → Ready. Payment and handover remain separate; existing role restrictions are retained.
-6. **Riders**: each rider card shows cash held and commission to pay/recover. Action buttons open one relevant form at a time. Active delivery cards offer only the next status, require assignment before dispatch and ask for handover/cash confirmation on completion. Detailed performance and order history remain available under expandable reports. The 15% net-food rule is unchanged.
-7. **Stock**: available quantities appear as cards; full movement/cost records remain accessible. Add ingredient and wastage/correction forms open only when chosen. Use **Maal khareeda** for supplier deliveries. Unit conversion guidance stays visible; received stock must not also be entered as an adjustment.
-8. **Purchases**: supplier invoice → received quantities/costs → actual payment. Links lead directly to supplier setup/payment and ingredients. Purchase orders remain an extra tool, not a stock receipt.
-9. **Hazri**: choose Hazir, Ghair hazir, Paid chhutti or Unpaid chhutti for an unrecorded current-day employee. Existing attendance is never overwritten by a quick action. Current-day cards remain correct when viewing an older report range. Clock times, half days, overtime and corrections use the full form; a quick action never invents clock times or overtime.
-10. **Salary**: draft → review/post → actual payment. Salary cards show net salary, paid amount and remaining payable; breakdown is expandable. Existing payroll review, calendar and posting safeguards remain intact.
-11. **Closing**: review unsynced local bills, table payments and rider cash; acknowledge checks on other devices, then count cash. Pending/conflicted bills on this browser/login prevent proceeding to the count form. This is a device check, not a claim to inspect every cashier device. The server remains responsible for authoritative shift/financial checks. The count form supports total cash or denominations and an explained difference.
-12. **Offline counter**: online/offline state is visible, with three simple billing steps. Prepared snapshots, durable outbox, automatic reconnect sync and same-UUID conflict correction are retained. Never clear browser data while bills are pending. Actual printer/driver/feed require a device test.
+1. Sign in with your own account. Cashiers start with **New sale**, waiters with **Tables & orders**, chefs with **Kitchen orders**, and owners/managers with **Business overview**.
+2. Open your cash shift before taking cash. Home shows pending orders, open tables, your own drawer status and deliveries awaiting rider assignment. These are current work counts, not today's revenue.
+3. **New sale:** choose items, check quantity, select the receiving account and enter actual cash tendered. Exact/rounded-cash shortcuts fill the amount; they do not submit payment. Use **Record payment & send ticket**, then print the confirmed receipt. Customer details, approved discounts and credit remain separate optional tools.
+4. **Tables & orders:** open an available table, then use **Add items / send ticket**. The order desk opens inside the tables screen and updates the running bill. Receive payment and close the settled table. The existing waiter assignment scope is preserved.
+5. **Kitchen orders:** check a new ticket, mark Preparing, then Ready when prepared. Payment and final handover remain separate.
+6. **Riders & deliveries:** assign the order, update its next status, collect rider cash and record commission payments. Completion asks for handover/payment confirmation. Rider cards show cash held, commission due or amounts to recover. Commission remains 15% of the net food amount, excluding tax and delivery fees.
+7. **Stock levels:** review available quantities and low-stock alerts. Add ingredients or choose **Waste / stock adjustment** when needed. Record supplier deliveries through **Receive purchases**, never as a duplicate opening adjustment. Detailed stock and movement records remain available.
+8. **Receive purchases:** select the supplier, enter invoice quantities/costs and receive stock. Record only actual payments; credit invoices can be paid later. A purchase order alone does not receive stock.
+9. **Attendance:** choose Present, Absent, Paid leave or Unpaid leave for an unrecorded current-day employee. Quick attendance does not invent clock times or overtime and cannot overwrite an existing record. Use the full form for times, half days, overtime and corrections. Current-day cards remain accurate when viewing an older report range.
+10. **Pay salaries:** prepare a draft, review attendance/advances/deductions, post payroll, then record actual payment. Cards show net salary, paid amount and remaining payable; breakdowns are expandable.
+11. **Cash opening / closing:** review offline bills, table balances and rider cash. Acknowledge checks on other devices, then count cash. Pending/conflicted bills on this browser/login prevent proceeding to the count form. This check cannot inspect another device's local bills. Enter the actual cash count and explain any difference; existing server financial safeguards remain authoritative.
+12. **Offline counter:** prepare the cashier's device online with an open shift. Connection status is visible. Save provisional cash bills before printing; reconnect sync retains the same UUID. Review rejected bills explicitly. Never clear browser data while bills remain pending.
 
-## Navigation and dates
+Reports initially show **Today** in the Pakistan business calendar. Choose **This month** or explicit From/To dates for another period. Mobile quick navigation follows the role; the bill shortcut stays above the bottom menu.
 
-The primary menu contains everyday tasks. Website management, marketing and detailed tools are behind **Extra tools / Website settings**. Mobile quick navigation follows the role and keeps billing shortcuts above its bottom menu. The public site's theme/layout is preserved.
+## Preservation and release
 
-Business workspaces include a short three-step guide and optional help. Reports initially show **Aaj** (Pakistan business date); choose **Is mahine** or explicit From/To dates for another period. Financial ledger and change history remain available as detailed tools. Hiding an interface control never replaces server permission checks.
-
-## Review and deployment
-
-Review the local browser screenshots and role flows first. This release is a client preview; it is not automatically deployed to the VPS. Deploy only after the owner reviews it, using the existing backup-first wrapper with a pinned commit. There is no database migration or seed for this interface update. Existing public website, current database and uploaded files remain in place.
-
-## Validation
-
-The disposable local cafe database passed 447 HTTP/accounting assertions, 24 offline browser assertions, 123 easy-workflow browser assertions, 68 library tests and 38 deployment/backup/import recovery tests. Easy-workflow checks cover 320/390/768/1440-pixel layouts, per-login masked home data, exact-cash billing, same-screen table tickets/payments, quick attendance, mobile navigation overlap and blocked closing with pending local bills. Production build and a production-server browser pass complete the preview verification. Physical printers and actual client acceptance still require their real devices.
+The original storefront, database, uploads, receipt IDs, stock reservations, journals, permissions and commission rules are preserved. This interface release introduces no dependencies, migrations, seeds, opening balances or database switches. Use the existing backup-first deployment wrapper with the reviewed pinned commit. Actual printers/drivers and client acceptance still need testing on their own devices.
