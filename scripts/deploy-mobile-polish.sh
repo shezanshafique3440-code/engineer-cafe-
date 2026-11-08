@@ -122,14 +122,20 @@ const data = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 if (!Array.isArray(data.products)) throw new Error('Meal catalog response is invalid.');
 console.log('PASS: live meal catalog and public premium pages respond.');
 JS
-for route in /api/admin/kitchen /api/admin/insights; do
+for route in /api/admin/kitchen /api/admin/insights /api/admin/offline-pos /api/admin/business/delivery; do
   status=$(curl --silent --show-error --max-time 30 -o /dev/null -w '%{http_code}' "http://127.0.0.1:3100$route")
   if [ "$status" != "401" ]; then
     echo "Protected premium endpoint returned unexpected status: $route $status"
     exit 1
   fi
 done
-echo "PASS: kitchen and customer insights require authentication."
+echo "PASS: kitchen, insights, offline POS and rider records require authentication."
+for asset in offline-pos.html offline-pos.js offline-pos-store.js sw.js; do
+  curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 \
+    "https://esellerstore.vip/$asset" -o "$BACKUP/$asset"
+  cmp "$APP/public/$asset" "$BACKUP/$asset"
+done
+echo "PASS: offline counter and service-worker assets match the reviewed release."
 if pm2 describe engineer-cafe-notifications >/dev/null 2>&1; then
   pm2 restart engineer-cafe-notifications --update-env
 else

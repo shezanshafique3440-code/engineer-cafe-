@@ -97,6 +97,7 @@ if '-lc' in args:
   from pathlib import Path
   sql=sys.stdin.read()
   if 'Accounting is active.' in sql:sys.exit(1 if os.environ.get('QA_BUSINESS_ACTIVE')=='1' else 0)
+  if 'Delivery accounting is active.' in sql:sys.exit(1 if os.environ.get('QA_DELIVERY_ACTIVE')=='1' else 0)
   if 'SELECT theme' in sql:print(Path(os.environ['QA_THEME']).read_text());sys.exit(0)
   if 'UPDATE public."CafeSetting" SET theme' in sql:
    Path(os.environ['QA_THEME']).write_text(args[-1]);sys.exit(0)
@@ -325,6 +326,22 @@ if args[0]=='describe':print('cafe fixture process')
         self.assertEqual((self.app / 'index.txt').read_text(), 'local edit to preserve')
         self.assertEqual(self.state.read_text(), 'running')
         self.assertFalse(self.pm2log.exists())
+
+    def test_active_delivery_books_stop_rollback_to_a_pre_delivery_release(self):
+        self.git('switch', '--detach', self.target)
+        self.write('src/server/business/delivery.ts', '// delivery-aware release')
+        self.git('add', '.')
+        self.git('commit', '-qm', 'delivery release fixture')
+        self.target = self.git('rev-parse', 'HEAD').strip()
+        self.git('switch', '--detach', self.old)
+        result = self.deploy()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        before = self.pm2log.read_text()
+        result = self.run_script(self.snapshot() / 'rollback.sh', QA_DELIVERY_ACTIVE='1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.git('rev-parse', 'HEAD').strip(), self.target)
+        self.assertEqual(self.pm2log.read_text(), before)
+        self.assertEqual(self.state.read_text(), 'running')
 
     def test_active_accounting_stops_rollback_before_services_change(self):
         self.git('switch', '--detach', self.target)

@@ -30,6 +30,56 @@ export const note = z
   .max(300);
 const base = { requestId: z.string().uuid() };
 export const schemas = {
+  delivery: z.discriminatedUnion("action", [
+    z.object({
+      ...base,
+      action: z.literal("SAVE"),
+      id: z.string().optional(),
+      version: z.string().optional(),
+      code: z
+        .string()
+        .trim()
+        .min(2)
+        .max(30)
+        .regex(/^[A-Za-z0-9_-]+$/)
+        .transform((v) => v.toUpperCase()),
+      name: z.string().trim().min(2).max(80),
+      phone: z.string().trim().min(7).max(30),
+      isActive: z.boolean(),
+    }),
+    z.object({
+      ...base,
+      action: z.literal("ASSIGN"),
+      riderId: z.string().min(1),
+      orderId: z.string().min(1),
+      version: z.string(),
+      note,
+    }),
+    z.object({
+      ...base,
+      action: z.literal("SETTLE"),
+      riderId: z.string().min(1),
+      accountId: z.string().min(1),
+      amount: money,
+      note,
+    }),
+    z.object({
+      ...base,
+      action: z.literal("RECOVER"),
+      riderId: z.string().min(1),
+      accountId: z.string().min(1),
+      amount: money,
+      note,
+    }),
+    z.object({
+      ...base,
+      action: z.literal("REMIT"),
+      riderId: z.string().min(1),
+      accountId: z.string().min(1),
+      amount: money,
+      note,
+    }),
+  ]),
   ingredients: z.discriminatedUnion("action", [
     z.object({
       ...base,

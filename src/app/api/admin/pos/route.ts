@@ -3,13 +3,15 @@ import { cartLineSchema } from "@/lib/validation";
 import { createCafeOrder } from "@/server/checkout";
 import { serializeOrder } from "@/server/orders";
 import { getSettings } from "@/server/settings";
-import { handle, json, requireAdmin, parseBody } from "@/server/api";
+import { handle, json, requireAdmin, parseBody, HttpError } from "@/server/api";
 export const POST = handle(async (request: Request) => {
   const actor = await requireAdmin("pos");
   const data = await parseBody(
     request,
     z.object({
       requestId: z.string().uuid(),
+      offline: z.boolean().default(false),
+      shiftId: z.string().min(1).optional(),
       expectedTotal: z.number().int().min(0).max(10000000).optional(),
       lines: z.array(cartLineSchema).min(1).max(60),
       cashReceived: z.number().multipleOf(0.01).min(0).max(1000000),
@@ -21,9 +23,22 @@ export const POST = handle(async (request: Request) => {
       instructions: z.string().trim().max(300).default(""),
     }),
   );
+  const { offline, shiftId, ...sale } = data;
+  if (
+    offline &&
+    (!shiftId ||
+      !sale.accountId ||
+      sale.credit ||
+      sale.partyId ||
+      sale.approvalId)
+  )
+    throw new HttpError(
+      400,
+      "Offline bills require their original cash shift/account and do not support credit or approval discounts.",
+    );
   const order = await createCafeOrder(
     {
-      ...data,
+      ...sale,
       customerPhone: "",
       orderType: "PICKUP",
       paymentMethod: "CASH_AT_COUNTER",
@@ -33,6 +48,7 @@ export const POST = handle(async (request: Request) => {
     null,
     await getSettings(),
     {
+      ...(offline ? { offline: true, expectedShiftId: shiftId } : {}),
       approvalId: data.approvalId,
       cashReceived: data.cashReceived,
       actor,

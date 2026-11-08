@@ -18,6 +18,7 @@ import {
   SetupPanel,
   ReceivablesPanel,
 } from "./finance-panels";
+import { DeliveryPanel } from "./delivery-panel";
 import { TablesPanel } from "./tables-panel";
 import {
   ProcurementPanel,
@@ -95,7 +96,9 @@ function Workspace() {
     );
   const main = data ? (
     <>
-      {section.id === "overview" ? (
+      {section.id === "delivery" ? (
+        <DeliveryPanel data={data} reload={() => void load()} />
+      ) : section.id === "overview" ? (
         <OverviewPanel data={data} />
       ) : section.id === "inventory" ? (
         <IngredientsPanel data={data} reload={() => void load()} />

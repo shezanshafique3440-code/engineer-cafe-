@@ -1,4 +1,5 @@
 import "server-only";
+import { deliveryAction } from "./delivery";
 import { hashPassword } from "@/server/auth";
 import type { SessionUser } from "@/lib/types";
 import { badRequest, forbidden } from "@/server/api";
@@ -18,6 +19,7 @@ import {
   reviewer,
 } from "./operations";
 export const MODULE_CAPS: Record<string, string> = {
+  delivery: "delivery",
   overview: "reports",
   ingredients: "stock-read",
   recipes: "inventory",
@@ -54,6 +56,8 @@ export async function businessAction(
   body: unknown,
 ) {
   switch (module) {
+    case "delivery":
+      return deliveryAction(tx, actor, schemas.delivery.parse(body));
     case "procurement":
       return procurementAction(tx, actor, schemas.procurement.parse(body));
     case "stockcounts":

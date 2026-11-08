@@ -49,6 +49,19 @@ BEGIN
 END $$;
 SQL
 fi
+# A pre-delivery release cannot maintain commission reversals or assigned tickets.
+if git cat-file -e "$CURRENT:src/server/business/delivery.ts" 2>/dev/null && ! git cat-file -e "$PREVIOUS:src/server/business/delivery.ts" 2>/dev/null; then
+  docker exec -i infra-postgres-1 sh -lc 'exec psql -Xq -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-postgres}" -d engineer_cafe' <<'SQL'
+DO $$
+BEGIN
+  IF to_regclass('public."DeliveryCommission"') IS NOT NULL THEN
+    IF EXISTS (SELECT 1 FROM public."DeliveryCommission") OR EXISTS (SELECT 1 FROM public."Order" WHERE "riderId" IS NOT NULL AND status NOT IN ('DELIVERED','CANCELLED')) THEN
+      RAISE EXCEPTION 'Delivery accounting is active. Roll forward with a compatible fix; a pre-delivery release cannot maintain these commissions or active rider tickets. No services or data changed.';
+    END IF;
+  END IF;
+END $$;
+SQL
+fi
 test -f .env
 pm2 describe engineer-cafe >/dev/null
 RECOVERY=$(mktemp -d "$BACKUP/rollback-attempt.XXXXXXXX")

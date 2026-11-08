@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { OfflineCounterPanel } from "./offline-counter-panel";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Printer, Plus, Minus, Trash2 } from "lucide-react";
@@ -205,6 +206,7 @@ function Counter({
           ? "Choose an open table and send its next kitchen ticket. The cashier settles the combined bill."
           : "Receive payment, calculate change and send the ticket to the kitchen."}
       </p>
+      {!table && <OfflineCounterPanel />}
       <div className="my-4 flex flex-wrap gap-2">
         <Link
           className="btn-secondary text-xs"

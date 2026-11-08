@@ -1,6 +1,6 @@
 # Compatible VPS permissions release
 
-Base: `7426aaf3c7e25bfea4d6dcf76adbe7b5c46bc212`, the already deployed `codex/mobile-admin-polish` branch. The earlier parallel implementation commit `3e92ed5` is not a release target for this VPS: its operations schema and code diverge from the existing accounting app. This release extends the deployed implementation, retaining the storefront, notifications, POS, paise-based accounting, stock/purchases, payroll, tables, riders, approvals, reports, offline queue and all seven original migrations.
+Base: `7426aaf3c7e25bfea4d6dcf76adbe7b5c46bc212`, the already deployed `codex/mobile-admin-polish` branch. The earlier parallel implementation commit `3e92ed5` is not a release target for this VPS: its operations schema and code diverge from the existing accounting app. This release extends the deployed implementation, retaining the storefront, notifications, POS, paise-based accounting, stock/purchases, payroll, tables, approvals, reports and all seven original migrations.
 
 ## Changes
 
@@ -23,3 +23,5 @@ Fetch this branch's reviewed full commit and execute **its** `scripts/deploy-ref
 The wrapper takes another private backup, stops only the cafe app and notification worker as needed, applies the additive migration, validates/builds the app, verifies retained catalogue prices/images and HTTPS routes, restarts both cafe services and saves PM2 state. A failure triggers recovery of the previous code, dependencies and production build. Rollback keeps all current database rows and additive columns; it never imports the old database dump or replaces uploads/.env. A code rollback returns permissions to the old implementation; new individual restrictions are not enforced by old code, so review access if rollback is used.
 
 The known deployment is `/var/www/engineer-cafe`, PM2 `engineer-cafe` on loopback port 3100, worker `engineer-cafe-notifications`, PostgreSQL database `engineer_cafe`, and HTTPS domain `esellerstore.vip`. The wrapper checks its required local Docker/PostgreSQL backup capability before changing the app. It does not change Nginx, DNS, credentials, themes or other websites.
+
+The subsequent rider/commission and offline-counter release is documented in [delivery-and-offline.md](delivery-and-offline.md). Those dedicated modules were not part of the original permission-only release.

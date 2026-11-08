@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
 import type { SessionUser } from "@/lib/types";
 
@@ -40,10 +48,23 @@ export function SessionProvider({
   }, []);
 
   const logout = useCallback(async () => {
-    if ('serviceWorker' in navigator) {
-      try { const reg=await navigator.serviceWorker.getRegistration();const sub=await reg?.pushManager?.getSubscription();if(sub){await apiDelete('/api/admin/push',{endpoint:sub.endpoint});await sub.unsubscribe();}} catch {/* Logging out must remain available. */}
+    if ("serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        const sub = await reg?.pushManager?.getSubscription();
+        if (sub) {
+          await apiDelete("/api/admin/push", { endpoint: sub.endpoint });
+          await sub.unsubscribe();
+        }
+      } catch {
+        /* Logging out must remain available. */
+      }
     }
     await apiPost("/api/auth/logout").catch(() => undefined);
+    await import("@/lib/offline-counter")
+      .then((m) => m.counterStore())
+      .then((store) => store.clearSnapshot())
+      .catch(() => undefined);
     setUser(null);
   }, []);
 
@@ -69,11 +90,14 @@ export function SessionProvider({
     [user, loading, refresh, logout],
   );
 
-  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+  return (
+    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
+  );
 }
 
 export function useSession(): SessionValue {
   const ctx = useContext(SessionContext);
-  if (!ctx) throw new Error("useSession must be used inside <SessionProvider>.");
+  if (!ctx)
+    throw new Error("useSession must be used inside <SessionProvider>.");
   return ctx;
 }

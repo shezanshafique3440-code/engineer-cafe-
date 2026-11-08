@@ -230,7 +230,10 @@ export async function listCategories(
 }
 
 /** Recomputes a product's rating aggregates from its approved reviews. */
-export async function refreshProductRating(productId: string, client: Prisma.TransactionClient = prisma) {
+export async function refreshProductRating(
+  productId: string,
+  client: Prisma.TransactionClient = prisma,
+) {
   const agg = await client.review.aggregate({
     where: { productId, status: "APPROVED" },
     _avg: { rating: true },
@@ -245,20 +248,19 @@ export async function refreshProductRating(productId: string, client: Prisma.Tra
   });
 }
 
-export async function getMealCatalog() {
+export async function getMealCatalog(limit = 200) {
+  limit = Math.max(1, Math.min(2000, Math.floor(limit)));
   const rows = await prisma.product.findMany({
     where: { isAvailable: true, category: { isActive: true } },
     orderBy: [{ isPopular: "desc" }, { sortOrder: "asc" }],
-    take: 201,
+    take: limit + 1,
     select: productDetailSelect,
   });
   return {
-    products: rows
-      .slice(0, 200)
-      .map(({ addonGroups, ...rest }) => ({
-        ...toProductDTO(rest),
-        addonGroups: addonGroups.map((link) => link.addonGroup),
-      })),
-    truncated: rows.length > 200,
+    products: rows.slice(0, limit).map(({ addonGroups, ...rest }) => ({
+      ...toProductDTO(rest),
+      addonGroups: addonGroups.map((link) => link.addonGroup),
+    })),
+    truncated: rows.length > limit,
   };
 }

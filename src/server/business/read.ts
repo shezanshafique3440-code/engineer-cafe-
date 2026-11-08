@@ -1,4 +1,5 @@
 import "server-only";
+import { deliveryRead } from "./delivery";
 import type { SessionUser } from "@/lib/types";
 import { canBusiness } from "@/lib/business-access";
 import {
@@ -57,6 +58,8 @@ export async function businessRead(
     owner: actor.role === "ADMIN",
   };
   switch (module) {
+    case "delivery":
+      return { ...meta, ...(await deliveryRead(tx, start, end)) };
     case "procurement":
     case "stockcounts":
     case "approvals":

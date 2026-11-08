@@ -553,3 +553,7 @@ but the status code is still wrong. Unmatched routes outside `/menu`
 - Static generation for the homepage, menu and every product page; dynamic rendering only
   where a session is involved.
 - Mobile-first, no horizontal scrolling at any breakpoint.
+
+## Riders and offline counter
+
+See [Riders and offline POS](docs/delivery-and-offline.md) for delivery assignments, 15% commission accounting, rider cash reconciliation, cash-only offline billing, durable synchronization and test/deployment details.

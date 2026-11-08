@@ -257,6 +257,10 @@ model Coupon {
 }
 
 model Order {
+  riderId String?
+  rider DeliveryRider? @relation(fields:[riderId],references:[id],onDelete:Restrict)
+  riderAssignedAt DateTime?
+  deliveryCommission DeliveryCommission?
   id          String @id @default(cuid())
   orderNumber String @unique
 
@@ -533,6 +537,7 @@ model StaffAccess {
   updatedAt DateTime @updatedAt
 }
 model BusinessParty {
+  riderProfile DeliveryRider?
   purchaseOrders CafePurchaseOrder[]
   id String @id @default(cuid())
   kind String
@@ -666,6 +671,7 @@ model StockMovement {
   @@index([orderId])
 }
 model BusinessAccount {
+  deliveryTransfers DeliveryTransfer[]
   id String @id @default(cuid())
   code String @unique
   name String
@@ -677,6 +683,9 @@ model BusinessAccount {
   payments BusinessPayment[]
 }
 model BusinessJournal {
+  deliveryAccrual DeliveryCommission? @relation("DeliveryAccrual")
+  deliveryReversal DeliveryCommission? @relation("DeliveryReversal")
+  deliveryTransfer DeliveryTransfer?
   id String @id @default(cuid())
   eventKey String @unique
   source String
@@ -921,4 +930,51 @@ model CafeApproval {
   expiresAt DateTime
   @@index([status,createdAt])
   @@index([requestedById,status])
+}
+
+
+model DeliveryRider {
+  id String @id @default(cuid())
+  code String @unique
+  partyId String @unique
+  party BusinessParty @relation(fields:[partyId],references:[id],onDelete:Restrict)
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders Order[]
+  commissions DeliveryCommission[]
+  transfers DeliveryTransfer[]
+}
+model DeliveryCommission {
+  id String @id @default(cuid())
+  orderId String @unique
+  order Order @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  riderId String
+  rider DeliveryRider @relation(fields:[riderId],references:[id],onDelete:Restrict)
+  rate Int @default(15)
+  basis Decimal @db.Decimal(18,2)
+  amount Decimal @db.Decimal(18,2)
+  journalId String? @unique
+  journal BusinessJournal? @relation("DeliveryAccrual",fields:[journalId],references:[id],onDelete:Restrict)
+  reversalJournalId String? @unique
+  reversalJournal BusinessJournal? @relation("DeliveryReversal",fields:[reversalJournalId],references:[id],onDelete:Restrict)
+  date DateTime @db.Date
+  reversedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([riderId,date])
+}
+model DeliveryTransfer {
+  id String @id @default(cuid())
+  riderId String
+  rider DeliveryRider @relation(fields:[riderId],references:[id],onDelete:Restrict)
+  kind String
+  amount Decimal @db.Decimal(18,2)
+  accountId String
+  account BusinessAccount @relation(fields:[accountId],references:[id],onDelete:Restrict)
+  journalId String @unique
+  journal BusinessJournal @relation(fields:[journalId],references:[id],onDelete:Restrict)
+  date DateTime @db.Date
+  note String
+  createdAt DateTime @default(now())
+  @@index([riderId,date])
 }

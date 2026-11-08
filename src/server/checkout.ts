@@ -4,6 +4,7 @@ import { applyCounterDiscount } from "./business/operations";
 import { audit, businessLock } from "./business/core";
 import { receiveOrderMoney, validateCredit } from "./business/order-ledger";
 import { paise, decimal } from "@/lib/business-math";
+import { canBusiness } from "@/lib/business-access";
 import { createHash } from "node:crypto";
 import type { CheckoutInput } from "@/lib/validation";
 import type { SessionUser } from "@/lib/types";
@@ -18,6 +19,9 @@ export async function createCafeOrder(
   user: SessionUser | null,
   settings: CafeSetting,
   pos?: {
+    offline?: boolean;
+    expectedShiftId?: string;
+    expectedLineTotals?: number[];
     approvalId?: string;
     cashReceived: number;
     actor?: SessionUser;
@@ -29,7 +33,12 @@ export async function createCafeOrder(
   },
 ) {
   const requestHash = createHash("sha256")
-    .update(JSON.stringify({ data, pos }))
+    .update(
+      JSON.stringify({
+        data,
+        pos: pos?.offline ? { ...pos, actor: pos.actor?.id } : pos,
+      }),
+    )
     .digest("hex");
   const requestKey = data.requestId
     ? `${pos ? "POS" : "WEB"}:${data.requestId}`
@@ -94,6 +103,18 @@ export async function createCafeOrder(
       quote,
       settings.taxPercent,
     );
+  if (
+    pos?.offline &&
+    pos.expectedLineTotals &&
+    (pos.expectedLineTotals.length !== quote.lines.length ||
+      quote.lines.some(
+        (line, i) => line.lineTotal !== pos.expectedLineTotals![i],
+      ))
+  )
+    throw new HttpError(
+      409,
+      "An item price changed. Review the cached bill before confirming it.",
+    );
   if (data.expectedTotal !== undefined && data.expectedTotal !== quote.total)
     throw new HttpError(
       409,
@@ -118,7 +139,6 @@ export async function createCafeOrder(
   const order = await prisma.$transaction(
     async (tx) => {
       await businessLock(tx);
-      const orderNumber = await nextOrderNumber(tx);
       if (requestKey) {
         const existing = await tx.order.findUnique({
           where: { requestKey },
@@ -184,6 +204,18 @@ export async function createCafeOrder(
         throw badRequest("The minimum order amount changed. Review your cart.");
       if (data.couponCode && quote.couponError)
         throw badRequest(quote.couponError);
+      if (
+        pos?.offline &&
+        pos.expectedLineTotals &&
+        (pos.expectedLineTotals.length !== quote.lines.length ||
+          quote.lines.some(
+            (line, i) => line.lineTotal !== pos.expectedLineTotals![i],
+          ))
+      )
+        throw new HttpError(
+          409,
+          "An item price changed. Review the cached bill before confirming it.",
+        );
       if (quote.total !== expectedTotal)
         throw badRequest(
           "Your cart price changed. Refresh your cart before ordering.",
@@ -191,6 +223,48 @@ export async function createCafeOrder(
 
       const business = await tx.businessConfig.findUnique({ where: { id: 1 } });
       const tracked = Boolean(business?.enabled);
+      if (pos?.offline) {
+        if (!tracked || !pos.actor || !pos.expectedShiftId)
+          throw badRequest(
+            "Offline billing requires active accounting and the prepared cashier shift.",
+          );
+        const cashier = await tx.user.findUnique({
+          where: { id: pos.actor.id },
+          include: { staffAccess: true },
+        });
+        if (
+          !cashier?.isActive ||
+          !canBusiness(
+            {
+              role: cashier.role,
+              businessProfile: cashier.staffAccess?.profile,
+              businessPermissions: cashier.staffAccess?.customPermissions
+                ? cashier.staffAccess.permissions
+                : null,
+            },
+            "pos",
+          )
+        )
+          throw new HttpError(
+            403,
+            "The prepared cashier no longer has POS permission.",
+          );
+        const preparedShift = await tx.cashShift.findUnique({
+          where: { id: pos.expectedShiftId },
+          include: { drawer: true },
+        });
+        if (
+          !preparedShift ||
+          preparedShift.closedAt ||
+          preparedShift.openedById !== pos.actor.id ||
+          preparedShift.drawer.accountId !== pos.accountId
+        )
+          throw new HttpError(
+            409,
+            "The original offline shift is closed or belongs to a different cashier/account. Review and reconcile this bill before choosing a new shift.",
+          );
+      }
+
       if (pos && tracked && !pos.actor)
         throw badRequest("Staff identity is required to record a sale.");
       if (pos?.serviceMode === "DINE_IN" && !tracked)
@@ -253,6 +327,7 @@ export async function createCafeOrder(
             "Bank and wallet receipts must match the bill; they cannot include cash change.",
           );
       }
+      const orderNumber = await nextOrderNumber(tx);
       const created = await tx.order.create({
         data: {
           orderNumber,
@@ -343,7 +418,11 @@ export async function createCafeOrder(
             create: [
               {
                 status: pos ? "CONFIRMED" : "PENDING",
-                note: pos ? "Counter sale: cash received" : "Order placed",
+                note: pos?.offline
+                  ? "Offline counter bill synchronized; cash recorded"
+                  : pos
+                    ? "Counter sale: cash received"
+                    : "Order placed",
               },
             ],
           },
@@ -385,6 +464,13 @@ export async function createCafeOrder(
             body: `${created.items.reduce((n, l) => n + l.quantity, 0)} items · Rs. ${created.total}${created.scheduledAt ? " · Scheduled" : ""}`,
             url: "/admin/orders",
           },
+        });
+      if (pos?.offline && pos.actor)
+        await audit(tx, pos.actor, "SYNC_OFFLINE_BILL", "Order", created.id, {
+          requestId: data.requestId,
+          originalShiftId: pos.expectedShiftId,
+          total: created.total,
+          cashTendered: decimal(tendered),
         });
       if (tracked) await reserveOrder(tx, created.id);
       if (pos && tracked && tendered > 0n) {

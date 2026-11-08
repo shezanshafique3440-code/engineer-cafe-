@@ -25,6 +25,7 @@ const PROFILE_CAPS: Record<BusinessProfile, string[]> = {
     "attendance",
     "reports",
     "cash",
+    "delivery",
   ],
   CASHIER: [
     "orders",
@@ -34,6 +35,7 @@ const PROFILE_CAPS: Record<BusinessProfile, string[]> = {
     "pos",
     "table-orders",
     "cash",
+    "delivery",
   ],
   WAITER: ["orders", "kitchen", "tables", "table-orders"],
   CHEF: ["orders", "kitchen", "stock-read"],
@@ -68,6 +70,7 @@ export function canBusiness(
 }
 export const BUSINESS_SECTIONS = [
   { id: "overview", label: "Business overview", cap: "reports" },
+  { id: "delivery", label: "Riders & deliveries", cap: "delivery" },
   { id: "inventory", label: "Ingredients & stock", cap: "stock-read" },
   { id: "recipes", label: "Recipes & costing", cap: "inventory" },
   { id: "procurement", label: "Purchase orders", cap: "purchases" },

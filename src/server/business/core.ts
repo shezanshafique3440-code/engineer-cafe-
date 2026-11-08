@@ -42,6 +42,7 @@ export const ACCOUNTS = [
   ["GAS", "Gas", "EXPENSE", false],
   ["ELECTRICITY", "Electricity", "EXPENSE", false],
   ["PACKAGING", "Packaging", "EXPENSE", false],
+  ["RIDERS_PAYABLE", "Rider commissions payable", "LIABILITY", false],
   ["DELIVERY_EXPENSE", "Delivery expenses", "EXPENSE", false],
   ["REPAIRS", "Repairs and maintenance", "EXPENSE", false],
   ["OTHER_EXPENSE", "Other expenses", "EXPENSE", false],

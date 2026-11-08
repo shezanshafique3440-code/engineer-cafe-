@@ -1,4 +1,5 @@
 import "server-only";
+import { accrueDelivery, reverseDelivery } from "./business/delivery";
 import type { SessionUser } from "@/lib/types";
 import { getCurrentUser } from "./auth";
 import { audit, businessLock } from "./business/core";
@@ -262,6 +263,26 @@ export async function transitionOrder(
   return prisma.$transaction(
     async (tx) => {
       await businessLock(tx);
+      const delivery = await tx.order.findUniqueOrThrow({
+        where: { id: order.id },
+        include: { rider: true },
+      });
+      if (
+        delivery.businessTracked &&
+        delivery.orderType === "DELIVERY" &&
+        ["OUT_FOR_DELIVERY", "DELIVERED"].includes(status) &&
+        !delivery.riderId
+      )
+        throw new HttpError(
+          400,
+          "Assign a rider in Riders & deliveries before dispatch or completion.",
+        );
+      if (
+        status === "OUT_FOR_DELIVERY" &&
+        delivery.rider &&
+        !delivery.rider.isActive
+      )
+        throw new HttpError(400, "Assign an active rider before dispatch.");
       if (order.userId)
         await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${order.userId} FOR UPDATE`;
       const updated = await tx.order.updateMany({
@@ -286,6 +307,7 @@ export async function transitionOrder(
           await consumeOrder(tx, actor, order.id);
         if (status === "DELIVERED") {
           await invoiceOrder(tx, actor, order.id);
+          await accrueDelivery(tx, actor, order.id);
           const current = await tx.order.findUniqueOrThrow({
             where: { id: order.id },
           });
@@ -314,8 +336,10 @@ export async function transitionOrder(
               data: { paymentStatus: "PAID" },
             });
         }
-        if (status === "CANCELLED")
+        if (status === "CANCELLED") {
           await voidBusinessOrder(tx, actor, order, note || "Cancelled");
+          await reverseDelivery(tx, actor, order.id, note || "Cancelled");
+        }
       }
       // Restock and roll back sales counters when an order is cancelled.
       if (status === "CANCELLED" && order.status !== "CANCELLED") {

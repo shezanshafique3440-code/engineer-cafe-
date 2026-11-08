@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Offline counter · Engineer Cafe</title>
+    <style>
+      body {
+        font: 16px/1.5 system-ui;
+        background: #faf6ed;
+        color: #30261e;
+        max-width: 960px;
+        margin: 24px auto;
+        padding: 16px;
+      }
+      section {
+        background: #fff;
+        padding: 18px;
+        border: 1px solid #dfd2c1;
+        border-radius: 14px;
+        margin: 16px 0;
+      }
+      label {
+        display: grid;
+        gap: 5px;
+        margin: 10px 0;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        padding: 10px;
+        border: 1px solid #bfa98b;
+        border-radius: 8px;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      button {
+        cursor: pointer;
+        background: #92571e;
+        color: white;
+        margin: 5px;
+      }
+      button:disabled {
+        opacity: 0.5;
+      }
+      .line {
+        border-top: 1px solid #ddd;
+        padding: 12px;
+      }
+      #message {
+        white-space: pre-wrap;
+      }
+      .bad {
+        color: #a11;
+      }
+      h1,
+      h2 {
+        line-height: 1.25;
+      }
+    </style>
+    <script src="/offline-pos-store.js" defer></script>
+    <script src="/offline-pos.js" defer></script>
+  </head>
+  <body>
+    <h1>Offline counter</h1>
+    <p>
+      Cash bills are provisional until the server validates them. Keep all
+      printed bills and collected cash for reconciliation.
+    </p>
+    <p id="message" role="status"></p>
+    <p id="prepared"></p>
+    <button id="refresh">Refresh prepared menu & shift</button
+    ><a href="/admin/pos">Online POS</a>
+    <section id="editor" hidden>
+      <h2 id="bill-heading">New provisional bill</h2>
+      <form id="sale">
+        <label
+          >Order type<select name="serviceMode">
+            <option value="TAKEAWAY">Takeaway</option>
+            <option value="DINE_IN">Dine-in table ticket</option>
+            <option value="DELIVERY">Delivery (cash paid at counter)</option>
+          </select></label
+        >
+        <div id="table-fields" hidden>
+          <label>Prepared open table<select name="sessionId"></select></label>
+          <p>
+            This receipt pays this ticket only. The table may have other orders.
+          </p>
+        </div>
+        <div id="delivery-fields" hidden>
+          <label>Phone<input name="customerPhone" maxlength="30" /></label
+          ><label
+            >Delivery address<input name="addressLine" maxlength="200" /></label
+          ><label>City<input name="city" maxlength="60" /></label>
+        </div>
+        <label
+          >Customer name<input
+            name="customerName"
+            minlength="2"
+            maxlength="60"
+            value="Counter guest"
+            required
+        /></label>
+        <div id="lines"></div>
+        <button type="button" id="add">Add product</button
+        ><label
+          >Cash actually received (Rs.)<input
+            name="cashReceived"
+            type="number"
+            min="0"
+            max="1000000"
+            step="0.01"
+            required
+        /></label>
+        <p id="total"></p>
+        <button type="submit">Save provisional bill</button
+        ><button type="button" id="cancel-edit" hidden>Cancel review</button>
+      </form>
+      <p>
+        Offline credit, coupon codes and approval discounts require the online
+        POS. Cached product offers are included. Server rechecks all prices,
+        add-ons and ingredient stock.
+      </p>
+    </section>
+    <section>
+      <h2>Saved local bills</h2>
+      <button id="sync">Synchronize now</button
+      ><button id="export">Export local bills</button>
+      <div id="bills"></div>
+    </section>
+  </body>
+</html>
