@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { prisma } from "@/lib/prisma";
 import { businessLock, ensureBusiness, journal } from "@/server/business/core";
+import { adjustIngredient } from "@/server/business/inventory";
 import { seedBusinessDemo, assumedRecipe } from "../business-demo-data";
 import { planCleanup, cleanupPreview, queueDemo } from "@/server/demo-data";
 import { tick } from "../demo-manager-worker";
@@ -286,6 +287,41 @@ export async function run() {
     preview.counts.Order.remove === 2600 &&
       preview.counts.Order.preserve === 11,
     "Both old and new batches selected",
+  );
+  let actualStockPreserved = false;
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        await businessLock(tx);
+        await adjustIngredient(tx, actor, {
+          requestId: "actual-owner-stock-test",
+          ingredientId: "cafe-demo-v1-ingredient-milk",
+          kind: "OPENING",
+          quantity: "1",
+          value: "1",
+          note: "Actual physical stock, not imported demo data",
+        });
+        const physical = await planCleanup(tx);
+        assert.ok(
+          physical.preview.blockers.some((b) =>
+            b.includes("no recorded demo provenance"),
+          ),
+        );
+        actualStockPreserved = true;
+        throw Error("EXPECTED_PHYSICAL_STOCK_ROLLBACK");
+      },
+      { timeout: 90000 },
+    );
+  } catch (error) {
+    if (
+      !(error instanceof Error) ||
+      error.message !== "EXPECTED_PHYSICAL_STOCK_ROLLBACK"
+    )
+      throw error;
+  }
+  ok(
+    actualStockPreserved,
+    "Actual owner stock entries on demo ingredients block cleanup",
   );
   // Real references must block, even where ON DELETE would otherwise cascade/set null.
   await prisma.$transaction(async (tx) => {
