@@ -1,4 +1,5 @@
 import "server-only";
+import { handoverAccount } from "./business/demo-identity";
 import { accrueDelivery, reverseDelivery } from "./business/delivery";
 import type { SessionUser } from "@/lib/types";
 import { getCurrentUser } from "./auth";
@@ -324,8 +325,7 @@ export async function transitionOrder(
             await receiveOrderMoney(tx, actor, {
               orderId: current.id,
               amount: remaining,
-              accountId:
-                current.orderType === "DELIVERY" ? "RIDER_CASH" : "CASH_MAIN",
+              accountId: await handoverAccount(tx, current),
               requestId: "handover:" + current.id,
               note: "Cash collected at handover #" + current.orderNumber,
             });

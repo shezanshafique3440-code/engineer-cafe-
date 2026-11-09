@@ -166,6 +166,7 @@ export async function businessAction(
         ? await tx.recipe.update({
             where: { id: existing.id },
             data: {
+              reviewRequired: false,
               yieldUnits: d.yieldUnits,
               note: d.note,
               lines: { deleteMany: {}, create: d.lines },
@@ -174,6 +175,7 @@ export async function businessAction(
         : await tx.recipe.create({
             data: {
               ...where,
+              reviewRequired: false,
               yieldUnits: d.yieldUnits,
               note: d.note,
               lines: { create: d.lines },

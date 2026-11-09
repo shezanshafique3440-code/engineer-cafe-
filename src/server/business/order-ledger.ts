@@ -1,4 +1,5 @@
 import "server-only";
+import { assertDemoMoney } from "./demo-identity";
 import type { Order } from "@prisma/client";
 import type { SessionUser } from "@/lib/types";
 import { settleLoyalty } from "@/server/loyalty";
@@ -56,6 +57,7 @@ export async function receiveOrderMoney(
       throw badRequest("Payment exceeds the remaining bill.");
   }
   const { account, shiftId } = await moneyAccount(tx, actor, input.accountId);
+  await assertDemoMoney(tx,"Order",order.id,account);
   if (input.refund && amount > (await accountBalance(tx, account.id)))
     throw badRequest(
       "Not enough recorded funds in the selected refund account.",

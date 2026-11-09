@@ -561,7 +561,7 @@ function RecipeEditor({
   );
   return (
     <Form
-      title={"Recipe · " + text(item, "name")}
+      title={(recipe.reviewRequired ? "Review required · " : "Recipe · ") + text(item, "name")}
       module="recipes"
       fields={[
         {

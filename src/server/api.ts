@@ -46,6 +46,9 @@ export function handle<Args extends unknown[]>(
           { status: error.status },
         );
       }
+      if (error instanceof Error && error.message.includes("Demo preparation is running. Please try again shortly.")) {
+        return NextResponse.json({error:"Demo data preparation is running. Please wait, then retry this save."},{status:503,headers:{"Retry-After":"10"}});
+      }
       if (error instanceof ZodError) {
         return NextResponse.json(
           { error: "Please check the highlighted fields.", fields: error.flatten().fieldErrors },

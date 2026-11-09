@@ -186,6 +186,10 @@ export async function reserveOrder(tx: DB, orderId: string) {
       if (recipe) recipes.push(recipe);
     }
     for (const recipe of recipes) {
+      if (recipe.reviewRequired)
+        throw badRequest(
+          "Review the assumed practice recipe and enter actual opening stock before preparing food.",
+        );
       const yieldUnits = quantity(recipe.yieldUnits);
       for (const line of recipe.lines) {
         const used = divideRound(
@@ -297,7 +301,11 @@ export async function stockReadiness(tx: DB) {
         isAvailable: true,
         recipeRequired: true,
         category: { isActive: true },
-        OR: [{ recipe: null }, { recipe: { lines: { none: {} } } }],
+        OR: [
+          { recipe: null },
+          { recipe: { lines: { none: {} } } },
+          { recipe: { reviewRequired: true } },
+        ],
       },
       select: { id: true, name: true },
     }),

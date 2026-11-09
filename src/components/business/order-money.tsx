@@ -32,7 +32,9 @@ export function OrderMoney({
       ),
     [order.id, user?.id],
   );
-  const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]),
+  const [accounts, setAccounts] = useState<
+      { id: string; name: string; code: string }[]
+    >([]),
     [account, setAccount] = useState(""),
     [amount, setAmount] = useState(
       order.status === "CANCELLED" ? order.refundDue : order.remainingDue,
@@ -43,12 +45,23 @@ export function OrderMoney({
   const key = useRef<{ payload: string; id: string } | null>(null);
   useEffect(() => {
     void loadApprovals().catch(() => {});
-    void apiGet<{ accounts: { id: string; name: string }[] }>(
+    void apiGet<{ accounts: { id: string; name: string; code: string }[] }>(
       "/api/admin/sales-context",
     )
-      .then((d) => setAccounts(d.accounts))
+      .then((d) =>
+        setAccounts(
+          /^(cafe-demo-v[12]-|cafe-practice-v1-)/.test(order.id)
+            ? d.accounts.filter(
+                (a) =>
+                  a.code.startsWith(
+                    order.id.startsWith("cafe-demo-v2-") ? "DEMO2_" : "DEMO_",
+                  ) || a.code === "RIDER_CASH",
+              )
+            : d.accounts,
+        ),
+      )
       .catch(() => setError("Could not load payment accounts."));
-  }, [loadApprovals]);
+  }, [loadApprovals, order.id]);
   if (!order.businessTracked) return null;
   const refund = order.status === "CANCELLED";
   return (

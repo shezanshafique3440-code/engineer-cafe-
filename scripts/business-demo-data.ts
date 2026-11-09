@@ -41,19 +41,18 @@ import {
 } from "@/server/business/purchases";
 import { moneyAction, cashAction } from "@/server/business/cash";
 import { draftPayroll, postPayroll } from "@/server/business/payroll";
+import { seedDemoExtras } from "./demo-extra-data";
+import {
+  accrueDelivery,
+  reverseDelivery,
+  deliveryAction,
+  riderCash,
+} from "@/server/business/delivery";
 import type { SeedProduct } from "../prisma/seed-data";
 const { PRODUCTS } = createRequire(process.cwd() + "/package.json")(
   "./prisma/seed-data.ts",
 ) as { PRODUCTS: Record<string, SeedProduct[]> };
-const KEY = "business-demo-v1";
 const P = "DEMO · ";
-const id = (type: string, n: string | number) => `cafe-demo-v1-${type}-${n}`;
-const actor: SessionUser = {
-  id: id("actor", 1),
-  name: "DEMO data importer",
-  email: "demo-import@example.test",
-  role: "ADMIN",
-};
 const digest = (v: unknown) =>
   createHash("sha256").update(JSON.stringify(v)).digest("hex");
 const addDays = (date: string, days: number) =>
@@ -64,7 +63,7 @@ const stamp = (date: string, hour = 12, minute = 0) =>
   new Date(
     `${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+05:00`,
   );
-const INGREDIENTS = [
+const INGREDIENTS_BASE = [
   ["Milk", "ML", "500000", "110000", "15000"],
   ["Tea leaves", "G", "16000", "24000", "500"],
   ["Flour", "G", "500000", "65000", "15000"],
@@ -90,7 +89,7 @@ const INGREDIENTS = [
   ["Fresh mint", "G", "150", "120", "500"],
   ["Takeaway cups", "PCS", "500", "3000", "600"],
 ] as const;
-const TEAM = [
+const TEAM_BASE = [
   ["Ahmed Raza", "Cafe manager", "42000"],
   ["Bilal Hassan", "Head chef", "39000"],
   ["Usman Ali", "Paratha chef", "34000"],
@@ -231,16 +230,59 @@ function recipe(name: string, ingredients: Map<string, string>) {
     quantity: qty,
   }));
 }
-export async function seedBusinessDemo(apply = false) {
+export async function seedBusinessDemo(
+  apply = false,
+  options?: {
+    jobId: string;
+    before?: (tx: DB) => Promise<void>;
+    complete?: (tx: DB, result: any) => Promise<void>;
+  },
+) {
+  const bulk = Boolean(options);
+  const KEY = bulk ? "business-demo-v2" : "business-demo-v1";
+  const P = bulk ? "DEMO 2 · " : "DEMO · ";
+  const id = (type: string, n: string | number) =>
+    `cafe-demo-${bulk ? "v2" : "v1"}-${type}-${n}`;
+  const actor: SessionUser = {
+    id: id("actor", 1),
+    name: P + "data importer",
+    email: "demo-import@example.test",
+    role: "ADMIN",
+  };
+  const targetOrders = bulk ? 2000 : 600;
+  const prefix = bulk ? "DEMO2" : "DEMO";
+  const slug = bulk ? "demo-training-v2" : "demo-training";
+  const TEAM = bulk
+    ? Array.from({ length: 30 }, (_, i) => [
+        TEAM_BASE[i % TEAM_BASE.length][0] +
+          " " +
+          (Math.floor(i / TEAM_BASE.length) + 1),
+        TEAM_BASE[i % TEAM_BASE.length][1],
+        TEAM_BASE[i % TEAM_BASE.length][2],
+      ])
+    : TEAM_BASE;
+  const INGREDIENTS = bulk
+    ? [
+        ...INGREDIENTS_BASE,
+        ...Array.from(
+          { length: 16 },
+          (_, i) =>
+            ["Pantry sample " + (i + 1), "G", "10000", "1000", "100"] as const,
+        ),
+      ]
+    : INGREDIENTS_BASE;
   const dbInfo = (
     await prisma.$queryRaw<
       { name: string }[]
     >`SELECT current_database()::text AS name`
   )[0];
   assert.ok(
-    ["engineer_cafe", "cafe_business_test", "cafe_demo_seed_test"].includes(
-      dbInfo.name,
-    ),
+    [
+      "engineer_cafe",
+      "cafe_business_test",
+      "cafe_demo_seed_test",
+      "cafe_demo_cleanup_test",
+    ].includes(dbInfo.name),
     "Unexpected database; demo import stopped.",
   );
   const prior = await prisma.businessRequest.findUnique({
@@ -264,6 +306,11 @@ export async function seedBusinessDemo(apply = false) {
   return prisma.$transaction(
     async (raw) => {
       await businessLock(raw);
+      if (options) {
+        await raw.$queryRaw`SELECT set_config('cafe.demo_job',${options.jobId},true)`;
+        await raw.$queryRaw`SELECT set_config('cafe.demo_batch','business-demo-v2',true)`;
+        await options.before?.(raw);
+      }
       await ensureBusiness(raw);
       const existing = await raw.businessRequest.findUnique({
         where: { key: KEY },
@@ -339,8 +386,8 @@ export async function seedBusinessDemo(apply = false) {
         moneyBefore.set(a.id, await accountBalance(raw, a.id));
       for (const [model, where] of [
         ["ingredient", { name: { startsWith: P } }],
-        ["employee", { code: { startsWith: "DEMO-" } }],
-        ["category", { slug: "demo-training-menu" }],
+        ["employee", { code: { startsWith: prefix + "-" } }],
+        ["category", { slug: slug + "-menu" }],
       ] as const) {
         const delegate = raw[model] as unknown as {
           count: (args: { where: unknown }) => Promise<number>;
@@ -361,8 +408,15 @@ export async function seedBusinessDemo(apply = false) {
         ["DEMO_WALLET", "DEMO · Training wallet", "ASSET"],
         ["DEMO_RIDER", "DEMO · Rider cash", "ASSET"],
       ] as const) {
+        if (bulk && code === "DEMO_RIDER") continue;
         const account = await first.businessAccount.create({
-          data: { id: id("account", code), code, name, kind, isMoney: true },
+          data: {
+            id: id("account", code),
+            code: bulk ? code.replace("DEMO_", "DEMO2_") : code,
+            name: P + name.replace(/^DEMO · /, ""),
+            kind,
+            isMoney: true,
+          },
         });
         accounts[code] = account.id;
       }
@@ -404,8 +458,8 @@ export async function seedBusinessDemo(apply = false) {
           requestId: id("stock", name),
           ingredientId: item.id,
           kind: "OPENING",
-          quantity: qty,
-          value,
+          quantity: bulk ? decimal(quantity(qty) * 6n, 4) : qty,
+          value: bulk ? decimal(paise(value) * 6n) : value,
           note: P + "Synthetic opening stock; not a physical count",
           date: start,
         });
@@ -414,7 +468,7 @@ export async function seedBusinessDemo(apply = false) {
         data: {
           id: id("category", 1),
           name: P + "Training menu",
-          slug: "demo-training-menu",
+          slug: slug + "-menu",
           description:
             "Synthetic accounting examples; excluded from the public menu.",
           isActive: false,
@@ -422,7 +476,10 @@ export async function seedBusinessDemo(apply = false) {
         },
       });
       const catalogue = await first.product.findMany({
-        where: { categoryId: { not: category.id } },
+        where: {
+          categoryId: { not: category.id },
+          ...(bulk ? { category: { isActive: true } } : {}),
+        },
         orderBy: { sortOrder: "asc" },
         select: {
           name: true,
@@ -445,7 +502,7 @@ export async function seedBusinessDemo(apply = false) {
           data: {
             id: id("product", i),
             name: P + p.name,
-            slug: "demo-training-" + i,
+            slug: slug + "-" + i,
             description: "DEMO only · " + p.description,
             price: p.price,
             image: p.image,
@@ -468,7 +525,7 @@ export async function seedBusinessDemo(apply = false) {
         products.push(product);
       }
       const suppliers = [];
-      for (let i = 0; i < 7; i++)
+      for (let i = 0; i < (bulk ? 12 : 7); i++)
         suppliers.push(
           await first.businessParty.create({
             data: {
@@ -484,20 +541,21 @@ export async function seedBusinessDemo(apply = false) {
                   "Tea & Coffee Merchants",
                   "Packaging Depot",
                   "Dry Fruit House",
-                ][i],
-              email: `demo-supplier-${i}@example.test`,
+                ][i % 7] +
+                (bulk ? " " + (i + 1) : ""),
+              email: `${prefix.toLowerCase()}-supplier-${i}@example.test`,
               address: "DEMO supplier address",
             },
           }),
         );
       const customers = [];
-      for (let i = 0; i < 45; i++) {
+      for (let i = 0; i < (bulk ? 100 : 45); i++) {
         const name =
           P +
           NAMES[i % NAMES.length] +
           " " +
           (Math.floor(i / NAMES.length) + 1);
-        const email = `demo-customer-${i}@example.test`;
+        const email = `${prefix.toLowerCase()}-customer-${i}@example.test`;
         const user = await first.user.create({
           data: {
             id: id("customer-user", i),
@@ -528,14 +586,14 @@ export async function seedBusinessDemo(apply = false) {
             id: id("staff-party", i),
             kind: "EMPLOYEE",
             name: P + name,
-            email: `demo-staff-${i}@example.test`,
+            email: `${prefix.toLowerCase()}-staff-${i}@example.test`,
           },
         });
         employees.push(
           await first.employee.create({
             data: {
               id: id("staff", i),
-              code: "DEMO-" + String(i + 1).padStart(3, "0"),
+              code: prefix + "-" + String(i + 1).padStart(3, "0"),
               partyId: party.id,
               designation,
               payBasis: i === 11 ? "DAILY" : "MONTHLY",
@@ -587,7 +645,7 @@ export async function seedBusinessDemo(apply = false) {
           note: P + "Salary advance example",
         });
       const tables = [];
-      for (let t = 0; t < 8; t++)
+      for (let t = 0; t < (bulk ? 15 : 8); t++)
         tables.push(
           await first.cafeTable.create({
             data: {
@@ -603,11 +661,33 @@ export async function seedBusinessDemo(apply = false) {
                   "Family 1",
                   "Terrace 1",
                   "Takeaway desk",
-                ][t],
+                ][t % 8] +
+                (bulk ? " " + (t + 1) : ""),
               seats: t === 5 ? 6 : 4,
             },
           }),
         );
+      const riders = [];
+      if (bulk)
+        for (let n = 0; n < 25; n++) {
+          const party = await first.businessParty.create({
+            data: {
+              id: id("rider-party", n),
+              kind: "RIDER",
+              name: P + "Rider " + (n + 1),
+              email: `demo2-rider-${n}@example.test`,
+            },
+          });
+          riders.push(
+            await first.deliveryRider.create({
+              data: {
+                id: id("rider", n),
+                code: "DEMO2-R" + String(n + 1).padStart(3, "0"),
+                partyId: party.id,
+              },
+            }),
+          );
+        }
       let purchases = 0,
         returns = 0,
         expenses = 0,
@@ -645,7 +725,8 @@ export async function seedBusinessDemo(apply = false) {
             const invoice = await postPurchase(tx, actor, {
               requestId: id("purchase", purchases),
               supplierId: suppliers[(d + p) % suppliers.length].id,
-              invoiceNumber: "DEMO-INV-" + String(++purchases).padStart(3, "0"),
+              invoiceNumber:
+                prefix + "-INV-" + String(++purchases).padStart(3, "0"),
               date: day,
               note: P + "Training supplier delivery",
               lines: [
@@ -700,10 +781,10 @@ export async function seedBusinessDemo(apply = false) {
           });
           expenses++;
         }
-        const perDay = days === 30 ? 20 : Math.ceil(600 / days);
-        for (let j = 0; j < perDay && orders < 600; j++) {
+        const perDay = Math.ceil(targetOrders / days);
+        for (let j = 0; j < perDay && orders < targetOrders; j++) {
           const n = orders++;
-          const latest = now && j >= perDay - 12;
+          const latest = now && n >= targetOrders - 12;
           const state = latest
             ? (
                 [
@@ -722,7 +803,7 @@ export async function seedBusinessDemo(apply = false) {
             ? state !== "OUT_FOR_DELIVERY" && j % 2 === 0
             : n % 4 === 0;
           const delivery =
-            state === "OUT_FOR_DELIVERY" || (!dine && n % 3 === 0);
+            state === "OUT_FOR_DELIVERY" || (!dine && n % (bulk ? 2 : 3) === 0);
           const placed = stamp(day, 9 + (j % 12), (j * 7) % 60);
           const operation = dated(
             raw,
@@ -769,7 +850,7 @@ export async function seedBusinessDemo(apply = false) {
           let order = await operation.order.create({
             data: {
               id: id("order", n),
-              orderNumber: "DEMO" + String(1000 + n),
+              orderNumber: prefix + String(1000 + n),
               requestKey: id("order-request", n),
               userId: customers[n % customers.length].userId,
               customerName: customers[n % customers.length].name,
@@ -784,6 +865,11 @@ export async function seedBusinessDemo(apply = false) {
               channel: delivery ? "WEB" : "POS",
               status: "CONFIRMED",
               paymentMethod: delivery ? "CASH_ON_DELIVERY" : "CASH_AT_COUNTER",
+              riderId: delivery && bulk ? riders[n % riders.length].id : null,
+              riderAssignedAt: delivery && bulk ? placed : null,
+              addressLine: delivery
+                ? P + "Practice address " + ((n % 20) + 1)
+                : null,
               businessTracked: true,
               businessCredit: credit,
               businessPartyId: customers[n % customers.length].id,
@@ -865,6 +951,8 @@ export async function seedBusinessDemo(apply = false) {
               },
             });
             await invoiceOrder(operation, actor, order.id);
+            if (bulk && delivery)
+              await accrueDelivery(operation, actor, order.id);
             const amount =
               credit && n % 2 === 0
                 ? BigInt(total) * 50n
@@ -873,11 +961,17 @@ export async function seedBusinessDemo(apply = false) {
               orderId: order.id,
               amount,
               accountId:
-                n % 3 === 0
-                  ? accounts.DEMO_BANK
-                  : n % 3 === 1
-                    ? accounts.DEMO_CASH
-                    : accounts.DEMO_WALLET,
+                delivery && bulk
+                  ? (
+                      await operation.businessAccount.findUniqueOrThrow({
+                        where: { code: "RIDER_CASH" },
+                      })
+                    ).id
+                  : n % 3 === 0
+                    ? accounts.DEMO_BANK
+                    : n % 3 === 1
+                      ? accounts.DEMO_CASH
+                      : accounts.DEMO_WALLET,
               requestId: id("receipt", n),
               note:
                 P +
@@ -942,7 +1036,7 @@ export async function seedBusinessDemo(apply = false) {
               data: { closedAt: new Date(placed.getTime() + 35 * 60000) },
             });
           if (orders % 50 === 0)
-            console.log(`DEMO orders prepared: ${orders}/600`);
+            console.log(`DEMO orders prepared: ${orders}/${targetOrders}`);
         }
         if (!now) {
           const expected = await accountBalance(tx, accounts.DEMO_CASH);
@@ -1020,6 +1114,72 @@ export async function seedBusinessDemo(apply = false) {
               : "Recorded spoilage"),
           date: today,
         });
+      if (bulk) {
+        // Payouts remain confined to the synthetic bank. Rider cash remittances
+        // use the existing rider control account; each receipt is tied to a demo order.
+        for (let n = 0; n < riders.length; n++) {
+          const due = -(await accountBalance(
+            current,
+            "RIDERS_PAYABLE",
+            riders[n].partyId,
+          ));
+          if (due > 0n && n % 3 !== 0)
+            await deliveryAction(current, actor, {
+              action: "SETTLE",
+              requestId: id("rider-payout", n),
+              riderId: riders[n].id,
+              amount: decimal(n % 3 === 1 ? due / 2n : due),
+              accountId: accounts.DEMO_BANK,
+              note: P + "Training commission payout",
+            });
+        }
+        for (let n = 0; n < riders.length; n++)
+          if (n % 3 === 1) {
+            const held = await riderCash(current, riders[n].id);
+            if (held > 0n)
+              await deliveryAction(current, actor, {
+                action: "REMIT",
+                requestId: id("rider-remit", n),
+                riderId: riders[n].id,
+                amount: decimal(held / 2n),
+                accountId: accounts.DEMO_BANK,
+                note: P + "Rider cash collected into training bank",
+              });
+          }
+        // Cancel a few delivered samples to exercise immutable commission reversals.
+        const reversals = await current.order.findMany({
+          where: {
+            id: { startsWith: "cafe-demo-v2-order-" },
+            status: "DELIVERED",
+            riderId: { not: null },
+          },
+          take: 6,
+          orderBy: { id: "asc" },
+        });
+        for (const sample of reversals) {
+          await current.order.update({
+            where: { id: sample.id },
+            data: {
+              status: "CANCELLED",
+              cancelReason: P + "Commission reversal example",
+            },
+          });
+          await voidBusinessOrder(
+            current,
+            actor,
+            sample,
+            P + "Commission reversal example",
+          );
+          await reverseDelivery(
+            current,
+            actor,
+            sample.id,
+            P + "Commission reversal example",
+          );
+          served--;
+          cancelled++;
+        }
+      }
       // Demo loans/customer collections and owner movements use only demo money accounts.
       await payParty(current, actor, {
         requestId: id("repayment", 1),
@@ -1039,6 +1199,7 @@ export async function seedBusinessDemo(apply = false) {
         date: today,
         note: P + "Cash deposited into training bank",
       });
+      if (bulk) await seedDemoExtras(current, actor);
       const ids = protectedProducts.map((p) => p.id);
       assert.equal(
         digest(
@@ -1097,12 +1258,28 @@ export async function seedBusinessDemo(apply = false) {
         digest(realUsers),
         "Existing user accounts changed",
       );
-      for (const a of realMoney)
+      for (const a of realMoney) {
+        const account = await raw.businessAccount.findUniqueOrThrow({
+          where: { id: a.id },
+        });
+        const sampleControl = bulk && account.code === "RIDER_CASH";
+        const movement = sampleControl
+          ? await raw.businessPosting.aggregate({
+              where: { accountId: a.id, journal: { actorId: actor.id } },
+              _sum: { debit: true, credit: true },
+            })
+          : null;
+        const expected =
+          moneyBefore.get(a.id)! +
+          (movement
+            ? paise(movement._sum.debit ?? 0) - paise(movement._sum.credit ?? 0)
+            : 0n);
         assert.equal(
           await accountBalance(raw, a.id),
-          moneyBefore.get(a.id),
-          "Existing cash/bank accounts changed",
+          expected,
+          "Existing cash/bank account changed outside attributed demo rider cash",
         );
+      }
       const afterConfig = await raw.businessConfig.findUniqueOrThrow({
         where: { id: 1 },
       });
@@ -1149,7 +1326,7 @@ export async function seedBusinessDemo(apply = false) {
       );
       const result = {
         demo: true,
-        version: 1,
+        version: bulk ? 2 : 1,
         from: start,
         to: today,
         orders,
@@ -1167,11 +1344,12 @@ export async function seedBusinessDemo(apply = false) {
         returns,
         expenses,
         payrolls,
-        latestDemoOrder: "DEMO" + (999 + orders),
+        riders: riders.length,
+        latestDemoOrder: prefix + (999 + orders),
         integrationActive: config.enabled,
         publicDemoMenu: false,
         warning:
-          "Synthetic financial entries are included in reports. Posted ledgers cannot be hard-deleted. Original menu, users, orders and physical cash accounts were preserved.",
+          "Synthetic financial entries are included in reports. Use the owner Demo Data preview and verified-backup reset to remove registered synthetic entries. Original menu, users, orders and physical cash accounts were preserved.",
       };
       await audit(raw, actor, "IMPORT_DEMO_DATA", "DemoDataset", KEY, result);
       await raw.businessRequest.create({
@@ -1181,9 +1359,10 @@ export async function seedBusinessDemo(apply = false) {
         "PASS: demo ledger balanced; original records and settings preserved.",
       );
       console.log(JSON.stringify(result, null, 2));
+      await options?.complete?.(raw, result);
       return result;
     },
-    { timeout: 600000, maxWait: 10000 },
+    { timeout: 1800000, maxWait: 10000 },
   );
 }
 

@@ -631,6 +631,7 @@ model Ingredient {
   purchases PurchaseLine[]
 }
 model Recipe {
+  reviewRequired Boolean @default(false)
   id String @id @default(cuid())
   productId String? @unique
   product Product? @relation(fields:[productId],references:[id],onDelete:Restrict)
@@ -977,4 +978,38 @@ model DeliveryTransfer {
   note String
   createdAt DateTime @default(now())
   @@index([riderId,date])
+}
+
+// Private, owner-controlled demonstration jobs. Never contains credentials or row data.
+model DemoJob {
+  id String @id @default(cuid())
+  kind String
+  status String @default("QUEUED")
+  actorId String
+  actorName String
+  previewHash String?
+  backupPath String?
+  backupHash String?
+  result Json?
+  error String?
+  createdAt DateTime @default(now())
+  startedAt DateTime?
+  finishedAt DateTime?
+}
+model DemoControl {
+  id Int @id @default(1)
+  maintenanceJob String?
+}
+model DemoRecord {
+  tableName String
+  recordId String
+  batchId String
+  @@id([tableName,recordId])
+}
+model DemoDeletePermit {
+  jobId String
+  tableName String
+  recordId String
+  fingerprint String
+  @@id([jobId,tableName,recordId])
 }

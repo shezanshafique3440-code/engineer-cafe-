@@ -1,4 +1,5 @@
 import "server-only";
+import { assertDemoMoney } from "./demo-identity";
 import type { SessionUser } from "@/lib/types";
 import { canBusiness } from "@/lib/business-access";
 import { badRequest, forbidden } from "@/server/api";
@@ -217,6 +218,7 @@ export async function deliveryAction(tx: DB, actor: SessionUser, data: Action) {
   const amount = paise(data.amount);
   if (amount <= 0n) throw badRequest("Enter an amount greater than zero.");
   const { account, shiftId } = await moneyAccount(tx, actor, data.accountId);
+  await assertDemoMoney(tx,"DeliveryRider",rider.id,account);
   const cashHeld = await riderCash(tx, rider.id);
   if (data.action === "RECOVER") {
     if (!canBusiness(actor, "finance"))
