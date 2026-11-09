@@ -37,16 +37,28 @@ function backupDatabase(jobId) {
     PGDATABASE: db,
   };
   const docker = process.env.CAFE_DEMO_BACKUP_DRIVER !== "local";
-  const restore = () =>
-    docker
-      ? run(
-          "docker",
-          ["exec", "-i", "infra-postgres-1", "pg_restore", "--list"],
-          { input: fs.readFileSync(file) },
-        )
-      : run(process.env.CAFE_PG_RESTORE || "pg_restore", ["--list", file], {
-          env,
-        });
+  const restore = () => {
+    if (!docker)
+      return run(
+        process.env.CAFE_PG_RESTORE || "pg_restore",
+        ["--list", file],
+        { env },
+      );
+    // pg_restore --list exits after the TOC, before consuming a whole archive.
+    // Passing a Buffer as spawnSync.input can therefore report EPIPE even when
+    // the child exits successfully. Give Docker a file descriptor instead of
+    // having Node write the entire archive through a pipe.
+    const input = fs.openSync(file, "r");
+    try {
+      return run(
+        "docker",
+        ["exec", "-i", "infra-postgres-1", "pg_restore", "--list"],
+        { stdio: [input, "pipe", "pipe"] },
+      );
+    } finally {
+      fs.closeSync(input);
+    }
+  };
   if (fs.existsSync(file)) {
     restore();
     return {

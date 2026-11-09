@@ -44,7 +44,7 @@ rollback() {
  code=$?
  if [ "$code" -eq 0 ]; then return; fi
  trap - EXIT
- echo 'Deployment failed. Restoring the previous code/build; the database backup is retained for review.'
+ echo 'Deployment failed. Restoring the previous code/build; the private release snapshot is retained for review.'
  pm2 stop engineer-cafe >/dev/null 2>&1 || true
  pm2 stop engineer-cafe-demo-worker >/dev/null 2>&1 || true
  git switch --detach "$OLD" || true
