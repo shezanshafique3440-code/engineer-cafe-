@@ -20,7 +20,7 @@ Commission journals, payouts and cash transfers use the existing balanced ledger
 ## Prepare each cashier device
 
 1. Activate accounting through the existing readiness checks and open the cashier's own cash shift.
-2. Open **Counter POS** and click **Prepare / sync this device**. It saves the public menu/add-ons/prices/settings, available open table references, cashier identity and original shift/account in IndexedDB.
+2. Open **Counter POS** and click **Prepare / sync this device**. Keep the internet connected until **Offline counter ready** appears. The label now waits for the offline files to finish installing; it does not mean ready while the service worker is still downloading. It saves the public menu/add-ons/prices/settings, available open table references, cashier identity and original shift/account in IndexedDB.
 3. Use **Open offline counter** (`/offline-pos.html`). The app's service worker can open this document even after an offline reload of `/admin/pos`.
 
 No session token/password, authenticated HTML or private API response is stored in the service-worker cache. The prepared snapshot contains no order history or other customers. Bills are scoped to the original cashier. Changing the signed-in cashier prepares their own counter without deleting the first cashier's bills. Logout clears preparation and notifies other open counter tabs; queued bills remain recoverable by the original cashier.
@@ -59,3 +59,13 @@ Local isolated validation passed 447 HTTP/accounting assertions (330 existing an
 Run `scripts/tests/delivery-offline-integration.cjs` after the existing business/operations fixtures and suites; `scripts/tests/delivery-offline-browser.cjs` follows it, using the existing documented external pg/Playwright test tooling settings. The new service-worker/public scripts also receive syntax checks. Production dependency versions are unchanged.
 
 Deploy the pinned reviewed commit with its `scripts/deploy-reference-storefront.sh` backup-first wrapper. A build/deploy failure before delivery activity can restore the prior code/build, retaining all data and additive tables. Once commissions or active assigned deliveries exist, rollback to a pre-delivery release is blocked before stopping services: that code cannot maintain these new financial side effects. Use a compatible forward fix instead; database dumps are never automatically imported over current business data.
+
+## Offline startup repair
+
+A slow first service-worker installation could previously show “ready” before any offline fallback existed. Turning off the network then produced a failed/blank navigation. The standalone document also depended on preparation from another page, and missing shift/login instructions were easy to miss.
+
+The shared public bootstrap now waits for offline-cache activation before readiness and initializes a direct visit to `/offline-pos.html`. Failed installation stays visibly unready. The standalone page shows login/own-shift steps instead of an unexplained empty bill area. Version 5 replaces public shell caches only; the IndexedDB database name/version, cashier ownership, saved payloads and request UUIDs remain unchanged. No browser-data clearing is needed.
+
+Repair validation: 447 existing HTTP/accounting assertions, 24 existing offline/rider browser assertions and 21 new Chromium cold-start/cache-upgrade assertions passed. The new tests delay asset download, fail cache installation, prepare a first-time direct visit, check no-shift/login states, reload offline and carry a pending version-4 bill through the version-5 upgrade. Production build, TypeScript and JavaScript/shell syntax checks passed. Live application still requires the pinned VPS deployment and verification on the client's actual browser/printer; no live customer bill was fabricated by these tests.
+
+Run the cold-start suite with `node --env-file=.env scripts/tests/offline-startup-browser.cjs`. Set `CAFE_STARTUP_TEST_URL` to the local production test server and `CAFE_STARTUP_TEST_OWNER_ID` to its existing ADMIN fixture ID (default: `demo-qa-owner` from the isolated demo suite). It requires an explicit local disposable test database and test `AUTH_SECRET`; the requests are proxied through local fixtures and never submitted to the live site.

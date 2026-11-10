@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-offline-counter="true">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -59,8 +59,7 @@
         line-height: 1.25;
       }
     </style>
-    <script src="/offline-pos-store.js" defer></script>
-    <script src="/offline-pos.js" defer></script>
+    <script src="/offline-pos-bootstrap.js" defer></script>
   </head>
   <body>
     <h1>Offline counter</h1>
@@ -79,7 +78,30 @@
       "
     ></p>
     <p>1. Choose items → 2. Receive cash → 3. Save bill</p>
-    <p id="message" role="status"></p>
+    <p id="offline-shell-status" role="status">
+      Loading offline files. Keep the internet connected for first setup.
+    </p>
+    <p id="message" role="status">Opening your saved counter…</p>
+    <noscript
+      >This counter needs JavaScript enabled. Open it in Chrome, Edge or Safari
+      with JavaScript enabled.</noscript
+    >
+    <section id="setup" hidden>
+      <h2>Prepare this counter</h2>
+      <p id="setup-reason">
+        Sign in, open your own cash shift, then refresh this counter.
+      </p>
+      <p>
+        <a href="/admin/login?next=%2Fadmin%2Fpos">Sign in</a> ·
+        <a href="/admin/business?section=cash">Open cash shift</a> ·
+        <a href="/admin/pos">Counter POS</a>
+      </p>
+      <p>
+        Once the device is ready, products and the cash-bill form will appear
+        below. An open DEMO import shift does not count as a shift under your
+        login.
+      </p>
+    </section>
     <p id="prepared"></p>
     <button id="refresh">Refresh prepared menu & shift</button
     ><a href="/admin/pos">Online POS</a>

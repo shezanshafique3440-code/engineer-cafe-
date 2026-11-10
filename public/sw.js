@@ -1,9 +1,10 @@
 /* Cache public offline documents/scripts only; never authenticated HTML or APIs. */
 importScripts("/offline-pos-store.js");
-const CACHE = "cafe-shell-v4-english-counter";
+const CACHE = "cafe-shell-v5-offline-ready";
 const SHELL = [
   "/offline.html",
   "/offline-pos.html",
+  "/offline-pos-bootstrap.js",
   "/offline-pos-store.js",
   "/offline-pos.js",
 ];

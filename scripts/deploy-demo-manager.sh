@@ -15,8 +15,9 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
  echo 'Tracked changes found. Preserve/review them before deploying.'; exit 1
 fi
 OLD=$(git rev-parse HEAD)
-if [ "$OLD" != "$BASE" ] && [ "$OLD" != "$TARGET" ]; then
- echo 'This installer expects the audited live baseline or the same demo release. Inspect the current commit first.'; exit 1
+PREVIOUS_DEMO=587af3ca3aafc9938c2372f6a2c47c2b20e58823
+if [ "$OLD" != "$BASE" ] && [ "$OLD" != "$PREVIOUS_DEMO" ] && [ "$OLD" != "$TARGET" ]; then
+ echo 'This installer expects the audited baseline, previous demo release, or the same target. Inspect the current commit first.'; exit 1
 fi
 if ! git diff --quiet "$BASE" "$TARGET" -- package.json package-lock.json src/lib/business-access.ts; then
  echo 'Unexpected dependencies or staff-role changes in this release. Stopping.'; exit 1
@@ -89,6 +90,15 @@ done
 status=$(curl --silent --show-error --max-time 20 -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/api/admin/demo-data)
 [ "$status" = 401 ]
 curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 https://esellerstore.vip/api/settings -o /dev/null
+# Verify every offline shell asset through both Next and public HTTPS before
+# starting the workers. A 200 HTML fallback for a JavaScript file is not success.
+for asset in offline.html offline-pos.html offline-pos-bootstrap.js offline-pos-store.js offline-pos.js sw.js; do
+ curl --fail --silent --show-error --max-time 30 "http://127.0.0.1:3100/$asset" -o "$SNAPSHOT/app-$asset"
+ cmp "$APP/public/$asset" "$SNAPSHOT/app-$asset"
+ curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 "https://esellerstore.vip/$asset" -o "$SNAPSHOT/domain-$asset"
+ cmp "$APP/public/$asset" "$SNAPSHOT/domain-$asset"
+done
+echo 'PASS: offline page, bootstrap, scripts and service worker match through app and HTTPS.'
 if [ "$NOTIFY_WAS_ONLINE" = 1 ]; then pm2 restart engineer-cafe-notifications --update-env >/dev/null; fi
 if pm2 describe engineer-cafe-demo-worker >/dev/null 2>&1; then
  pm2 restart engineer-cafe-demo-worker --update-env >/dev/null

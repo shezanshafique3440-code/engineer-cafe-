@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGet } from "@/lib/api-client";
 import {
   counterStore,
+  prepareCounterShell,
   type CounterSnapshot,
   type CounterBill,
 } from "@/lib/offline-counter";
@@ -12,6 +13,7 @@ export function OfflineCounterPanel() {
   const { user } = useSession();
   const ownerId = user?.id;
   const [busy, setBusy] = useState(false);
+  const [shellReady, setShellReady] = useState(false);
   const [snapshot, setSnapshot] = useState<CounterSnapshot | null>(null),
     [bills, setBills] = useState<CounterBill[]>([]),
     [message, setMessage] = useState("");
@@ -21,16 +23,19 @@ export function OfflineCounterPanel() {
     try {
       const store = await counterStore();
       const cached = await store.snapshot();
-      if (cached?.user.id === ownerId) setSnapshot(cached);
+      setSnapshot(cached?.user.id === ownerId ? cached : null);
       setBills(await store.list(ownerId));
       if (!navigator.onLine) {
+        setShellReady(Boolean(navigator.serviceWorker?.controller));
         setMessage(
           "You are offline. Use the prepared offline counter to create cash bills.",
         );
         return;
       }
-      if ("serviceWorker" in navigator)
-        await navigator.serviceWorker.register("/sw.js");
+      setShellReady(false);
+      setMessage("Preparing offline files. Keep the internet connected…");
+      await prepareCounterShell();
+      setShellReady(true);
       const data = await apiGet<CounterSnapshot>("/api/admin/offline-pos");
       await store.snapshot(data);
       setSnapshot(data);
@@ -42,6 +47,7 @@ export function OfflineCounterPanel() {
           : "Open your own cash shift, then prepare this device again.",
       );
     } catch (e) {
+      setShellReady(false);
       setMessage(
         e instanceof Error ? e.message : "Offline counter is unavailable.",
       );
@@ -81,7 +87,10 @@ export function OfflineCounterPanel() {
     <section className="surface my-3 space-y-2 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-bold">
-          {snapshot?.shift
+          {snapshot?.shift &&
+          snapshot.user.id === ownerId &&
+          shellReady &&
+          !busy
             ? "✓ Offline counter ready"
             : "Offline counter preparation"}
         </h2>
@@ -92,11 +101,21 @@ export function OfflineCounterPanel() {
           Open offline counter
         </a>
       </div>
+      <p className="text-sm text-charcoal-600" role="status">
+        {message}
+      </p>
+      {!snapshot?.shift && !busy && (
+        <a
+          className="inline-flex min-h-11 items-center font-semibold text-chai-700 underline"
+          href="/admin/business?section=cash"
+        >
+          Open your own cash shift
+        </a>
+      )}
       <details>
         <summary className="cursor-pointer text-xs font-semibold">
           Device status / Sync / Help
         </summary>
-        <p className="text-sm text-charcoal-600">{message}</p>
         {snapshot?.shift && (
           <p className="text-xs text-charcoal-500">
             Prepared for {snapshot.user.name} · {snapshot.shift.drawer.name}

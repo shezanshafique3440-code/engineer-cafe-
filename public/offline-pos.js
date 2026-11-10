@@ -47,6 +47,13 @@
   }
   function showPrepared() {
     prepared = Boolean(snapshot?.user && snapshot.shift);
+    const setup = document.getElementById("setup");
+    if (setup) setup.hidden = prepared;
+    const reason = document.getElementById("setup-reason");
+    if (reason)
+      reason.textContent = snapshot?.user
+        ? "No cash shift is open under this login. Open your own cash shift, then click Refresh prepared menu & shift."
+        : "Sign in to Counter POS and open your own cash shift, then return here.";
     editor.hidden = !prepared;
     document.getElementById("prepared").textContent = snapshot?.user
       ? `${snapshot.user.name} · ${snapshot.shift?.drawer.name || "No open shift"} · cached ${new Date(snapshot.savedAt).toLocaleString()}`
@@ -303,7 +310,10 @@
     }
   }
   async function sync() {
-    if (!snapshot?.user) return;
+    if (!snapshot?.user) {
+      tell("Sign in and prepare this device before synchronizing bills.");
+      return;
+    }
     tell("Synchronizing saved bills…");
     try {
       const result = await store.sync(snapshot.user.id);
@@ -419,15 +429,23 @@
   document.getElementById("sync").onclick = sync;
   document.getElementById("refresh").onclick = async () => {
     try {
+      await window.CafeOfflineBootstrap?.prepareShell();
       await refresh();
       reset();
-      tell("Prepared menu and shift updated.");
+      tell(
+        prepared
+          ? "Counter ready. Choose products and save your cash bill below."
+          : "Open your own cash shift, then refresh this counter again.",
+      );
     } catch (e) {
       tell(e.message);
     }
   };
   document.getElementById("export").onclick = async () => {
-    if (!snapshot?.user) return;
+    if (!snapshot?.user) {
+      tell("Sign in as the original cashier to export their saved bills.");
+      return;
+    }
     const a = make("a");
     a.href = URL.createObjectURL(
       new Blob([JSON.stringify(await store.list(snapshot.user.id), null, 2)], {
@@ -465,10 +483,17 @@
     try {
       await refresh();
       reset();
-      await sync();
+      if (prepared) await sync();
+      else tell("Open your own cash shift, then refresh this counter again.");
     } catch (e) {
       if (e.status !== 401 && e.status !== 403) showPrepared();
       tell(e.message);
     }
+  } else {
+    tell(
+      prepared
+        ? "Counter ready offline. Save cash bills here; they will synchronize when the internet returns."
+        : "Connect to the internet, sign in and open your own cash shift to prepare this device.",
+    );
   }
 })();

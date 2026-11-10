@@ -22,6 +22,7 @@ export type CounterStore = {
 declare global {
   interface Window {
     CafeOfflinePOS?: CounterStore;
+    CafeOfflineBootstrap?: { prepareShell: () => Promise<void> };
   }
 }
 let loading: Promise<CounterStore> | undefined;
@@ -42,4 +43,31 @@ export function counterStore(): Promise<CounterStore> {
       document.head.appendChild(script);
     });
   return loading;
+}
+
+let bootstrap: Promise<void> | undefined;
+/** Wait for the public shell cache to finish installing before declaring ready. */
+export async function prepareCounterShell(): Promise<void> {
+  if (!window.CafeOfflineBootstrap) {
+    if (!bootstrap)
+      bootstrap = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "/offline-pos-bootstrap.js";
+        script.onload = () =>
+          window.CafeOfflineBootstrap
+            ? resolve()
+            : reject(new Error("Offline preparation could not initialize."));
+        script.onerror = () => {
+          bootstrap = undefined;
+          reject(
+            new Error(
+              "Offline files could not load. Stay online and try again.",
+            ),
+          );
+        };
+        document.head.appendChild(script);
+      });
+    await bootstrap;
+  }
+  await window.CafeOfflineBootstrap!.prepareShell();
 }
