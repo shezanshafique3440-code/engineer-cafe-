@@ -2,7 +2,7 @@
   const connection = document.getElementById("connection");
   const showConnection = () => {
     connection.textContent = navigator.onLine
-      ? "Online — saved bills sync automatically. Check each bill status below."
+      ? "Cash counter — every bill saves on this device first. Check each sync status below."
       : "Offline — bills are saved on this device and synchronized on reconnect.";
   };
   showConnection();
@@ -17,7 +17,14 @@
   };
   let snapshot,
     prepared = false,
-    editing = null;
+    editing = null,
+    draftTouched = false;
+  form.addEventListener("input", () => {
+    draftTouched = true;
+  });
+  form.addEventListener("change", () => {
+    draftTouched = true;
+  });
   const make = (tag, text) => {
     const e = document.createElement(tag);
     if (text) e.textContent = text;
@@ -325,7 +332,7 @@
             : "Saved bills are synchronized.",
       );
     } catch (e) {
-      if (/original cashier|server\/session|POS access/i.test(e.message)) {
+      if (e.authRequired || /original cashier|POS access/i.test(e.message)) {
         prepared = false;
         editor.hidden = true;
       }
@@ -334,8 +341,22 @@
     await list();
   }
   async function refresh() {
-    const r = await fetch("/api/admin/offline-pos", { cache: "no-store" });
-    const data = await r.json();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    let r, data;
+    try {
+      r = await fetch("/api/admin/offline-pos", {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      data = await r.json();
+    } catch {
+      throw Error(
+        "Internet is unavailable. Keep using the saved cash counter; pending bills will retry when connected.",
+      );
+    } finally {
+      clearTimeout(timer);
+    }
     if (!r.ok) {
       const error = Error(data.error || "Cannot prepare this counter.");
       error.status = r.status;
@@ -354,6 +375,7 @@
     await list();
   }
   function reset() {
+    draftTouched = false;
     editing = null;
     form.reset();
     form.elements.customerName.value = "Counter guest";
@@ -431,11 +453,14 @@
     try {
       await window.CafeOfflineBootstrap?.prepareShell();
       await refresh();
-      reset();
+      if (!draftTouched) reset();
+      else total();
       tell(
-        prepared
-          ? "Counter ready. Choose products and save your cash bill below."
-          : "Open your own cash shift, then refresh this counter again.",
+        draftTouched
+          ? "Menu updated. Review your current bill total before saving."
+          : prepared
+            ? "Counter ready. Choose products and save your cash bill below."
+            : "Open your own cash shift, then refresh this counter again.",
       );
     } catch (e) {
       tell(e.message);
@@ -456,6 +481,14 @@
     a.click();
     URL.revokeObjectURL(a.href);
   };
+  // WAN can fail/recover while Wi-Fi stays connected and navigator.onLine
+  // never changes. Retry pending bills without relying on a focus/online event.
+  const retryPending = async () => {
+    if (document.hidden || !navigator.onLine || !snapshot?.user) return;
+    if ((await store.list(snapshot.user.id)).some((b) => b.state === "pending"))
+      await sync();
+  };
+  setInterval(() => void retryPending().catch((e) => tell(e.message)), 15000);
   window.addEventListener("online", () => void sync());
   window.addEventListener("focus", () => {
     if (navigator.onLine) void sync();
@@ -479,12 +512,18 @@
   reset();
   await list();
   if (navigator.onLine) {
-    editor.hidden = true;
+    // Keep a prepared form usable during a router/WAN outage. A real login or
+    // permission rejection below still closes it; sync independently verifies
+    // the original cashier before sending any locally saved bill.
     try {
       await refresh();
-      reset();
-      if (prepared) await sync();
-      else tell("Open your own cash shift, then refresh this counter again.");
+      if (!draftTouched) reset();
+      else total();
+      if (prepared) {
+        await sync();
+        if (draftTouched)
+          tell("Menu updated. Review your current bill total before saving.");
+      } else tell("Open your own cash shift, then refresh this counter again.");
     } catch (e) {
       if (e.status !== 401 && e.status !== 403) showPrepared();
       tell(e.message);

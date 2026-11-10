@@ -1,8 +1,9 @@
 /* Cache public offline documents/scripts only; never authenticated HTML or APIs. */
 importScripts("/offline-pos-store.js");
-const CACHE = "cafe-shell-v5-offline-ready";
+const CACHE = "cafe-shell-v7-offline-first";
 const SHELL = [
   "/offline.html",
+  "/offline-home.js",
   "/offline-pos.html",
   "/offline-pos-bootstrap.js",
   "/offline-pos-store.js",
@@ -32,13 +33,36 @@ self.addEventListener("activate", (event) => {
     ]),
   );
 });
+// Wi-Fi may stay connected while the upstream internet stalls. Do not leave
+// counter navigation waiting for the browser's long network timeout.
+async function navigation(request) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3000);
+  try {
+    return await fetch(request, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== "GET" || url.origin !== self.location.origin)
     return;
-  if (event.request.mode === "navigate")
+  if (
+    event.request.mode === "navigate" &&
+    (url.pathname === "/offline-pos.html" ||
+      (url.pathname === "/admin/pos" && url.searchParams.get("online") !== "1"))
+  ) {
+    // This is the public cash-counter document, not cached authenticated HTML.
+    // Cached cashier data and every server write keep their existing guards.
     event.respondWith(
-      fetch(event.request).catch(() =>
+      caches
+        .match("/offline-pos.html")
+        .then((cached) => cached || navigation(event.request)),
+    );
+  } else if (event.request.mode === "navigate")
+    event.respondWith(
+      navigation(event.request).catch(() =>
         caches.match(
           url.pathname === "/admin/pos" || url.pathname === "/offline-pos.html"
             ? "/offline-pos.html"

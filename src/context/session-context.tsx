@@ -6,10 +6,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { apiGet, apiPost, apiDelete } from "@/lib/api-client";
+import { apiGet, apiPost, apiDelete, ApiError } from "@/lib/api-client";
 import type { SessionUser } from "@/lib/types";
 
 type SessionValue = {
@@ -30,22 +31,42 @@ export function SessionProvider({
   children: ReactNode;
   initialUser?: SessionUser | null;
 }) {
-  const [user, setUser] = useState<SessionUser | null>(initialUser);
+  const [user, setUserState] = useState<SessionUser | null>(initialUser);
   const [loading, setLoading] = useState(false);
+  const knownUser = useRef(initialUser);
+  const revision = useRef(0);
+  const setUser = useCallback((value: SessionUser | null) => {
+    revision.current++;
+    knownUser.current = value;
+    setUserState(value);
+    setLoading(false);
+  }, []);
 
   const refresh = useCallback(async () => {
+    // A connection failure is not an authentication rejection. Keep the last
+    // known identity for local bills; every server API still revalidates access.
+    if (!navigator.onLine) return knownUser.current;
+    const request = ++revision.current;
     setLoading(true);
     try {
       const data = await apiGet<{ user: SessionUser | null }>("/api/auth/me");
+      if (request !== revision.current) return knownUser.current;
       setUser(data.user);
       return data.user;
-    } catch {
-      setUser(null);
-      return null;
+    } catch (error) {
+      if (request !== revision.current) return knownUser.current;
+      if (
+        error instanceof ApiError &&
+        (error.status === 401 || error.status === 403)
+      ) {
+        setUser(null);
+        return null;
+      }
+      return knownUser.current;
     } finally {
-      setLoading(false);
+      if (request === revision.current) setLoading(false);
     }
-  }, []);
+  }, [setUser]);
 
   const logout = useCallback(async () => {
     if ("serviceWorker" in navigator) {
@@ -66,7 +87,7 @@ export function SessionProvider({
       .then((store) => store.clearSnapshot())
       .catch(() => undefined);
     setUser(null);
-  }, []);
+  }, [setUser]);
 
   // Re-sync when the tab regains focus so a session that expired elsewhere
   // doesn't leave a stale "logged in" navbar.
@@ -87,7 +108,7 @@ export function SessionProvider({
       setUser,
       logout,
     }),
-    [user, loading, refresh, logout],
+    [user, loading, refresh, setUser, logout],
   );
 
   return (

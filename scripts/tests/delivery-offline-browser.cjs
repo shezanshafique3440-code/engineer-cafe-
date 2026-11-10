@@ -70,7 +70,7 @@ async function poll(fn, message) {
     await context.setOffline(true);
     await page.goto(base + "/admin/pos", { waitUntil: "domcontentloaded" });
     await page
-      .getByRole("heading", { name: "Offline counter", exact: true })
+      .getByRole("heading", { name: "Cash counter", exact: true })
       .waitFor();
     await page
       .locator("select[name=product]")

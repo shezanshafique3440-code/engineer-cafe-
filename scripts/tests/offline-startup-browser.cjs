@@ -73,14 +73,51 @@ const json = (res, data, status = 200) => {
   });
   res.end(JSON.stringify(data));
 };
+const accepted = new Set();
 const proxy = http.createServer((req, res) => {
+  // Chrome can start a new service-worker target after CDP offline emulation
+  // is applied. Also block the origin itself so a restart cannot accidentally
+  // fetch a live homepage and turn this into a false offline test.
+  if (mode === "physical-offline") return;
   const route = new URL(req.url, "http://fixture").pathname;
-  if (route === "/api/auth/me")
+  if (route === "/api/auth/me") {
+    if (mode === "wan-stalled") return;
+    if (mode === "wan-down" || mode === "session-unavailable") {
+      res.writeHead(503, { "Content-Type": "text/html" });
+      res.end("Temporary network gateway failure");
+      return;
+    }
     return json(res, { user: mode === "signed-out" ? null : owner });
+  }
   if (route === "/api/admin/offline-pos") {
     if (req.method === "HEAD") {
       res.writeHead(200, { "X-Cafe-Offline-Protocol": "1" });
       res.end();
+      return;
+    }
+    if (
+      req.method === "POST" &&
+      (mode === "sync-ready" || mode === "drop-post")
+    ) {
+      let body = "";
+      req.on("data", (chunk) => (body += chunk));
+      req.on("end", () => {
+        const payload = JSON.parse(body);
+        accepted.add(payload.requestId);
+        if (mode === "drop-post") return; // committed fixture response is lost
+        json(
+          res,
+          {
+            order: {
+              id: "official-" + payload.requestId,
+              orderNumber: "EC-TEST-1",
+              paymentStatus: "PAID",
+              total: payload.expectedTotal,
+            },
+          },
+          201,
+        );
+      });
       return;
     }
     if (req.method === "POST")
@@ -95,6 +132,11 @@ const proxy = http.createServer((req, res) => {
         { error: "Please sign in to prepare this counter." },
         401,
       );
+    if (mode === "wan-stalled") return;
+    if (mode === "slow-prepare") {
+      setTimeout(() => json(res, fixture), 2000);
+      return;
+    }
     return json(res, {
       ...fixture,
       shift: mode === "no-shift" ? null : fixture.shift,
@@ -154,7 +196,7 @@ const eq = (a, b, message) => {
   checks++;
 };
 async function poll(fn, message) {
-  for (let n = 0; n < 100; n++) {
+  for (let n = 0; n < 350; n++) {
     if (await fn()) return;
     await new Promise((r) => setTimeout(r, 100));
   }
@@ -187,7 +229,7 @@ async function poll(fn, message) {
       page = await c.newPage(),
       errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto(origin + "/admin/pos");
+    await page.goto(origin + "/admin/pos?online=1");
     await poll(
       () => delayed.length > 0,
       "Offline cache did not request its assets",
@@ -283,7 +325,7 @@ async function poll(fn, message) {
       .click();
     await p.locator("#editor").waitFor({ state: "visible" });
     checks++;
-    await p.goto(origin + "/admin/pos");
+    await p.goto(origin + "/admin/pos?online=1");
     await p.getByRole("heading", { name: "✓ Offline counter ready" }).waitFor();
     mode = "expired-pos";
     await p.getByText("Device status / Sync / Help", { exact: true }).click();
@@ -306,7 +348,7 @@ async function poll(fn, message) {
     mode = "failed-cache";
     const failed = await context(),
       f = await failed.newPage();
-    await f.goto(origin + "/admin/pos");
+    await f.goto(origin + "/admin/pos?online=1");
     await f
       .getByRole("status")
       .filter({ hasText: /Offline files could not be installed/ })
@@ -348,7 +390,7 @@ async function poll(fn, message) {
       { owner: owner.id, id: originalId },
     );
     mode = "ready";
-    await l.goto(origin + "/admin/pos");
+    await l.goto(origin + "/admin/pos?online=1");
     await l.getByRole("heading", { name: "✓ Offline counter ready" }).waitFor();
     const bill = await l.evaluate(
       async ({ owner, id }) =>
@@ -366,11 +408,280 @@ async function poll(fn, message) {
       false,
     );
     await legacy.setOffline(true);
-    await l.goto(origin + "/admin/pos");
+    await l.goto(origin + "/admin/pos?online=1");
     await l.locator("#editor").waitFor({ state: "visible" });
     await l.getByText(originalId, { exact: false }).first().waitFor();
     checks++;
     await legacy.close();
+    // The ordinary cash-counter entry point itself must work without a mode
+    // switch, including a complete browser restart and a stalled upstream WAN.
+    mode = "ready";
+    const os = require("node:os");
+    const profile = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cafe-offline-reopen-"),
+    );
+    let persistent;
+    try {
+      persistent = await chromium.launchPersistentContext(profile, {
+        headless: true,
+        executablePath: process.env.CAFE_TEST_CHROMIUM || undefined,
+        args: ["--no-sandbox"],
+        viewport: { width: 390, height: 844 },
+      });
+      await persistent.addCookies([
+        {
+          name: "ec_session",
+          value: token,
+          url: origin,
+          expires: Math.floor(Date.now() / 1000) + 3600,
+        },
+      ]);
+      let cash = await persistent.newPage();
+      await cash.goto(origin + "/admin/pos");
+      await cash
+        .getByRole("heading", { name: "Cash counter", exact: true })
+        .waitFor();
+      await cash.locator("#editor").waitFor({ state: "visible" });
+      eq(
+        new URL(cash.url()).pathname,
+        "/offline-pos.html",
+        "Normal cash POS opens the durable counter",
+      );
+      mode = "slow-prepare";
+      await cash.reload();
+      await cash.locator("#editor").waitFor({ state: "visible" });
+      await cash.locator("select[name=product]").selectOption("test-chai");
+      await cash.locator("input[name=customerName]").fill("Keep this draft");
+      await cash.locator("input[name=cashReceived]").fill("100");
+      await cash
+        .locator("#message")
+        .filter({ hasText: "Review your current bill" })
+        .waitFor();
+      eq(
+        await cash.locator("input[name=customerName]").inputValue(),
+        "Keep this draft",
+        "A late menu refresh must not erase the bill being entered",
+      );
+      eq(await cash.locator("select[name=product]").inputValue(), "test-chai");
+      eq(await cash.locator("input[name=cashReceived]").inputValue(), "100");
+      mode = "physical-offline";
+      await persistent.setOffline(true);
+      await cash.locator("select[name=product]").selectOption("test-chai");
+      await cash.locator("input[name=cashReceived]").fill("100");
+      await cash
+        .getByRole("button", { name: "Save provisional bill", exact: true })
+        .click();
+      let saved;
+      await poll(async () => {
+        saved = await cash.evaluate(
+          async (user) => (await CafeOfflinePOS.list(user))[0],
+          owner.id,
+        );
+        return Boolean(saved);
+      }, "Cash sale did not save without internet");
+      eq(saved.state, "pending");
+      const savedId = saved.id;
+      await persistent.close();
+      persistent = null;
+      persistent = await chromium.launchPersistentContext(profile, {
+        headless: true,
+        executablePath: process.env.CAFE_TEST_CHROMIUM || undefined,
+        args: ["--no-sandbox"],
+        offline: true,
+        viewport: { width: 390, height: 844 },
+      });
+      cash = await persistent.newPage();
+      const restartErrors = [];
+      cash.on("pageerror", (e) => restartErrors.push(e.message));
+      await cash.goto(origin + "/");
+      try {
+        await cash
+          .getByRole("heading", { name: "Cash counter", exact: true })
+          .waitFor({ timeout: 10000 });
+      } catch (error) {
+        console.error(
+          "REOPEN_DIAGNOSTIC",
+          JSON.stringify({
+            url: cash.url(),
+            errors: restartErrors,
+            details: await cash.evaluate(async () => ({
+              text: document.body.innerText.slice(0, 1600),
+              store: Boolean(window.CafeOfflinePOS),
+              snapshot: await window.CafeOfflinePOS?.snapshot(),
+              controller: Boolean(navigator.serviceWorker.controller),
+              caches: await caches.keys(),
+            })),
+          }),
+        );
+        throw error;
+      }
+      await cash.locator("#editor").waitFor({ state: "visible" });
+      eq(
+        (
+          await cash.evaluate(
+            async (user) => (await CafeOfflinePOS.list(user))[0],
+            owner.id,
+          )
+        ).id,
+        savedId,
+        "Offline app restart retains the pending cash order",
+      );
+      mode = "wan-down";
+      await persistent.setOffline(false);
+      await cash
+        .getByRole("button", { name: "Synchronize now", exact: true })
+        .click();
+      await cash
+        .locator("#message")
+        .filter({ hasText: "temporarily unavailable" })
+        .waitFor();
+      eq(
+        await cash.locator("#editor").isVisible(),
+        true,
+        "A server outage must not close the counter",
+      );
+      mode = "wan-stalled";
+      const started = Date.now();
+      await cash.reload({ waitUntil: "domcontentloaded" });
+      await cash.locator("#editor").waitFor({ state: "visible" });
+      eq(
+        await cash.evaluate(() => navigator.onLine),
+        true,
+        "Wi-Fi can remain online during a WAN failure",
+      );
+      assert.ok(
+        Date.now() - started < 3000,
+        "Warm cash counter should open from cache without a stalled navigation",
+      );
+      checks++;
+      await cash.locator("select[name=product]").selectOption("test-chai");
+      await cash.locator("input[name=cashReceived]").fill("100");
+      await cash
+        .getByRole("button", { name: "Save provisional bill", exact: true })
+        .click();
+      await poll(
+        async () =>
+          (await cash.evaluate(
+            async (user) => (await CafeOfflinePOS.list(user)).length,
+            owner.id,
+          )) === 2,
+        "Second WAN-outage order was not saved",
+      );
+      checks++;
+      await new Promise((r) => setTimeout(r, 5500));
+      eq(
+        await cash.locator("#editor").isVisible(),
+        true,
+        "A timed-out session check keeps local cash entry available",
+      );
+      // Recover the server without dispatching focus/online events. The retry
+      // timer must pick up both durable bills using their original UUIDs.
+      mode = "sync-ready";
+      await poll(
+        async () =>
+          await cash.evaluate(
+            async (user) =>
+              (await CafeOfflinePOS.list(user)).every(
+                (b) => b.state === "synced",
+              ),
+            owner.id,
+          ),
+        "Pending bills did not auto-sync after WAN recovery",
+      );
+      eq(
+        accepted.size,
+        2,
+        "Both original UUIDs synchronize after WAN recovery",
+      );
+      eq(
+        (
+          await cash.evaluate(
+            async (user) => (await CafeOfflinePOS.list(user)).map((b) => b.id),
+            owner.id,
+          )
+        ).includes(savedId),
+        true,
+      );
+      mode = "drop-post";
+      await cash.locator("select[name=product]").selectOption("test-chai");
+      await cash.locator("input[name=cashReceived]").fill("100");
+      await cash
+        .getByRole("button", { name: "Save provisional bill", exact: true })
+        .click();
+      let lostId;
+      await poll(async () => {
+        const local = await cash.evaluate(
+          async (user) => await CafeOfflinePOS.list(user),
+          owner.id,
+        );
+        lostId = local.find((b) => b.state === "pending")?.id;
+        return Boolean(lostId && accepted.has(lostId));
+      }, "Online bill was not durably saved before its lost response");
+      await persistent.close();
+      persistent = null;
+      mode = "sync-ready";
+      persistent = await chromium.launchPersistentContext(profile, {
+        headless: true,
+        executablePath: process.env.CAFE_TEST_CHROMIUM || undefined,
+        args: ["--no-sandbox"],
+      });
+      cash = await persistent.newPage();
+      await cash.goto(origin + "/admin/pos");
+      await cash.locator("#editor").waitFor({ state: "visible" });
+      await poll(
+        async () =>
+          await cash.evaluate(
+            async ({ user, id }) =>
+              (await CafeOfflinePOS.list(user)).find((b) => b.id === id)
+                ?.state === "synced",
+            { user: owner.id, id: lostId },
+          ),
+        "Lost online response did not recover after reopening",
+      );
+      eq(
+        accepted.size,
+        3,
+        "The online lost-response bill retries its original UUID, not a new sale",
+      );
+    } finally {
+      if (persistent) await persistent.close();
+      fs.rmSync(profile, { recursive: true, force: true });
+    }
+    // The advanced online desk must not turn a connectivity failure into logout.
+    mode = "ready";
+    const identity = await context(),
+      ip = await identity.newPage();
+    await ip.goto(origin + "/admin/pos?online=1");
+    await ip
+      .getByRole("heading", { name: "✓ Offline counter ready" })
+      .waitFor();
+    eq((await ip.locator('a[href="/admin/demo-data"]').count()) > 0, true);
+    await identity.setOffline(true);
+    await ip.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await new Promise((r) => setTimeout(r, 150));
+    eq(
+      (await ip.locator('a[href="/admin/demo-data"]').count()) > 0,
+      true,
+      "Offline focus retains the known user",
+    );
+    mode = "session-unavailable";
+    await identity.setOffline(false);
+    await ip.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await new Promise((r) => setTimeout(r, 300));
+    eq(
+      (await ip.locator('a[href="/admin/demo-data"]').count()) > 0,
+      true,
+      "503 is not a logout",
+    );
+    mode = "signed-out";
+    await ip.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await poll(
+      async () =>
+        (await ip.locator('a[href="/admin/demo-data"]').count()) === 0,
+      "An authoritative signed-out response was ignored",
+    );
+    checks++;
+    await identity.close();
     console.log(
       `PASS: ${checks} cold-start, cache-readiness, direct-link, no-shift, login, offline reload and pending-bill upgrade checks.`,
     );

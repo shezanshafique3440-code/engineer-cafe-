@@ -25,6 +25,37 @@
     (await run("bills", "readonly", (s) => s.getAll()))
       .filter((b) => b.ownerId === ownerId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  // Keep stalled WAN connections from holding the sync lock indefinitely.
+  // A timed-out POST stays pending with the same UUID; it may have committed.
+  async function request(url, options = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(
+      () => controller.abort(),
+      options.method === "POST" ? 15000 : 5000,
+    );
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      const body =
+        options.method === "HEAD"
+          ? null
+          : await response.json().catch(() => null);
+      return { response, body };
+    } catch {
+      throw Error(
+        "Connection unavailable. Cash bills remain on this device and will retry automatically.",
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  function authRequired(message) {
+    const error = Error(message);
+    error.authRequired = true;
+    return error;
+  }
   let busy = false;
   async function synchronize(ownerId) {
     if (busy) return { pending: 1 };
@@ -37,43 +68,55 @@
           conflicts: (await list(ownerId)).filter((b) => b.state === "conflict")
             .length,
         };
-      const auth = await fetch("/api/auth/me", {
+      const { response: auth, body: session } = await request("/api/auth/me", {
         cache: "no-store",
         credentials: "same-origin",
       });
-      const { user } = await auth.json();
-      if (!user || user.id !== ownerId)
-        throw new Error(
+      if (auth.status === 401 || auth.status === 403)
+        throw authRequired(
           "Sign in as the original cashier to synchronize these bills.",
         );
-      const protocol = await fetch("/api/admin/offline-pos", {
+      if (!auth.ok || !session || !Object.hasOwn(session, "user"))
+        throw Error(
+          "The server is temporarily unavailable. Keep taking local cash bills; saved bills will retry.",
+        );
+      if (!session.user || session.user.id !== ownerId)
+        throw authRequired(
+          "Sign in as the original cashier to synchronize these bills.",
+        );
+      const { response: protocol } = await request("/api/admin/offline-pos", {
         method: "HEAD",
         cache: "no-store",
         credentials: "same-origin",
       });
+      if (protocol.status === 401 || protocol.status === 403)
+        throw authRequired(
+          "Sign in with POS access to synchronize these bills. Local bills are retained.",
+        );
       if (
         !protocol.ok ||
         protocol.headers.get("X-Cafe-Offline-Protocol") !== "1"
       )
-        throw new Error(
-          "This server/session cannot accept offline bills. Sign in with POS access on a supported release; local bills are retained.",
+        throw Error(
+          "The server cannot confirm offline sync yet. Keep taking local cash bills; saved bills are retained for retry.",
         );
       for (const bill of queued) {
-        let response;
+        let response, result;
         try {
-          response = await fetch("/api/admin/offline-pos", {
+          const sent = await request("/api/admin/offline-pos", {
             method: "POST",
             credentials: "same-origin",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...bill.payload, offline: true }),
           });
+          response = sent.response;
+          result = sent.body || {};
         } catch (error) {
           bill.error =
             "Network unavailable. The original bill is retained for retry.";
           await run("bills", "readwrite", (s) => s.put(bill));
           throw error;
         }
-        const result = await response.json().catch(() => ({}));
         if (response.ok && result.order?.id && result.order?.orderNumber) {
           bill.state = "synced";
           bill.order = result.order;
@@ -175,7 +218,11 @@
     },
     sync: (owner) =>
       navigator.locks
-        ? navigator.locks.request("cafe-counter-sync", () => synchronize(owner))
+        ? navigator.locks.request(
+            "cafe-counter-sync",
+            { ifAvailable: true },
+            (lock) => (lock ? synchronize(owner) : { pending: 1 }),
+          )
         : synchronize(owner),
     retry: async (owner, id) => {
       const b = await run("bills", "readonly", (s) => s.get(id));

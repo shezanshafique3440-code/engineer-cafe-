@@ -1,7 +1,7 @@
 {
   "name": "Engineer Cafe",
   "short_name": "Engineer Cafe",
-  "description": "Engineer Cafe \u2014 premium chai, delicious parathas and student-friendly cafe vibes.",
+  "description": "Engineer Cafe — premium chai, delicious parathas and student-friendly cafe vibes.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FDFBF7",
@@ -23,6 +23,10 @@
   "id": "/",
   "scope": "/",
   "shortcuts": [
+    {
+      "name": "Cash counter",
+      "url": "/admin/pos"
+    },
     {
       "name": "Menu",
       "url": "/menu"

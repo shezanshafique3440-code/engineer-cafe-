@@ -16,7 +16,8 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
 fi
 OLD=$(git rev-parse HEAD)
 PREVIOUS_DEMO=587af3ca3aafc9938c2372f6a2c47c2b20e58823
-if [ "$OLD" != "$BASE" ] && [ "$OLD" != "$PREVIOUS_DEMO" ] && [ "$OLD" != "$TARGET" ]; then
+PREVIOUS_OFFLINE=7677e193235d31c91cccf6eef9ef727b1d39d689
+if [ "$OLD" != "$BASE" ] && [ "$OLD" != "$PREVIOUS_DEMO" ] && [ "$OLD" != "$PREVIOUS_OFFLINE" ] && [ "$OLD" != "$TARGET" ]; then
  echo 'This installer expects the audited baseline, previous demo release, or the same target. Inspect the current commit first.'; exit 1
 fi
 if ! git diff --quiet "$BASE" "$TARGET" -- package.json package-lock.json src/lib/business-access.ts; then
@@ -92,7 +93,7 @@ status=$(curl --silent --show-error --max-time 20 -o /dev/null -w '%{http_code}'
 curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 https://esellerstore.vip/api/settings -o /dev/null
 # Verify every offline shell asset through both Next and public HTTPS before
 # starting the workers. A 200 HTML fallback for a JavaScript file is not success.
-for asset in offline.html offline-pos.html offline-pos-bootstrap.js offline-pos-store.js offline-pos.js sw.js; do
+for asset in offline.html offline-home.js offline-pos.html offline-pos-bootstrap.js offline-pos-store.js offline-pos.js sw.js; do
  curl --fail --silent --show-error --max-time 30 "http://127.0.0.1:3100/$asset" -o "$SNAPSHOT/app-$asset"
  cmp "$APP/public/$asset" "$SNAPSHOT/app-$asset"
  curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 "https://esellerstore.vip/$asset" -o "$SNAPSHOT/domain-$asset"

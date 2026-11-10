@@ -55,6 +55,33 @@
         status("Offline files are available on this device.");
         return;
       }
+      // A prepared counter must open from disk even when navigator.onLine is
+      // true but the WAN is stalled. Update an already-current shell in the
+      // background; an older shell still waits for its first upgrade online.
+      const existing = await navigator.serviceWorker.getRegistration();
+      if (
+        existing?.active &&
+        !existing.installing &&
+        !existing.waiting &&
+        "caches" in window
+      ) {
+        const cache = await caches.open("cafe-shell-v7-offline-first");
+        const files = await Promise.all(
+          [
+            "/offline-pos.html",
+            "/offline-pos-bootstrap.js",
+            "/offline-pos-store.js",
+            "/offline-pos.js",
+            "/offline.html",
+            "/offline-home.js",
+          ].map((file) => cache.match(file)),
+        );
+        if (files.every(Boolean)) {
+          status("Offline files are ready on this device.");
+          void existing.update().catch(() => {});
+          return;
+        }
+      }
       status("Downloading offline files. Keep the internet connected…");
       const registration = await bounded(
         navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }),

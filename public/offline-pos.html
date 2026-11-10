@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Offline counter · Engineer Cafe</title>
+    <title>Cash counter · Engineer Cafe</title>
     <style>
       body {
         font: 16px/1.5 system-ui;
@@ -62,11 +62,16 @@
     <script src="/offline-pos-bootstrap.js" defer></script>
   </head>
   <body>
-    <h1>Offline counter</h1>
+    <h1>Cash counter</h1>
     <p>
-      Cash bills are provisional until the server validates them. Keep all
-      printed bills and collected cash for reconciliation.
+      Use this same counter with or without internet. Every cash bill is saved
+      on this device first and synchronized when connected.
     </p>
+    <nav aria-label="Counter navigation">
+      <a href="/admin">Daily home</a> ·
+      <a href="/admin/business?section=cash">Cash opening / closing</a> ·
+      <a href="/admin/pos?online=1">Advanced online POS</a>
+    </nav>
     <p
       id="connection"
       role="status"
@@ -104,7 +109,7 @@
     </section>
     <p id="prepared"></p>
     <button id="refresh">Refresh prepared menu & shift</button
-    ><a href="/admin/pos">Online POS</a>
+    ><a href="/admin/pos?online=1">Advanced online POS</a>
     <section id="editor" hidden>
       <h2 id="bill-heading">New provisional bill</h2>
       <form id="sale">

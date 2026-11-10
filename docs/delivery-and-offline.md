@@ -20,8 +20,8 @@ Commission journals, payouts and cash transfers use the existing balanced ledger
 ## Prepare each cashier device
 
 1. Activate accounting through the existing readiness checks and open the cashier's own cash shift.
-2. Open **Counter POS** and click **Prepare / sync this device**. Keep the internet connected until **Offline counter ready** appears. The label now waits for the offline files to finish installing; it does not mean ready while the service worker is still downloading. It saves the public menu/add-ons/prices/settings, available open table references, cashier identity and original shift/account in IndexedDB.
-3. Use **Open offline counter** (`/offline-pos.html`). The app's service worker can open this document even after an offline reload of `/admin/pos`.
+2. Open **Counter POS** (`/admin/pos`). Normal cash entry now opens the same **Cash counter** (`/offline-pos.html`) both online and offline. Prepare it once online with your own open shift; wait for offline files and products to finish loading. It saves public menu/add-ons/prices/settings, prepared table references and the original cashier/shift/account in IndexedDB.
+3. Keep using this counter when internet fails. Every bill is saved locally before sync is attempted, even while online. A prepared app reopened offline returns to this cash counter. Credit, approval discounts and bank/wallet workflows remain at **Advanced online POS** (`/admin/pos?online=1`); that desk requires internet.
 
 No session token/password, authenticated HTML or private API response is stored in the service-worker cache. The prepared snapshot contains no order history or other customers. Bills are scoped to the original cashier. Changing the signed-in cashier prepares their own counter without deleting the first cashier's bills. Logout clears preparation and notifies other open counter tabs; queued bills remain recoverable by the original cashier.
 
@@ -39,7 +39,7 @@ Save before printing. Bills are durably stored with a UUID and clearly printed *
 
 ## Synchronization and conflicts
 
-Pending bills sync on reconnect or when the prepared cashier reopens POS. Supporting browsers can also use Background Sync while the page is closed. A valid session with current POS permission is required. Sync first checks the server's offline protocol; a browser kept open across a code rollback cannot send bills to an older, unguarded POS endpoint.
+Pending bills sync on reconnect, when the prepared cashier reopens POS, and through a 15-second pending-bill retry while the page is visible. This also recovers when Wi-Fi stays connected and no browser online event fires. Supporting browsers can also use Background Sync while the page is closed. A valid session with current POS permission is required. Sync first checks the server's offline protocol; a browser kept open across a code rollback cannot send bills to an older, unguarded POS endpoint.
 
 The server rechecks each line price and total, add-on rules, availability, product/ingredient stock, cashier permissions, the original still-open cash shift/account, and the prepared table if applicable. A committed request whose response was lost returns the original order even if prices or shifts later change. It never creates another receipt, reservation or payment.
 
@@ -69,3 +69,13 @@ The shared public bootstrap now waits for offline-cache activation before readin
 Repair validation: 447 existing HTTP/accounting assertions, 24 existing offline/rider browser assertions and 21 new Chromium cold-start/cache-upgrade assertions passed. The new tests delay asset download, fail cache installation, prepare a first-time direct visit, check no-shift/login states, reload offline and carry a pending version-4 bill through the version-5 upgrade. Production build, TypeScript and JavaScript/shell syntax checks passed. Live application still requires the pinned VPS deployment and verification on the client's actual browser/printer; no live customer bill was fabricated by these tests.
 
 Run the cold-start suite with `node --env-file=.env scripts/tests/offline-startup-browser.cjs`. Set `CAFE_STARTUP_TEST_URL` to the local production test server and `CAFE_STARTUP_TEST_OWNER_ID` to its existing ADMIN fixture ID (default: `demo-qa-owner` from the isolated demo suite). It requires an explicit local disposable test database and test `AUTH_SECRET`; the requests are proxied through local fixtures and never submitted to the live site.
+
+## Offline-first cash workflow
+
+The prior readiness repair did not make the advanced online form offline-capable. The default POS entry point now opens the durable cash counter so a cashier does not need to switch screens when connectivity fails. Existing advanced/credit/wallet/approval tools remain available through the online link. No original financial record, role, recipe or database schema is changed by this workflow update.
+
+Warm cash-counter navigation uses the cached public document immediately. A bounded network fallback opens the prepared cash counter from an installed app's offline home. Current cached files are used before background update checks. Stalled navigation/session/sync requests have timeouts, and a server outage/503 is not treated as logout. Actual 401/403, signed-out responses and original-cashier mismatches still block server synchronization. All server permissions, shift checks, price/stock checks and idempotent UUIDs remain authoritative.
+
+Additional real-Chromium coverage closes/reopens a persistent browser profile completely offline, saves orders with internet disabled and with a stalled WAN while navigator.onLine remains true, confirms both original UUIDs sync by the retry timer without a focus/online event, and verifies cached identity survives network errors but clears on an authoritative sign-out. Do not use private/incognito browsing or clear site data while bills are pending. The website's other administration screens still require internet.
+
+Offline-first workflow validation passed 447 real HTTP/accounting assertions, 24 existing browser assertions and 39 extended cold-device/recovery assertions, plus production build/type checks. The extended suite blocks the origin itself as well as using Chromium offline emulation, closes/reopens a persistent profile, retains an in-progress draft across a delayed menu refresh, and recovers an online bill whose response was lost before the browser closed. Physical counter/printer verification remains a client-device check after deployment.
