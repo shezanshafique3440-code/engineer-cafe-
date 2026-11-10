@@ -20,8 +20,8 @@ Commission journals, payouts and cash transfers use the existing balanced ledger
 ## Prepare each cashier device
 
 1. Activate accounting through the existing readiness checks and open the cashier's own cash shift.
-2. Open **Counter POS** (`/admin/pos`). Normal cash entry now opens the same **Cash counter** (`/offline-pos.html`) both online and offline. Prepare it once online with your own open shift; wait for offline files and products to finish loading. It saves public menu/add-ons/prices/settings, prepared table references and the original cashier/shift/account in IndexedDB.
-3. Keep using this counter when internet fails. Every bill is saved locally before sync is attempted, even while online. A prepared app reopened offline returns to this cash counter. Credit, approval discounts and bank/wallet workflows remain at **Advanced online POS** (`/admin/pos?online=1`); that desk requires internet.
+2. Open **Counter POS** (`/admin/pos`). Online entry opens the normal **Counter POS**. If connectivity fails, it automatically opens the prepared **Cash counter** (`/offline-pos.html`). Prepare it once online with your own open shift; wait for offline files and products to finish loading. It saves public menu/add-ons/prices/settings, prepared table references and the original cashier/shift/account in IndexedDB.
+3. When internet fails, enter cash bills in the offline counter. Each offline-counter bill is saved locally before sync is attempted. A prepared app reopened offline returns to this cash counter. Credit, approval discounts and bank/wallet workflows remain at **Advanced online POS** (`/admin/pos?online=1`); that desk requires internet.
 
 No session token/password, authenticated HTML or private API response is stored in the service-worker cache. The prepared snapshot contains no order history or other customers. Bills are scoped to the original cashier. Changing the signed-in cashier prepares their own counter without deleting the first cashier's bills. Logout clears preparation and notifies other open counter tabs; queued bills remain recoverable by the original cashier.
 
@@ -72,7 +72,7 @@ Run the cold-start suite with `node --env-file=.env scripts/tests/offline-startu
 
 ## Offline-first cash workflow
 
-The prior readiness repair did not make the advanced online form offline-capable. The default POS entry point now opens the durable cash counter so a cashier does not need to switch screens when connectivity fails. Existing advanced/credit/wallet/approval tools remain available through the online link. No original financial record, role, recipe or database schema is changed by this workflow update.
+The default POS entry point uses the normal online form while connected. A network outage automatically opens the prepared offline cash counter; full navigation also falls back through the service worker. Return to online POS after reconnecting using the visible link. Existing advanced/credit/wallet/approval tools remain available through the online link. No original financial record, role, recipe or database schema is changed by this workflow update.
 
 Warm cash-counter navigation uses the cached public document immediately. A bounded network fallback opens the prepared cash counter from an installed app's offline home. Current cached files are used before background update checks. Stalled navigation/session/sync requests have timeouts, and a server outage/503 is not treated as logout. Actual 401/403, signed-out responses and original-cashier mismatches still block server synchronization. All server permissions, shift checks, price/stock checks and idempotent UUIDs remain authoritative.
 

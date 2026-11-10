@@ -17,7 +17,8 @@ fi
 OLD=$(git rev-parse HEAD)
 PREVIOUS_DEMO=587af3ca3aafc9938c2372f6a2c47c2b20e58823
 PREVIOUS_OFFLINE=7677e193235d31c91cccf6eef9ef727b1d39d689
-if [ "$OLD" != "$BASE" ] && [ "$OLD" != "$PREVIOUS_DEMO" ] && [ "$OLD" != "$PREVIOUS_OFFLINE" ] && [ "$OLD" != "$TARGET" ]; then
+PREVIOUS_CASH=49d230c0a81cbc64a55053bcdf65221108f702a1
+if [ "$OLD" != "$PREVIOUS_CASH" ] && [ "$OLD" != "$BASE" ] && [ "$OLD" != "$PREVIOUS_DEMO" ] && [ "$OLD" != "$PREVIOUS_OFFLINE" ] && [ "$OLD" != "$TARGET" ]; then
  echo 'This installer expects the audited baseline, previous demo release, or the same target. Inspect the current commit first.'; exit 1
 fi
 if ! git diff --quiet "$BASE" "$TARGET" -- package.json package-lock.json src/lib/business-access.ts; then

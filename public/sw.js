@@ -1,6 +1,6 @@
 /* Cache public offline documents/scripts only; never authenticated HTML or APIs. */
 importScripts("/offline-pos-store.js");
-const CACHE = "cafe-shell-v7-offline-first";
+const CACHE = "cafe-shell-v8-online-first";
 const SHELL = [
   "/offline.html",
   "/offline-home.js",
@@ -50,8 +50,7 @@ self.addEventListener("fetch", (event) => {
     return;
   if (
     event.request.mode === "navigate" &&
-    (url.pathname === "/offline-pos.html" ||
-      (url.pathname === "/admin/pos" && url.searchParams.get("online") !== "1"))
+    url.pathname === "/offline-pos.html"
   ) {
     // This is the public cash-counter document, not cached authenticated HTML.
     // Cached cashier data and every server write keep their existing guards.

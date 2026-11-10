@@ -438,15 +438,26 @@ async function poll(fn, message) {
       ]);
       let cash = await persistent.newPage();
       await cash.goto(origin + "/admin/pos");
+      await cash.getByRole("heading", { name: "Counter POS", exact: true }).waitFor();
+      eq(new URL(cash.url()).pathname, "/admin/pos", "New Sale stays on normal POS online");
+      await cash.getByText("✓ Offline counter ready", { exact: true }).waitFor();
+      await persistent.setOffline(true);
       await cash
         .getByRole("heading", { name: "Cash counter", exact: true })
         .waitFor();
+      await persistent.setOffline(false);
       await cash.locator("#editor").waitFor({ state: "visible" });
       eq(
         new URL(cash.url()).pathname,
         "/offline-pos.html",
-        "Normal cash POS opens the durable counter",
+        "Losing connectivity switches the normal POS to the offline counter",
       );
+      await cash.goto(origin + "/admin/pos");
+      await cash.getByRole("heading", { name: "Counter POS", exact: true }).waitFor();
+      eq(new URL(cash.url()).pathname, "/admin/pos", "An installed worker also keeps online New Sale on normal POS");
+      mode = "physical-offline";
+      await cash.getByRole("heading", { name: "Cash counter", exact: true }).waitFor({ timeout: 30000 });
+      eq(new URL(cash.url()).pathname, "/offline-pos.html", "WAN loss also switches without a browser offline event");
       mode = "slow-prepare";
       await cash.reload();
       await cash.locator("#editor").waitFor({ state: "visible" });
@@ -626,7 +637,7 @@ async function poll(fn, message) {
         args: ["--no-sandbox"],
       });
       cash = await persistent.newPage();
-      await cash.goto(origin + "/admin/pos");
+      await cash.goto(origin + "/offline-pos.html");
       await cash.locator("#editor").waitFor({ state: "visible" });
       await poll(
         async () =>

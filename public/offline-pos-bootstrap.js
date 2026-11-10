@@ -65,7 +65,7 @@
         !existing.waiting &&
         "caches" in window
       ) {
-        const cache = await caches.open("cafe-shell-v7-offline-first");
+        const cache = await caches.open("cafe-shell-v8-online-first");
         const files = await Promise.all(
           [
             "/offline-pos.html",

@@ -244,13 +244,6 @@ function Counter({
       </div>
       {!table && (
         <>
-          <p className="my-3 rounded-xl bg-amber-50 p-3 text-sm">
-            This advanced desk needs internet. For normal cash bills, use the{" "}
-            <a href="/offline-pos.html" className="font-bold underline">
-              cash counter that keeps working offline
-            </a>
-            .
-          </p>
           <OfflineCounterPanel />
         </>
       )}
