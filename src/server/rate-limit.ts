@@ -13,11 +13,7 @@ function sweep(now: number) {
 }
 
 export function clientKey(request: Request, scope: string): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  const ip =
-    forwarded?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
+  const ip = request.headers.get("x-real-ip")?.trim() || "unknown";
   return `${scope}:${ip}`;
 }
 

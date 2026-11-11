@@ -13,11 +13,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns,
     formats: ["image/avif", "image/webp"],
-    // The menu art in /public/menu is SVG we author ourselves. The optimizer
-    // refuses SVG by default because a hostile SVG can carry script; the CSP
-    // below strips that capability, which is the configuration Next documents
-    // for serving trusted SVG.
-    dangerouslyAllowSVG: true,
+    // Serve authored SVGs directly; never process untrusted SVG through the optimizer.
+    dangerouslyAllowSVG: false,
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
@@ -35,9 +32,21 @@ const nextConfig: NextConfig = {
           { key: "X-DNS-Prefetch-Control", value: "on" },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+            value:
+              "camera=(), microphone=(), geolocation=(), interest-cohort=()",
           },
         ],
+      },
+      {
+        source: "/orders/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
+      {
+        source: "/reset-password",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       },
     ];
   },

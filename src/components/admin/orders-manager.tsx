@@ -20,6 +20,7 @@ import { downloadCsv } from "@/lib/csv";
 import { apiDelete, apiGet, apiPatch, ApiError } from "@/lib/api-client";
 import { useSession } from "@/context/session-context";
 import { useMoney, useSettings } from "@/context/settings-context";
+import { EditOrderForm } from "./edit-order-form";
 import { PageHeader, DataTable, TableSkeleton, Modal } from "./ui";
 import { Button, Select, ErrorState, Badge } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
@@ -638,6 +639,7 @@ function OrdersManagerInner() {
               </Badge>
             </div>
 
+            {canBusiness(user, "payments") && ["PENDING", "CONFIRMED"].includes(viewing.status) && viewing.paymentStatus === "UNPAID" && Number(viewing.amountPaid) === 0 && !viewing.discount && !viewing.businessCredit && <EditOrderForm key={viewing.version} order={viewing} onSaved={order => { setViewing(order); void load(page); }} />}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-xl bg-cream-50 p-4">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-charcoal-400">

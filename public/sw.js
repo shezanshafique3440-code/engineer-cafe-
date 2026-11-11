@@ -1,6 +1,6 @@
 /* Cache public offline documents/scripts only; never authenticated HTML or APIs. */
 importScripts("/offline-pos-store.js");
-const CACHE = "cafe-shell-v8-online-first";
+const CACHE = "cafe-shell-v9-durable-bills";
 const SHELL = [
   "/offline.html",
   "/offline-home.js",

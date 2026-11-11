@@ -71,6 +71,7 @@ const offlineSchema = z
   .object({
     requestId: z.string().uuid(),
     offline: z.literal(true),
+    capturedAt: z.string().datetime().refine(value => new Date(value).getTime() <= Date.now() + 300000, "Device bill time is in the future. Check the device clock.").optional(),
     shiftId: z.string().min(1),
     accountId: z.string().min(1),
     expectedLineTotals: z
@@ -139,6 +140,7 @@ export const POST = handle(async (request: Request) => {
     await getSettings(),
     {
       offline: true,
+      ...(data.capturedAt ? { capturedAt: data.capturedAt } : {}),
       expectedShiftId: data.shiftId,
       expectedLineTotals: data.expectedLineTotals,
       actor,

@@ -20,7 +20,7 @@ async function login(email) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Forwarded-For": "127.0.0.44",
+      "X-Real-IP": "127.0.0.44",
     },
     body: JSON.stringify({ email, password: "Business-QA-123!" }),
   });
@@ -126,7 +126,7 @@ const balance = async (code) =>
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Forwarded-For": "127.0.0.44",
+        "X-Real-IP": "127.0.0.44",
       },
       body: JSON.stringify({
         requestId: randomUUID(),

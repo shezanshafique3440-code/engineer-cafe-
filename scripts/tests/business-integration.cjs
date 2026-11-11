@@ -38,7 +38,7 @@ async function login(email) {
   let cookie = "";
   const headers = {
     "Content-Type": "application/json",
-    "x-forwarded-for": `192.0.2.${ip++}`,
+    "x-real-ip": `192.0.2.${ip++}`,
   };
   const res = await fetch(url + "/api/auth/login", {
     method: "POST",
@@ -614,6 +614,7 @@ const dated = { date: today, note: "Isolated regression check" };
       201,
     )
   ).order;
+  eq(ticket.cashierName, null, "An unpaid waiter ticket must not attribute sales to the waiter as cashier");
   eq(Number(ticket.amountPaid), 0);
   eq(ticket.businessCredit, true);
   await post(owner, "tables", { action: "CLOSE", sessionId: bill.id }, 400);
@@ -653,6 +654,7 @@ const dated = { date: today, note: "Isolated regression check" };
     note: "Remaining table settlement",
   });
   await post(owner, "tables", { action: "CLOSE", sessionId: bill.id });
+  eq((await sql('SELECT "cashierId" FROM "Order" WHERE id=$1', [ticket.id]))[0].cashierId, "business-owner", "Table collection records the actual cashier");
   console.log(
     "PASS tables: waiter assignment, kitchen tickets, served credit bills, split settlement and close guards",
   );

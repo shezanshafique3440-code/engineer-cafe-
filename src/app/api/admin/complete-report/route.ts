@@ -5,12 +5,9 @@ import {
   HttpError,
   badRequest,
 } from "@/server/api";
-import {
-  completeReport,
-  allReportFiles,
-  reportBounds,
-} from "@/server/reports/complete-report";
+import { reportBounds } from "@/server/reports/complete-report";
 
+import { runReportExport } from "@/server/reports/run-export";
 import { findReportModule } from "@/lib/report-modules";
 
 export const dynamic = "force-dynamic";
@@ -40,10 +37,13 @@ export const GET = handle(async (request: Request) => {
     );
   exporting = true;
   try {
-    const buffer =
-      format === "zip"
-        ? await allReportFiles(bounds, actor.name)
-        : await completeReport(bounds, actor.name, report?.id);
+    const buffer = await runReportExport({
+      from: bounds.from,
+      to: bounds.to,
+      actorName: actor.name,
+      format: format as "xlsx" | "zip",
+      ...(report ? { module: report.id } : {}),
+    });
     const filename =
       format === "zip"
         ? "Cafe-All-Reports"

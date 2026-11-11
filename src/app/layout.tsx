@@ -34,25 +34,29 @@ const mono = localFont({
   weight: "100 800",
 });
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  const name = settings.cafeName || SITE_NAME;
+  return {
   metadataBase: new URL(env.siteUrl),
   title: {
-    default: `${SITE_NAME} | Chai & Paratha`,
-    template: `%s | ${SITE_NAME}`,
+    default: `${name} | Chai & Paratha`,
+    template: `%s | ${name}`,
   },
-  description: SITE_DESCRIPTION,
-  applicationName: SITE_NAME,
+  description: settings.tagline || SITE_DESCRIPTION,
+  applicationName: name,
   keywords: [
     "Engineer Cafe", "chai Islamabad", "paratha delivery", "karak chai",
     "student cafe Pakistan", "tea house", "Chatta Bakhtawar", "chai paratha",
   ],
-  authors: [{ name: SITE_NAME }],
-  creator: SITE_NAME,
+  authors: [{ name }],
+  creator: name,
   formatDetection: { telephone: true, address: false, email: false },
   icons: { icon: "/favicon.svg", apple: "/app-icon/192" },
   manifest: "/site.webmanifest",
   robots: { index: true, follow: true },
-};
+  };
+}
 
 export async function generateViewport(): Promise<Viewport> {
   // The browser chrome should match whichever palette the cafe picked.

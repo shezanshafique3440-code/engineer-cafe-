@@ -9,7 +9,11 @@ export function SaleCounter() {
     let checking = false;
     let disposed = false;
     let active: AbortController | undefined;
-    const offline = () => window.location.assign("/offline-pos.html");
+    const offline = () => {
+      const save = new Event("cafe:save-draft", { cancelable: true });
+      window.dispatchEvent(save);
+      if (!save.defaultPrevented) window.location.assign("/offline-pos.html");
+    };
     const check = async () => {
       if (checking || document.hidden) return;
       if (!navigator.onLine) return offline();

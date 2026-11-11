@@ -103,12 +103,19 @@
       for (const bill of queued) {
         let response, result;
         try {
-          const sent = await request("/api/admin/offline-pos", {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...bill.payload, offline: true }),
-          });
+          const sent = await request(
+            bill.endpoint || "/api/admin/offline-pos",
+            {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(
+                bill.endpoint
+                  ? bill.payload
+                  : { ...bill.payload, offline: true },
+              ),
+            },
+          );
           response = sent.response;
           result = sent.body || {};
         } catch (error) {
@@ -122,6 +129,9 @@
           bill.order = result.order;
           bill.error = "";
         } else if (
+          response.status === 401 ||
+          response.status === 403 ||
+          response.status === 404 ||
           response.status >= 500 ||
           response.status === 429 ||
           response.ok
@@ -216,6 +226,43 @@
           .catch(() => {});
       return bill;
     },
+    recoverOnline: async (intent, receipt) => {
+      if (
+        intent.endpoint !== "/api/admin/pos" ||
+        !intent.ownerId ||
+        !intent.payload?.requestId ||
+        !intent.payload.lines?.length
+      )
+        throw Error("Invalid online bill recovery.");
+      const old = await run("bills", "readonly", (s) =>
+        s.get(intent.payload.requestId),
+      );
+      if (old) {
+        if (
+          old.ownerId !== intent.ownerId ||
+          JSON.stringify(old.payload) !== JSON.stringify(intent.payload)
+        )
+          throw Error("A different bill already uses this ID.");
+        return old;
+      }
+      const bill = {
+        id: intent.payload.requestId,
+        ownerId: intent.ownerId,
+        endpoint: intent.endpoint,
+        payload: intent.payload,
+        receipt,
+        state: "pending",
+        error: "Awaiting confirmation of original online sale.",
+        createdAt: intent.createdAt,
+        history: [
+          { at: new Date().toISOString(), action: "RECOVERED_ONLINE_REQUEST" },
+        ],
+      };
+      await run("bills", "readwrite", (s) => s.put(bill));
+      if (typeof window !== "undefined" && "serviceWorker" in navigator)
+        void navigator.serviceWorker.ready.then(reg => reg.sync?.register("cafe-counter-outbox")).catch(() => {});
+      return bill;
+    },
     sync: (owner) =>
       navigator.locks
         ? navigator.locks.request(
@@ -269,13 +316,32 @@
               "'": "&#39;",
             })[c],
         );
+      if (bill.endpoint && !bill.receipt.originalQuote && !bill.order?.items)
+        throw Error(
+          "The original online receipt is awaiting confirmation. Synchronize this bill before printing its verified item amounts.",
+        );
       const w = scope.open("", "_blank");
       if (!w) throw new Error("Allow popups to print the counter bill.");
-      const r = bill.receipt,
+      const r =
+          bill.endpoint && bill.order?.items
+            ? {
+                ...bill.receipt,
+                lines: bill.order.items.map((l) => ({
+                  name: l.productName,
+                  quantity: l.quantity,
+                  total: l.lineTotal,
+                  options: l.addons.map((a) => a.addonName).join(", "),
+                })),
+                subtotal: bill.order.subtotal,
+                discount: bill.order.discount,
+                tax: bill.order.tax,
+                deliveryFee: bill.order.deliveryFee,
+              }
+            : bill.receipt,
         total = bill.payload.expectedTotal,
         cash = Number(bill.payload.cashReceived);
       w.document.write(
-        `<!doctype html><html><head><title>Counter receipt</title><style>body{font:13px monospace;max-width:76mm;margin:5mm auto}h1{font-size:18px}p{white-space:pre-wrap}@page{size:80mm auto;margin:3mm}</style></head><body><h1>${esc(r.cafeName)}</h1><p>${bill.order ? esc(bill.order.orderNumber) : "PROVISIONAL — NOT SYNCHRONIZED"}</p><p>${esc(bill.id)}<br>${esc(bill.createdAt)}<br>${esc(r.serviceMode || "TAKEAWAY")} · ${esc(bill.payload.customerName)}<br>${esc(r.tableName || "")}</p>${r.lines.map((l) => `<p>${esc(l.quantity)} × ${esc(l.name)}<br>${esc(l.options || "")}<br>Rs. ${esc(l.total)}</p>`).join("")}${r.serviceMode === "DINE_IN" ? "<p>This receipt covers this table ticket only.</p>" : ""}<hr><p>Subtotal Rs. ${esc(r.subtotal)}<br>Tax Rs. ${esc(r.tax)}<br>Delivery Rs. ${esc(r.deliveryFee || 0)}<br>Total Rs. ${esc(total)}<br>Cash tendered Rs. ${esc(cash.toFixed(2))}<br>Change Rs. ${esc(((Math.round(cash * 100) - total * 100) / 100).toFixed(2))}</p><p>${bill.order ? esc(bill.order.paymentStatus) : "Cash recorded locally; awaiting server validation"}</p><p>${bill.order ? "Thank you." : "Keep this bill until server confirmation. Price, stock and shift conflicts require reconciliation."}</p></body></html>`,
+        `<!doctype html><html><head><title>Counter receipt</title><style>body{font:13px monospace;max-width:76mm;margin:5mm auto}h1{font-size:18px}p{white-space:pre-wrap}@page{size:80mm auto;margin:3mm}</style></head><body><h1>${esc(r.cafeName)}</h1><p>${bill.order ? esc(bill.order.orderNumber) : "PROVISIONAL — NOT SYNCHRONIZED"}</p><p>${esc(bill.id)}<br>${esc(bill.createdAt)}<br>${esc(r.serviceMode || "TAKEAWAY")} · ${esc(bill.payload.customerName)}<br>${esc(r.tableName || "")}</p>${r.lines.map((l) => `<p>${esc(l.quantity)} × ${esc(l.name)}<br>${esc(l.options || "")}<br>Rs. ${esc(l.total)}</p>`).join("")}${r.serviceMode === "DINE_IN" ? "<p>This receipt covers this table ticket only.</p>" : ""}<hr><p>Subtotal Rs. ${esc(r.subtotal)}${r.discount ? "<br>Discount Rs. " + esc(r.discount) : ""}<br>Tax Rs. ${esc(r.tax)}<br>Delivery Rs. ${esc(r.deliveryFee || 0)}<br>Total Rs. ${esc(total)}<br>Cash tendered Rs. ${esc(cash.toFixed(2))}<br>Change Rs. ${esc(Math.max(0, (Math.round(cash * 100) - total * 100) / 100).toFixed(2))}</p>${bill.payload.credit ? "<p>Credit balance due Rs. " + esc(bill.order?.remainingDue ?? Math.max(0, total - cash).toFixed(2)) + "</p>" : ""}<p>${bill.order ? esc(bill.order.paymentStatus) : bill.payload.credit ? "Credit bill awaiting server validation" : "Cash recorded locally; awaiting server validation"}</p><p>${bill.order ? "Thank you." : "Keep this bill until server confirmation. Price, stock and shift conflicts require reconciliation."}</p></body></html>`,
       );
       w.document.close();
       w.print();

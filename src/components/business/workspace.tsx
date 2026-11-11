@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
@@ -65,25 +65,24 @@ function Workspace() {
     [loading, setLoading] = useState(false),
     [error, setError] = useState("");
   const moduleName = section ? MODULES[section.id] : "";
+  const loadSequence = useRef(0);
   const load = useCallback(async () => {
+    const sequence = ++loadSequence.current;
     if (!moduleName) return;
     setLoading(true);
     setError("");
     try {
-      setData(
-        await apiGet<Row>(
+      const result = await apiGet<Row>(
           "/api/admin/business/" +
             moduleName +
             "?" +
             new URLSearchParams({ from, to }),
-        ),
-      );
+        );
+      if (sequence === loadSequence.current) setData(result);
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Could not load this workspace.",
-      );
+      if (sequence === loadSequence.current) setError(e instanceof Error ? e.message : "Could not load this workspace.");
     } finally {
-      setLoading(false);
+      if (sequence === loadSequence.current) setLoading(false);
     }
   }, [moduleName, from, to]);
   useEffect(() => {

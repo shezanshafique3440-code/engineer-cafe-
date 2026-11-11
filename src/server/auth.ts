@@ -26,7 +26,16 @@ export async function verifyPassword(
 }
 
 export async function createSessionToken(user: SessionUser): Promise<string> {
-  return new SignJWT({ name: user.name, email: user.email, role: user.role })
+  const current = await prisma.user.findUniqueOrThrow({
+    where: { id: user.id },
+    select: { sessionVersion: true },
+  });
+  return new SignJWT({
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    sv: current.sessionVersion,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(user.id)
     .setIssuedAt()
@@ -48,6 +57,7 @@ export async function readSessionToken(
       name: String(payload.name ?? ""),
       email: payload.email,
       role: payload.role as Role,
+      sessionVersion: typeof payload.sv === "number" ? payload.sv : 0,
     };
   } catch {
     return null;
@@ -95,6 +105,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       email: true,
       role: true,
       isActive: true,
+      sessionVersion: true,
       staffAccess: {
         select: {
           profile: true,
@@ -105,7 +116,8 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       },
     },
   });
-  if (!user || !user.isActive) return null;
+  if (!user || !user.isActive || user.sessionVersion !== session.sessionVersion)
+    return null;
   return {
     id: user.id,
     name: user.name,
@@ -116,6 +128,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       ? user.staffAccess.permissions
       : null,
     employeeId: user.staffAccess?.employeeId ?? null,
+    sessionVersion: user.sessionVersion,
   };
 }
 

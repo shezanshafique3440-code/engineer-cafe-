@@ -78,6 +78,7 @@ model User {
   name         String
   email        String    @unique
   phone        String?
+  sessionVersion Int @default(0)
   passwordHash String
   role         Role      @default(CUSTOMER)
   isActive     Boolean   @default(true)
@@ -85,6 +86,7 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  passwordResets PasswordReset[]
   addresses Address[]
   orders    Order[]
   reviews   Review[]
@@ -302,6 +304,9 @@ model Order {
   tableSession TableSession? @relation(fields:[tableSessionId],references:[id],onDelete:Restrict)
   cashShiftId String?
   cashShift CashShift? @relation(fields:[cashShiftId],references:[id],onDelete:Restrict)
+  cashierId String?
+  cashierName String?
+  capturedAt DateTime?
   amountPaid Decimal @default(0) @db.Decimal(18,2)
   amountRefunded Decimal @default(0) @db.Decimal(18,2)
   ingredientReservations IngredientReservation[]
@@ -342,6 +347,10 @@ model Order {
   @@index([createdAt])
   @@index([orderNumber])
   @@index([scheduledAt, status])
+  @@index([riderId, createdAt])
+  @@index([placedAt])
+  @@index([cashShiftId])
+  @@index([cashierId, createdAt])
 }
 
 model OrderItem {
@@ -719,6 +728,7 @@ model BusinessPosting {
   debit Decimal @default(0) @db.Decimal(18,2)
   credit Decimal @default(0) @db.Decimal(18,2)
   @@index([accountId,journalId])
+  @@index([journalId])
   @@index([partyId])
 }
 model BusinessPurchase {
@@ -746,6 +756,7 @@ model PurchaseLine {
   totalCost Decimal @db.Decimal(18,2)
   returnedQuantity Decimal @default(0) @db.Decimal(18,4)
   returnedCost Decimal @default(0) @db.Decimal(18,2)
+  @@index([purchaseId])
 }
 model BusinessPayment {
   id String @id @default(cuid())
@@ -1012,4 +1023,15 @@ model DemoDeletePermit {
   recordId String
   fingerprint String
   @@id([jobId,tableName,recordId])
+}
+
+model PasswordReset {
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  id String @id @default(cuid())
+  userId String
+  tokenHash String @unique
+  expiresAt DateTime
+  usedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
 }

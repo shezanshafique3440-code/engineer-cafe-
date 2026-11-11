@@ -43,7 +43,7 @@ async function trackingQr(
   origin: string,
 ): Promise<string | null> {
   try {
-    return await QRCode.toDataURL(`${origin}/orders/${order.id}`, {
+    return await QRCode.toDataURL(`${origin}${order.trackingPath}`, {
       margin: 0,
       width: 220,
       errorCorrectionLevel: "M",
@@ -80,7 +80,7 @@ async function inlineLogo(url: string | null): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith("data:")) return url;
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
     if (!response.ok) return null;
     const blob = await response.blob();
     return await new Promise<string | null>((resolve) => {

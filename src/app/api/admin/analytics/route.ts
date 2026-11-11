@@ -1,3 +1,4 @@
+import { businessToday, businessDayStart } from "@/lib/business-math";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { handle, json, parseQuery, requireAdmin } from "@/server/api";
@@ -7,16 +8,14 @@ const querySchema = z.object({ days: z.coerce.number().int().min(7).max(365).def
 const REVENUE_STATUSES = ["CONFIRMED", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED"] as const;
 
 function dayKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return businessToday(date);
 }
 
 export const GET = handle(async (request: Request) => {
   await requireAdmin("insights");
   const { days } = parseQuery(request, querySchema);
 
-  const since = new Date();
-  since.setHours(0, 0, 0, 0);
-  since.setDate(since.getDate() - (days - 1));
+  const since = new Date(businessDayStart().getTime() - (days - 1) * 86400000);
 
   const orders = await prisma.order.findMany({
     where: { createdAt: { gte: since } },
@@ -33,8 +32,7 @@ export const GET = handle(async (request: Request) => {
   // Daily series, zero-filled so charts never have gaps.
   const daily = new Map<string, { date: string; sales: number; orders: number }>();
   for (let i = 0; i < days; i += 1) {
-    const d = new Date(since);
-    d.setDate(since.getDate() + i);
+    const d = new Date(since.getTime() + i * 86400000);
     daily.set(dayKey(d), { date: dayKey(d), sales: 0, orders: 0 });
   }
 

@@ -16,6 +16,7 @@ export type SessionUser = {
   businessProfile?: string | null;
   businessPermissions?: string[] | null;
   employeeId?: string | null;
+  sessionVersion?: number;
 };
 
 export type AddonDTO = {

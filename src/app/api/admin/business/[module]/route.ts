@@ -1,5 +1,6 @@
+import { readJsonBody } from "@/server/api";
 import { handle, json, badRequest, HttpError } from "@/server/api";
-import { businessActor, businessTx, hash } from "@/server/business/core";
+import { businessActor, businessTx, businessReadTx, hash } from "@/server/business/core";
 import { businessAction, MODULE_CAPS } from "@/server/business/actions";
 import { businessRead } from "@/server/business/read";
 import { schemas, type Module } from "@/server/business/validation";
@@ -11,7 +12,7 @@ export const GET = handle(async (request: Request, context: Context) => {
     throw badRequest("Unknown business module.");
   const actor = await businessActor(MODULE_CAPS[module]);
   return json(
-    await businessTx((tx) =>
+    await businessReadTx((tx) =>
       businessRead(tx, actor, module, new URL(request.url)),
     ),
   );
@@ -23,7 +24,7 @@ export const POST = handle(async (request: Request, context: Context) => {
   const actor = await businessActor(MODULE_CAPS[module]);
   let raw;
   try {
-    raw = await request.json();
+    raw = await readJsonBody(request);
   } catch {
     throw badRequest("Invalid request body.");
   }

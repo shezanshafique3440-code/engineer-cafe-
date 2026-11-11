@@ -1,7 +1,8 @@
+import { businessDayStart } from "@/lib/business-math";
 import { waiterOrderScope } from "@/lib/business-access";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { handle, json, parseQuery, requireAdmin } from "@/server/api";
+import { handle, json, parseQuery, requireAdmin, badRequest } from "@/server/api";
 import { serializeOrder } from "@/server/orders";
 
 const querySchema = z.object({
@@ -30,18 +31,12 @@ export const GET = handle(async (request: Request) => {
   const scope = waiterOrderScope(actor);
   const q = parseQuery(request, querySchema);
 
-  const createdAt: { gte?: Date; lte?: Date } = {};
-  if (q.from) {
-    const d = new Date(q.from);
-    if (!Number.isNaN(d.getTime())) createdAt.gte = d;
-  }
-  if (q.to) {
-    const d = new Date(q.to);
-    if (!Number.isNaN(d.getTime())) {
-      d.setHours(23, 59, 59, 999);
-      createdAt.lte = d;
-    }
-  }
+  const createdAt: { gte?: Date; lt?: Date } = {};
+  try {
+    if (q.from) createdAt.gte = businessDayStart(q.from);
+    if (q.to) createdAt.lt = new Date(businessDayStart(q.to).getTime() + 86400000);
+  } catch { throw badRequest("Choose real calendar dates."); }
+  if (createdAt.gte && createdAt.lt && createdAt.gte >= createdAt.lt) throw badRequest("From must be before To.");
 
   const where = {
     ...scope,

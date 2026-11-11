@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { audit, businessTx } from "@/server/business/core";
 import { settingsSchema } from "@/lib/validation";
-import { handle, json, parseBody, requireAdmin, forbidden } from "@/server/api";
+import { handle, json, parseBody, requireAdmin, forbidden, badRequest } from "@/server/api";
 import { getSettings } from "@/server/settings";
 import { resolveTheme } from "@/lib/themes";
 
@@ -14,6 +14,7 @@ export const GET = handle(async () => {
 export const PUT = handle(async (request: Request) => {
   const user = await requireAdmin("settings");
   const data = await parseBody(request, settingsSchema);
+  if (data.onlinePaymentEnabled) throw badRequest("Online card/wallet checkout requires a verified payment gateway. Use cash or counter payments until a provider is configured and tested.");
   const current = await getSettings();
   if (user.role !== "ADMIN" && data.theme !== resolveTheme(current.theme))
     throw forbidden("Only an admin can change the website theme.");

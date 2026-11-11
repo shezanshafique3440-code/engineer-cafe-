@@ -70,14 +70,14 @@ export function OrderTracker({ initialOrder }: { initialOrder: OrderDTO }) {
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const data = await apiGet<{ order: OrderDTO }>(`/api/orders/${order.orderNumber}`);
+      const data = await apiGet<{ order: OrderDTO }>(`/api/orders/${order.orderNumber}?tracking=${encodeURIComponent(searchParams.get("tracking") ?? "")}`);
       setOrder(data.order);
     } catch {
       toast.error("Couldn't refresh this order.");
     } finally {
       setRefreshing(false);
     }
-  }, [order.orderNumber]);
+  }, [order.orderNumber, searchParams]);
 
   // Poll while the order is still live so the customer sees status changes.
   useEffect(() => {

@@ -19,21 +19,24 @@ PREVIOUS_DEMO=587af3ca3aafc9938c2372f6a2c47c2b20e58823
 PREVIOUS_OFFLINE=7677e193235d31c91cccf6eef9ef727b1d39d689
 PREVIOUS_CASH=49d230c0a81cbc64a55053bcdf65221108f702a1
 PREVIOUS_ROUTING=a94d8e822656e309bbec20c223023a93de0e1113
-PREVIOUS_REPORT=bc90c19886439ec226f604709da296d2a8123404
-if [ "$OLD" != "$PREVIOUS_REPORT" ] && [ "$OLD" != "$PREVIOUS_ROUTING" ] && [ "$OLD" != "$PREVIOUS_CASH" ] && [ "$OLD" != "$BASE" ] && [ "$OLD" != "$PREVIOUS_DEMO" ] && [ "$OLD" != "$PREVIOUS_OFFLINE" ] && [ "$OLD" != "$TARGET" ]; then
+PREVIOUS_REPORT=a1eb356135fbccc1313bb15b17bcfe468ce2a284
+PREVIOUS_COMBINED=bc90c19886439ec226f604709da296d2a8123404
+if [ "$OLD" != "$PREVIOUS_COMBINED" ] && [ "$OLD" != "$PREVIOUS_REPORT" ] && [ "$OLD" != "$PREVIOUS_ROUTING" ] && [ "$OLD" != "$PREVIOUS_CASH" ] && [ "$OLD" != "$BASE" ] && [ "$OLD" != "$PREVIOUS_DEMO" ] && [ "$OLD" != "$PREVIOUS_OFFLINE" ] && [ "$OLD" != "$TARGET" ]; then
  echo 'This installer expects the audited baseline, previous demo release, or the same target. Inspect the current commit first.'; exit 1
 fi
-if ! git diff --quiet "$BASE" "$TARGET" -- src/lib/business-access.ts; then
- echo 'Unexpected staff-role changes in this release. Stopping.'; exit 1
-fi
-# This reviewed release adds only the pinned Excel writer; reject unrelated changes.
+# Profile definitions moved to shared JSON so the worker applies the same grants.
+# Verify capability values AND the remaining permission logic against the baseline.
 node - "$BASE" "$TARGET" <<'JS'
-const {execFileSync}=require('node:child_process');const {deepStrictEqual}=require('node:assert/strict');
-const read=ref=>JSON.parse(execFileSync('git',['show',ref+':package.json'],{encoding:'utf8'}));
-const before=read(process.argv[2]),after=read(process.argv[3]);
-if(after.dependencies.exceljs!=='4.4.0')throw Error('Unexpected Excel dependency version.');
-delete after.dependencies.exceljs;deepStrictEqual(after,before,'Unexpected package changes.');
+const {execFileSync}=require('node:child_process'),{deepStrictEqual}=require('node:assert/strict');
+const read=(ref,file)=>execFileSync('git',['show',ref+':'+file],{encoding:'utf8'});
+const before=read(process.argv[2],'src/lib/business-access.ts'),after=read(process.argv[3],'src/lib/business-access.ts');
+const map=before.match(/const PROFILE_CAPS:[\s\S]*?\n};/)[0];
+const caps=Object.fromEntries([...map.matchAll(/(MANAGER|CASHIER|WAITER|CHEF):\s*\[([^\]]*)\]/g)].map(m=>[m[1],[...m[2].matchAll(/"([a-z-]+)"/g)].map(x=>x[1])]));
+deepStrictEqual(JSON.parse(read(process.argv[3],'src/lib/business-profiles.json')),caps,'Profile grants changed. Review release first.');
+deepStrictEqual(after.replace('import profiles from "./business-profiles.json";\n','').replace('const PROFILE_CAPS: Record<BusinessProfile, string[]> = profiles;',map),before,'Permission logic changed. Review release first.');
 JS
+# Package/lockfile versions are pinned and reviewed in the target commit.
+# npm ci verifies their consistency; do not rewrite either during deployment.
 pm2 describe engineer-cafe >/dev/null
 test -f .env
 test -f .next/BUILD_ID
@@ -53,6 +56,7 @@ const {PrismaClient}=require('@prisma/client');const db=new PrismaClient();
 (async()=>{const [r]=await db.$queryRawUnsafe(`SELECT to_regclass('public."DemoJob"')::text AS name`);if(r.name){const jobs=await db.$queryRawUnsafe(`SELECT id FROM "DemoJob" WHERE status IN ('QUEUED','RUNNING')`);if(jobs.length)throw Error('Finish or recover the active demo job before deploying.');}})().catch(e=>{console.error(e.message);process.exitCode=1}).finally(()=>db.$disconnect());
 JS
 MOVED=0
+DEPS_MOVED=0
 rollback() {
  code=$?
  if [ "$code" -eq 0 ]; then return; fi
@@ -64,6 +68,10 @@ rollback() {
  if [ "$MOVED" -eq 1 ]; then
   if [ -e .next ]; then mv .next "$SNAPSHOT/failed-build"; fi
   mv "$SNAPSHOT/previous-build" .next
+ fi
+ if [ "$DEPS_MOVED" -eq 1 ]; then
+  if [ -e node_modules ]; then mv node_modules "$SNAPSHOT/failed-dependencies"; fi
+  mv "$SNAPSHOT/previous-dependencies" node_modules
  fi
  if [ -x node_modules/.bin/prisma ]; then ./node_modules/.bin/prisma generate >/dev/null 2>&1 || true; fi
  if [ "$APP_WAS_ONLINE" = 1 ]; then pm2 restart engineer-cafe --update-env >/dev/null || true; fi
@@ -88,14 +96,18 @@ gzip -t "$SNAPSHOT/website.tar.gz"
 mv .next "$SNAPSHOT/previous-build"
 MOVED=1
 git switch --detach "$TARGET"
-if ! git diff --quiet "$OLD" "$TARGET" -- package-lock.json || [ ! -x node_modules/.bin/tsx ] || [ ! -x node_modules/.bin/prisma ]; then npm ci --no-audit --no-fund; fi
+if ! git diff --quiet "$OLD" "$TARGET" -- package-lock.json || [ ! -x node_modules/.bin/tsx ] || [ ! -x node_modules/.bin/prisma ]; then
+ mv node_modules "$SNAPSHOT/previous-dependencies"
+ DEPS_MOVED=1
+ npm ci --no-audit --no-fund
+fi
 npm run db:generate
 npm run db:deploy
 npm run typecheck
 NODE_OPTIONS=--max-old-space-size=2048 npm run build
 pm2 restart engineer-cafe --update-env >/dev/null
 for attempt in $(seq 1 20); do
- if curl --fail --silent --max-time 5 http://127.0.0.1:3100/api/settings -o /dev/null; then break; fi
+ if curl --fail --silent --max-time 5 http://127.0.0.1:3100/api/health -o /dev/null; then break; fi
  if [ "$attempt" = 20 ]; then echo 'Cafe health check failed.'; exit 1; fi
  sleep 2
 done

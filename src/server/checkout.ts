@@ -20,6 +20,7 @@ export async function createCafeOrder(
   settings: CafeSetting,
   pos?: {
     offline?: boolean;
+    capturedAt?: string;
     expectedShiftId?: string;
     expectedLineTotals?: number[];
     approvalId?: string;
@@ -36,7 +37,7 @@ export async function createCafeOrder(
     .update(
       JSON.stringify({
         data,
-        pos: pos?.offline ? { ...pos, actor: pos.actor?.id } : pos,
+        pos: pos?.offline ? { ...pos, actor: pos.actor?.id } : pos ? { ...pos, actor: pos.actor ? { id: pos.actor.id, name: pos.actor.name, email: pos.actor.email, role: pos.actor.role, businessProfile: pos.actor.businessProfile, businessPermissions: pos.actor.businessPermissions, employeeId: pos.actor.employeeId } : undefined } : pos,
       }),
     )
     .digest("hex");
@@ -72,7 +73,7 @@ export async function createCafeOrder(
   const methodEnabled = {
     CASH_ON_DELIVERY: settings.codEnabled,
     CASH_AT_COUNTER: settings.cashAtCounterEnabled,
-    ONLINE: settings.onlinePaymentEnabled,
+    ONLINE: false,
   }[data.paymentMethod];
   if (!pos && !methodEnabled)
     throw badRequest("That payment method isn't available right now.");
@@ -174,7 +175,7 @@ export async function createCafeOrder(
       const enabled = {
         CASH_ON_DELIVERY: currentSettings.codEnabled,
         CASH_AT_COUNTER: currentSettings.cashAtCounterEnabled,
-        ONLINE: currentSettings.onlinePaymentEnabled,
+        ONLINE: false,
       }[data.paymentMethod];
       if (!pos && !enabled)
         throw badRequest("That payment method is no longer available.");
@@ -223,7 +224,7 @@ export async function createCafeOrder(
 
       const business = await tx.businessConfig.findUnique({ where: { id: 1 } });
       const tracked = Boolean(business?.enabled);
-      if (pos?.offline) {
+      if (pos?.offline || pos?.expectedShiftId) {
         if (!tracked || !pos.actor || !pos.expectedShiftId)
           throw badRequest(
             "Offline billing requires active accounting and the prepared cashier shift.",
@@ -334,6 +335,9 @@ export async function createCafeOrder(
           requestKey,
           requestHash,
           channel: pos ? "POS" : "WEB",
+          cashierId: pos?.actor && (!table || tendered > 0n) ? pos.actor.id : null,
+          cashierName: pos?.actor && (!table || tendered > 0n) ? pos.actor.name : null,
+          capturedAt: pos?.capturedAt ? new Date(pos.capturedAt) : null,
           businessTracked: tracked,
           businessCredit: tracked && credit,
           businessPartyId: pos?.partyId ?? null,

@@ -1,5 +1,5 @@
 import "server-only";
-import type { CafeSetting } from "@prisma/client";
+import { Prisma, type CafeSetting } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { resolveTheme, type ThemeId } from "@/lib/themes";
@@ -12,9 +12,19 @@ import { resolveTheme, type ThemeId } from "@/lib/themes";
 export async function getSettings(): Promise<CafeSetting> {
   const existing = await prisma.cafeSetting.findUnique({ where: { id: 1 } });
   if (existing) return existing;
-  return prisma.cafeSetting.create({
-    data: { id: 1, whatsapp: env.whatsappFallback },
-  });
+  try {
+    return await prisma.cafeSetting.create({
+      data: { id: 1, whatsapp: env.whatsappFallback },
+    });
+  } catch (error) {
+    // Parallel first visits/build workers may initialize the singleton together.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    )
+      return prisma.cafeSetting.findUniqueOrThrow({ where: { id: 1 } });
+    throw error;
+  }
 }
 
 /** Only the fields that are safe to expose to the browser. */
@@ -51,7 +61,7 @@ export function publicSettings(settings: CafeSetting) {
     tiktokUrl: settings.tiktokUrl,
     codEnabled: settings.codEnabled,
     cashAtCounterEnabled: settings.cashAtCounterEnabled,
-    onlinePaymentEnabled: settings.onlinePaymentEnabled,
+    onlinePaymentEnabled: false,
     isAcceptingOrders: settings.isAcceptingOrders,
   };
 }

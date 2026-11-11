@@ -95,7 +95,7 @@ export function buildWhere(query: ProductQuery): Prisma.ProductWhereInput {
   const where: Prisma.ProductWhereInput = {};
   const and: Prisma.ProductWhereInput[] = [];
 
-  if (query.availableOnly !== false) and.push({ isAvailable: true });
+  if (query.availableOnly !== false) and.push({ isAvailable: true, category: { isActive: true } });
   if (query.category) and.push({ category: { slug: query.category } });
   if (query.vegetarian) and.push({ isVegetarian: true });
   if (query.popular) and.push({ isPopular: true });
@@ -185,7 +185,7 @@ export async function getProductBySlug(
   slug: string,
 ): Promise<ProductDTO | null> {
   const product = await prisma.product.findUnique({
-    where: { slug },
+    where: { slug, isAvailable: true, category: { isActive: true } },
     select: productDetailSelect,
   });
   if (!product) return null;

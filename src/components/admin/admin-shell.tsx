@@ -34,6 +34,7 @@ import { useDialogFocus } from "@/hooks/use-dialog-focus";
 import { cn, initials } from "@/lib/utils";
 
 const EXTRA_NAV = [
+  { href: "/admin/system", label: "System health", icon: Settings },
   { href: "/admin/demo-data", label: "Demo Data", icon: Package },
   { href: "/admin/business", label: "Cafe business system", icon: BarChart3 },
   {
@@ -102,7 +103,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 : ShoppingBag,
     })),
   ];
-  const extraNav = EXTRA_NAV.filter(item => item.href !== "/admin/demo-data" || user?.role === "ADMIN").filter((item) =>
+  const extraNav = EXTRA_NAV.filter(item => !["/admin/demo-data", "/admin/system"].includes(item.href) || user?.role === "ADMIN").filter((item) =>
     capFor(item.href) === "business"
       ? Boolean(user && user.role !== "CUSTOMER")
       : canBusiness(user, capFor(item.href)),

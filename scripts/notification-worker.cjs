@@ -2,6 +2,7 @@
 const { PrismaClient } = require("@prisma/client");
 const webpush = require("web-push");
 const db = new PrismaClient();
+const profiles = require("../src/lib/business-profiles.json");
 const { VAPID_PUBLIC_KEY: pub, VAPID_PRIVATE_KEY: priv } = process.env;
 if (!pub || !priv) {
   console.error("VAPID keys missing");
@@ -18,11 +19,20 @@ async function tick() {
   const jobs =
     await db.$queryRaw`UPDATE "NotificationJob" SET "availableAt"=NOW()+INTERVAL '2 minutes', "attempts"="attempts"+1 WHERE id IN (SELECT id FROM "NotificationJob" WHERE "deliveredAt" IS NULL AND "availableAt"<=NOW() AND "attempts"<6 ORDER BY "createdAt" LIMIT 10 FOR UPDATE SKIP LOCKED) RETURNING *`;
   for (const job of jobs) {
-    const subscriptions = await db.pushSubscription.findMany({
+    let subscriptions = await db.pushSubscription.findMany({
       where: {
         createdAt: { lte: job.createdAt },
         user: { isActive: true, role: { in: ["ADMIN", "STAFF"] } },
       },
+      include: { user: { select: { role: true, staffAccess: true } } },
+    });
+    const orderId = job.eventKey.startsWith("order:") ? job.eventKey.slice(6) : null;
+    const order = orderId ? await db.order.findUnique({ where: { id: orderId }, select: { tableSession: { select: { waiterId: true } } } }) : null;
+    subscriptions = subscriptions.filter(s => {
+      if (s.user.role === "ADMIN") return true;
+      const access = s.user.staffAccess;
+      if (!access || !(profiles[access.profile] || []).includes("orders") || (access.customPermissions && !access.permissions.includes("orders"))) return false;
+      return access.profile !== "WAITER" || Boolean(access.employeeId && order?.tableSession?.waiterId === access.employeeId);
     });
     const results = await Promise.allSettled(
       subscriptions.map(async (s) => {

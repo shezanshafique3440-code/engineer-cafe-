@@ -1,3 +1,4 @@
+import { businessToday, businessDayStart } from "@/lib/business-math";
 import { prisma } from "@/lib/prisma";
 import { handle, json, requireAdmin } from "@/server/api";
 
@@ -6,10 +7,10 @@ const REVENUE_STATUSES = ["CONFIRMED", "PREPARING", "READY", "OUT_FOR_DELIVERY",
 export const GET = handle(async () => {
   await requireAdmin("insights");
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  const today = businessToday();
+  const startOfToday = businessDayStart(today);
   const startOfYesterday = new Date(startOfToday.getTime() - 86400000);
-  const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
+  const startOfMonth = businessDayStart(today.slice(0, 7) + "-01");
 
   const [
     todayAgg,

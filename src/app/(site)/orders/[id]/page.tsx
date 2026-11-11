@@ -1,9 +1,11 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getCurrentUser, isStaff } from "@/server/auth";
-import { findOrder, serializeOrder } from "@/server/orders";
+import { getCurrentUser } from "@/server/auth";
+import { serializeOrder } from "@/server/orders";
+import { readableOrder, trackingOrder } from "@/server/order-access";
 import { buildMetadata } from "@/lib/seo";
+import { PublicOrderTracker } from "@/components/cart/public-order-tracker";
 import { OrderTracker } from "@/components/cart/order-tracker";
 
 export const dynamic = "force-dynamic";
@@ -22,20 +24,12 @@ export async function generateMetadata({
   });
 }
 
-export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OrderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tracking?: string }> }) {
   const { id } = await params;
-  const [order, user] = await Promise.all([
-    findOrder({ OR: [{ id }, { orderNumber: id.toUpperCase() }] }),
-    getCurrentUser(),
-  ]);
-
-  // An order attached to an account is only visible to that customer or staff.
-  if (!order) notFound();
-  if (order.userId && !isStaff(user?.role) && order.userId !== user?.id) notFound();
-
-  return (
-    <Suspense fallback={<div className="container py-16" />}>
-      <OrderTracker initialOrder={serializeOrder(order)} />
-    </Suspense>
-  );
+  const { tracking } = await searchParams;
+  const result = await readableOrder(id, await getCurrentUser(), tracking ?? null);
+  if (!result) notFound();
+  return <Suspense fallback={<div className="container py-16" />}>
+    {result.private ? <OrderTracker initialOrder={serializeOrder(result.order)} /> : <PublicOrderTracker initialOrder={trackingOrder(result.order)} />}
+  </Suspense>;
 }

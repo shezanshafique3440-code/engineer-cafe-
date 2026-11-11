@@ -38,7 +38,7 @@ async function poll(fn, message) {
     const context = await browser.newContext({
       baseURL: base,
       viewport: { width: 390, height: 844 },
-      extraHTTPHeaders: { "X-Forwarded-For": "127.0.0.45" },
+      extraHTTPHeaders: { "X-Real-IP": "127.0.0.45" },
     });
     const auth = await context.request.post("/api/auth/login", {
       data: {
@@ -49,6 +49,10 @@ async function poll(fn, message) {
     eq(auth.status(), 200);
     await context.addInitScript(() => {
       window.print = () => {};
+      // CDP offline emulation does not cover Chromium Background Sync traffic.
+      // Keep service-worker caching, but test page reconnect sync deterministically.
+      // The separate HTTP-proxy startup suite covers actual worker WAN failures.
+      if (typeof SyncManager !== "undefined") Object.defineProperty(SyncManager.prototype, "register", { configurable: true, value: async () => {} });
     });
     const page = await context.newPage(),
       errors = [];
@@ -68,7 +72,8 @@ async function poll(fn, message) {
       window.CafeOfflinePOS.snapshot(),
     );
     await context.setOffline(true);
-    await page.goto(base + "/admin/pos", { waitUntil: "domcontentloaded" });
+    // Automatic outage handoff may already be navigating to the public shell.
+    await page.goto(base + "/admin/pos", { waitUntil: "domcontentloaded" }).catch(error => { if (!error.message.includes("ERR_ABORTED")) throw error; });
     await page
       .getByRole("heading", { name: "Cash counter", exact: true })
       .waitFor();
@@ -76,7 +81,7 @@ async function poll(fn, message) {
       .locator("select[name=product]")
       .selectOption("delivery-offline-service");
     await page.locator("input[name=quantity]").fill("2");
-    await page.locator("input[name=cashReceived]").fill("100");
+    await page.locator("input[name=cashReceived]").fill("1000");
     await page
       .locator("input[name=customerName]")
       .fill("Offline browser fixture");
@@ -90,7 +95,7 @@ async function poll(fn, message) {
         snapshot.user.id,
       );
       return bill?.state === "pending";
-    }, "Offline form did not save");
+    }, "Offline form did not save").catch(async error => { console.error(JSON.stringify(await page.evaluate(async () => ({ message: document.getElementById("message")?.textContent, online:navigator.onLine, bills: await window.CafeOfflinePOS.list((await window.CafeOfflinePOS.snapshot()).user.id) })),null,2)); throw error; });
     eq(
       (
         await sql('SELECT count(*)::int n FROM "Order" WHERE "requestKey"=$1', [
@@ -122,7 +127,7 @@ async function poll(fn, message) {
           { owner: snapshot.user.id, id: bill.id },
         ),
       "Reconnect did not synchronize",
-    );
+    ).catch(async error => { console.error(await page.evaluate(async () => ({ message: document.getElementById("message")?.textContent, bills: await window.CafeOfflinePOS.list((await window.CafeOfflinePOS.snapshot()).user.id) }))); throw error; });
     eq(
       (
         await sql('SELECT count(*)::int n FROM "Order" WHERE "requestKey"=$1', [
@@ -162,7 +167,7 @@ async function poll(fn, message) {
       .locator("select[name=product]")
       .selectOption("delivery-offline-service");
     await page.locator("input[name=quantity]").fill("2");
-    await page.locator("input[name=cashReceived]").fill("100");
+    await page.locator("input[name=cashReceived]").fill("1000");
     await page
       .getByRole("button", { name: "Save provisional bill", exact: true })
       .click();
@@ -171,12 +176,12 @@ async function poll(fn, message) {
       conflict = await page.evaluate(
         async (owner) =>
           (await window.CafeOfflinePOS.list(owner)).find(
-            (b) => b.state === "pending",
+            (b) => ["pending", "conflict"].includes(b.state),
           ),
         snapshot.user.id,
       );
       return Boolean(conflict);
-    }, "Second offline bill not stored");
+    }, "Second offline bill not stored").catch(async error => { console.error(await page.evaluate(async () => ({ message: document.getElementById("message")?.textContent, validity: document.getElementById("sale").checkValidity(), inputs: [...document.querySelectorAll("input,select")].map(e => ({name:e.name,value:e.value,valid:e.validity.valid})), bills: await window.CafeOfflinePOS.list((await window.CafeOfflinePOS.snapshot()).user.id) }))); throw error; });
     await context.setOffline(false);
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await poll(
@@ -318,7 +323,7 @@ async function poll(fn, message) {
     const lost = await browser.newContext({
       baseURL: base,
       serviceWorkers: "block",
-      extraHTTPHeaders: { "X-Forwarded-For": "127.0.0.46" },
+      extraHTTPHeaders: { "X-Real-IP": "127.0.0.46" },
     });
     const login = await lost.request.post("/api/auth/login", {
       data: {

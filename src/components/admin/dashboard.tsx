@@ -121,7 +121,7 @@ export function AdminDashboard() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Today's Sales"
+          label="Today's order value"
           value={money(stats.todaySales)}
           icon={change !== null && change < 0 ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
           tone={change !== null && change < 0 ? "red" : "green"}
@@ -203,7 +203,7 @@ export function AdminDashboard() {
       <div className="mt-6 grid gap-5 lg:grid-cols-3">
         <section className="surface p-5 lg:col-span-2" aria-labelledby="sales-chart-heading">
           <h2 id="sales-chart-heading" className="mb-5 text-lg font-bold">
-            Sales — last 14 days
+            Order value — last 14 days
           </h2>
           <div className="h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">

@@ -30,7 +30,7 @@ async function login(email, password) {
   let cookie = "";
   const headers = {
     "Content-Type": "application/json",
-    "X-Forwarded-For": "192.0.2." + ip++,
+    "X-Real-IP": "192.0.2." + ip++,
   };
   const r = await fetch(base + "/api/auth/login", {
     method: "POST",

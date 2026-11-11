@@ -8,6 +8,8 @@ import { HttpError, requireUser } from "./api";
 export const DEMO_BATCH = "business-demo-v2";
 export const RESET_PHRASE = "RESET DEMO DATA";
 export const q = (s: string) => '"' + s.replaceAll('"', '""') + '"';
+// Runtime database snapshots contain heterogeneous PostgreSQL column values.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Validated/fingerprinted before cleanup; not an application DTO.
 type Data = Record<string, any>;
 export type SnapshotRow = { data: Data; fingerprint: string };
 type FK = { child: string; parent: string; column: string; target: string };
@@ -24,6 +26,7 @@ const prefix = (value: unknown) =>
   /^(cafe-demo-v[12]-|cafe-practice-v1-)/.test(value);
 const ownership: Record<string, string[]> = {
   Address: ["userId"],
+  PasswordReset: ["userId"],
   StaffAccess: ["userId"],
   OrderItem: ["orderId"],
   OrderItemAddon: ["orderItemId"],

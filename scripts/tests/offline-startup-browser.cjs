@@ -407,6 +407,9 @@ async function poll(fn, message) {
       ),
       false,
     );
+    // Block the HTTP origin as well: Chromium may start a new worker target
+    // outside CDP offline emulation after an upgrade.
+    mode = "physical-offline";
     await legacy.setOffline(true);
     await l.goto(origin + "/admin/pos?online=1");
     await l.locator("#editor").waitFor({ state: "visible" });

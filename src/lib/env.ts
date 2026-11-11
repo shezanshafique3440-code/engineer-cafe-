@@ -19,11 +19,13 @@ export const env = {
     return required("DATABASE_URL", process.env.DATABASE_URL);
   },
   get authSecret() {
-    return required(
+    const secret = required(
       "AUTH_SECRET",
       process.env.AUTH_SECRET ?? process.env.JWT_SECRET,
       isProd ? undefined : "engineer-cafe-development-secret-do-not-use-in-production",
     );
+    if (isProd && (secret.length < 32 || /replace-with|development-secret|change-me/i.test(secret))) throw new Error("Configure a random AUTH_SECRET of at least 32 characters.");
+    return secret;
   },
   get siteUrl() {
     // Hosts such as Render expose only a bare hostname, so add the scheme when

@@ -14,6 +14,7 @@ import { paise, decimal } from "@/lib/business-math";
 import type { Order, OrderStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { HttpError } from "./api";
+import { trackingPath } from "./order-tracking";
 import { settleLoyalty } from "./loyalty";
 
 /** Allocates the next EC#### order number inside the transaction. */
@@ -49,6 +50,9 @@ export function serializeOrder(order: FullOrder) {
   return {
     id: order.id,
     orderNumber: order.orderNumber,
+    trackingPath: trackingPath(order),
+    cashierName: order.cashierName,
+    capturedAt: order.capturedAt?.toISOString() ?? null,
     status: order.status,
     orderType: order.orderType,
     paymentMethod: order.paymentMethod,
@@ -377,6 +381,9 @@ export async function transitionOrder(
       });
       await audit(tx, actor, "UPDATE_ORDER_STATUS", "Order", order.id, {
         orderNumber: order.orderNumber,
+    trackingPath: trackingPath(order),
+    cashierName: order.cashierName,
+    capturedAt: order.capturedAt?.toISOString() ?? null,
         before: order.status,
         after: status,
         note: note || "",

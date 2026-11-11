@@ -1,8 +1,14 @@
 "use client";
 import Link from "next/link";
+import {
+  readSaleIntent,
+  saveSaleIntent,
+  definiteRejection,
+  type SaleIntent,
+} from "@/lib/sale-intent";
 import { TaskSteps } from "./task-steps";
 import { OfflineCounterPanel } from "./offline-counter-panel";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Printer, Plus, Minus, Trash2 } from "lucide-react";
 import { CartProvider, useCart } from "@/context/cart-context";
@@ -94,6 +100,75 @@ function Counter({
     [approvals, setApprovals] = useState<Row[]>([]),
     [approvalId, setApprovalId] = useState("");
   const table = mode === "TABLE";
+  const intentKey = `cafe-sale-intent:${mode}:${session}:${user?.id || ""}`;
+  const draftKey = `cafe-counter-draft:${user?.id || ""}`;
+  const [pendingIntent, setPendingIntent] = useState<SaleIntent | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+  const latestDraft = useRef<unknown>(null);
+  latestDraft.current = {
+    ownerId: user?.id,
+    lines: cart.toCartLinesPayload(),
+    cash,
+    name,
+    account,
+    credit,
+    party,
+    approvalId,
+    requestId,
+  };
+  useEffect(() => {
+    if (!user?.id) return;
+    const ownerId = user.id;
+    try {
+      setPendingIntent(readSaleIntent(intentKey, ownerId));
+      if (!table) {
+        const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
+        if (draft?.ownerId === ownerId) {
+          setCash(draft.cash || "");
+          setName(draft.name || "");
+          setAccount(draft.account || "");
+          setCredit(Boolean(draft.credit));
+          setParty(draft.party || "");
+          setApprovalId(draft.approvalId || "");
+          setRequestId(draft.requestId || crypto.randomUUID());
+        } else setRequestId(crypto.randomUUID());
+      } else setRequestId(crypto.randomUUID());
+      setDraftReady(true);
+    } catch {
+      setError(
+        "Browser storage is unavailable. Enable device storage before recording bills safely.",
+      );
+    }
+  }, [user?.id, intentKey, draftKey, table]);
+  useEffect(() => {
+    if (!draftReady || table || !cart.hydrated) return;
+    const save = (event?: Event) => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(latestDraft.current));
+      } catch {
+        event?.preventDefault();
+        toast.error(
+          "Could not save this draft. Free device storage before switching screens.",
+        );
+      }
+    };
+    save();
+    window.addEventListener("cafe:save-draft", save);
+    return () => window.removeEventListener("cafe:save-draft", save);
+  }, [
+    draftReady,
+    table,
+    draftKey,
+    cart.hydrated,
+    cart.lines,
+    cash,
+    name,
+    account,
+    credit,
+    party,
+    approvalId,
+    requestId,
+  ]);
   const loadApprovals = useCallback(
     () =>
       table
@@ -147,7 +222,6 @@ function Counter({
       );
   useEffect(() => {
     void load();
-    setRequestId(crypto.randomUUID());
   }, []);
   useEffect(() => {
     void loadApprovals().catch(() => {});
@@ -158,7 +232,7 @@ function Counter({
     if (busy) return;
     setBusy(true);
     try {
-      const payload = {
+      const payload = pendingIntent?.payload ?? {
         requestId,
         lines: cart.toCartLinesPayload(),
         expectedTotal: saleTotal,
@@ -166,6 +240,7 @@ function Counter({
         ...(table
           ? { sessionId: session }
           : {
+              shiftId: context?.shift?.id,
               approvalId: approvalId || undefined,
               cashReceived: cash ? Number(cash) : 0,
               accountId: account || undefined,
@@ -173,10 +248,41 @@ function Counter({
               partyId: party || undefined,
             }),
       };
-      const result = await apiPost<{ order: OrderDTO }>(
-        table ? "/api/admin/table-orders" : "/api/admin/pos",
+      if (!user) throw new Error("Sign in before recording a sale.");
+      const intent = pendingIntent ?? {
+        ownerId: user.id,
+        endpoint: table ? "/api/admin/table-orders" : "/api/admin/pos",
         payload,
+        createdAt: new Date().toISOString(),
+        receipt: {
+          cafeName: settings.cafeName,
+          originalQuote: true as const,
+          subtotal: cart.quote?.subtotal ?? saleTotal,
+          discount,
+          tax: saleTax,
+          deliveryFee: cart.quote?.deliveryFee ?? 0,
+          serviceMode: table ? "DINE_IN" : "TAKEAWAY",
+          lines: (cart.quote?.lines ?? []).map((line, i) => ({
+            name: line.productName,
+            quantity: line.quantity,
+            total: line.lineTotal,
+            options: (cart.lines[i]?.addons ?? [])
+              .map((a) => a.name)
+              .join(", "),
+          })),
+        },
+      };
+      saveSaleIntent(intentKey, intent);
+      setPendingIntent(intent);
+      const result = await apiPost<{ order: OrderDTO }>(
+        intent.endpoint,
+        intent.payload,
       );
+      if (!result?.order?.id)
+        throw new Error("No server confirmation. Retry this original bill.");
+      localStorage.removeItem(intentKey);
+      localStorage.removeItem(draftKey);
+      setPendingIntent(null);
       setReceipt(result.order);
       setTimeout(
         () =>
@@ -200,6 +306,10 @@ function Counter({
             : "Payment recorded. Ticket sent to kitchen.",
       );
     } catch (e) {
+      if (e instanceof ApiError && definiteRejection(e.status)) {
+        localStorage.removeItem(intentKey);
+        setPendingIntent(null);
+      }
       toast.error(
         e instanceof ApiError && e.fields
           ? Object.values(e.fields).flat()[0] || e.message
@@ -216,10 +326,40 @@ function Counter({
     cart.quoting ||
     !cart.lines.length ||
     !requestId ||
+    !draftReady ||
     discount > (cart.quote?.subtotal ?? 0) ||
     (table
       ? !session || !context?.enabled
       : (!credit && (!cash || Number(cash) < saleTotal)) || (credit && !party));
+  if (pendingIntent)
+    return (
+      <section className="surface space-y-4 p-6" aria-live="polite">
+        <h1 className="text-2xl font-bold">Confirm your last bill</h1>
+        <p>
+          This bill may already be saved. Retry checks the original bill ID and
+          cannot create a second copy. Its details stay locked until the server
+          confirms or rejects it.
+        </p>
+        <p className="text-sm">
+          Bill ID: <code>{String(pendingIntent.payload.requestId)}</code>
+        </p>
+        <Button loading={busy} onClick={() => void complete()}>
+          Check & recover bill
+        </Button>
+        {!table && (
+          <p className="text-sm">
+            If the connection is unavailable, the prepared offline counter will
+            retain this bill for retry and let you take the next cash sale.
+            <Link
+              href="/offline-pos.html"
+              className="mt-3 block font-semibold text-chai-700 underline"
+            >
+              Continue cash sales in the prepared offline counter
+            </Link>
+          </p>
+        )}
+      </section>
+    );
   return (
     <div className="min-w-0 pb-24 xl:pb-0">
       <h1 className="text-3xl font-bold">

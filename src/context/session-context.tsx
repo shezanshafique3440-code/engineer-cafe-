@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import {
   createContext,
@@ -81,7 +82,8 @@ export function SessionProvider({
         /* Logging out must remain available. */
       }
     }
-    await apiPost("/api/auth/logout").catch(() => undefined);
+    try { await apiPost("/api/auth/logout"); }
+    catch { toast.error("Sign out could not be confirmed. Reconnect and try again; this session is still active."); return; }
     await import("@/lib/offline-counter")
       .then((m) => m.counterStore())
       .then((store) => store.clearSnapshot())

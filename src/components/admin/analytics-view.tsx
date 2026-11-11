@@ -70,7 +70,8 @@ export function AnalyticsView() {
     return (
       <div>
         <PageHeader title="Analytics" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <p className="surface mb-5 p-4 text-sm">These charts show confirmed order values, including unpaid orders. Use Business reports for posted income, expenses and profit.</p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="surface h-28 animate-pulse" />
           ))}
@@ -99,15 +100,16 @@ export function AnalyticsView() {
         }
       />
 
+      <p className="surface mb-5 p-4 text-sm">These charts show confirmed order values, including unpaid orders. Use Business reports for posted income, expenses and profit.</p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Gross sales" value={money(data.summary.grossSales)} icon={<TrendingUp className="h-4 w-4" />} tone="green" hint={`Over the last ${days} days`} />
+        <StatCard label="Order value" value={money(data.summary.grossSales)} icon={<TrendingUp className="h-4 w-4" />} tone="green" hint={`Over the last ${days} days`} />
         <StatCard label="Orders" value={String(data.summary.orders)} icon={<ShoppingBag className="h-4 w-4" />} hint="Confirmed and beyond" />
         <StatCard label="Average order" value={money(data.summary.averageOrderValue)} icon={<Receipt className="h-4 w-4" />} hint="Per confirmed order" />
         <StatCard label="Items sold" value={String(data.summary.itemsSold)} icon={<Package className="h-4 w-4" />} hint="Total units" />
       </div>
 
       <section className="surface mt-6 p-5" aria-labelledby="daily-heading">
-        <h2 id="daily-heading" className="mb-5 text-lg font-bold">Daily sales</h2>
+        <h2 id="daily-heading" className="mb-5 text-lg font-bold">Daily order value</h2>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data.daily} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
@@ -133,7 +135,7 @@ export function AnalyticsView() {
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <section className="surface p-5" aria-labelledby="weekly-heading">
-          <h2 id="weekly-heading" className="mb-5 text-lg font-bold">Weekly sales</h2>
+          <h2 id="weekly-heading" className="mb-5 text-lg font-bold">Weekly order value</h2>
           <div className="h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.weekly} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
@@ -148,7 +150,7 @@ export function AnalyticsView() {
         </section>
 
         <section className="surface p-5" aria-labelledby="monthly-heading">
-          <h2 id="monthly-heading" className="mb-5 text-lg font-bold">Monthly sales (12 months)</h2>
+          <h2 id="monthly-heading" className="mb-5 text-lg font-bold">Monthly order value (12 months)</h2>
           <div className="h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.monthly} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>

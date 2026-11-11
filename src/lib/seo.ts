@@ -74,7 +74,7 @@ export function restaurantJsonLd(settings: {
     servesCuisine: ["Pakistani", "Tea House", "Cafe"],
     priceRange: "Rs. 60 – Rs. 1500",
     currenciesAccepted: "PKR",
-    paymentAccepted: "Cash, Card",
+    paymentAccepted: "Cash",
     image: absoluteUrl("/og-image.svg"),
     address: {
       "@type": "PostalAddress",

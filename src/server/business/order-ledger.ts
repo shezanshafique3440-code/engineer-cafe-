@@ -117,6 +117,8 @@ export async function receiveOrderMoney(
   const updated = await tx.order.update({
     where: { id: order.id },
     data: {
+      ...(!input.refund && !order.cashierId ? { cashierId: actor.id, cashierName: actor.name } : {}),
+      ...(!input.refund && !order.cashShiftId && shiftId ? { cashShiftId: shiftId } : {}),
       amountPaid: decimal(newPaid),
       amountRefunded: decimal(newRefunded),
       paymentStatus: state,

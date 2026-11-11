@@ -25,6 +25,11 @@ function requireEnv(name: string, fallback?: string): string {
 }
 
 async function main() {
+  if (await prisma.product.count() > 0 || await prisma.order.count() > 0 || await prisma.user.count() > 0) {
+    console.log("Seed skipped: existing cafe data is preserved. Use a reviewed importer for menu changes.");
+    return;
+  }
+  if (process.env.NODE_ENV === "production" && process.env.CAFE_ALLOW_INITIAL_SEED !== "true") throw new Error("Initial production seed requires CAFE_ALLOW_INITIAL_SEED=true and an empty database.");
   // On hosted deploys the seed runs on every build. Re-seeding would overwrite
   // prices and menu edits made from the admin panel, so when
   // SEED_ONLY_IF_EMPTY is set we bail out as soon as there is real data.

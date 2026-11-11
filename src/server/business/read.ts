@@ -12,7 +12,7 @@ import {
 } from "@/lib/business-math";
 import { badRequest } from "@/server/api";
 import { serializeOrder } from "@/server/orders";
-import { accountBalance, type DB } from "./core";
+import { accountBalances, type DB } from "./core";
 import { stockReadiness } from "./inventory";
 import { operationsRead } from "./operations-read";
 import { reviewer } from "./operations";
@@ -370,10 +370,10 @@ export async function businessRead(
         orderBy: { name: "asc" },
         take: 500,
       });
+      const balances = await accountBalances(tx, [kind === "SUPPLIER" ? "SUPPLIER_CONTROL" : "CUSTOMER_CONTROL"], parties.map(p => p.id));
       const rows = [];
       for (const party of parties) {
-        const balance = await accountBalance(
-          tx,
+        const balance = balances(
           kind === "SUPPLIER" ? "SUPPLIER_CONTROL" : "CUSTOMER_CONTROL",
           party.id,
         );
@@ -447,15 +447,16 @@ export async function businessRead(
         orderBy: { code: "asc" },
         take: 500,
       });
+      const balances = await accountBalances(tx, ["STAFF_ADVANCES", "SALARIES_PAYABLE"], employees.map(e => e.partyId));
       const rows = [];
       for (const e of employees)
         rows.push({
           ...e,
           advance: decimal(
-            await accountBalance(tx, "STAFF_ADVANCES", e.partyId),
+            balances("STAFF_ADVANCES", e.partyId),
           ),
           salaryDue: decimal(
-            -(await accountBalance(tx, "SALARIES_PAYABLE", e.partyId)),
+            -(balances("SALARIES_PAYABLE", e.partyId)),
           ),
           version: e.updatedAt.toISOString(),
         });
@@ -540,14 +541,14 @@ export async function businessRead(
         where: { isActive: true },
         orderBy: { name: "asc" },
       });
+      const balances = await accountBalances(tx, drawers.map(d => d.accountId));
+      const activeShifts = await tx.cashShift.findMany({ where: { drawerId: { in: drawers.map(d => d.id) }, closedAt: null } });
       const rows = [];
       for (const d of drawers)
         rows.push({
           ...d,
-          balance: decimal(await accountBalance(tx, d.accountId)),
-          activeShift: await tx.cashShift.findFirst({
-            where: { drawerId: d.id, closedAt: null },
-          }),
+          balance: decimal(balances(d.accountId)),
+          activeShift: activeShifts.find(s => s.drawerId === d.id) ?? null,
         });
       const shifts = await tx.cashShift.findMany({
         where:

@@ -99,3 +99,5 @@ export function payrollMath(input: {
   const recovery = input.advance > earned ? earned : input.advance;
   return { base, unpaid, overtime, earned, recovery, net: earned - recovery };
 }
+
+export function businessDayStart(value = businessToday()) { return new Date(dateValue(value).getTime() - 5 * 3600000); }

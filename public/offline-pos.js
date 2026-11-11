@@ -15,15 +15,19 @@
   const tell = (text) => {
     message.textContent = text;
   };
+  let importedDraft = null;
+  let protectedDraft = false;
   let snapshot,
     prepared = false,
     editing = null,
     draftTouched = false;
   form.addEventListener("input", () => {
     draftTouched = true;
+    saveDraft();
   });
   form.addEventListener("change", () => {
     draftTouched = true;
+    saveDraft();
   });
   const make = (tag, text) => {
     const e = document.createElement(tag);
@@ -53,7 +57,7 @@
       form.elements.sessionId.append(new Option(s.table.name, s.id));
   }
   function showPrepared() {
-    prepared = Boolean(snapshot?.user && snapshot.shift);
+    prepared = Boolean(snapshot?.user && snapshot.shift) && !protectedDraft;
     const setup = document.getElementById("setup");
     if (setup) setup.hidden = prepared;
     const reason = document.getElementById("setup-reason");
@@ -132,6 +136,7 @@
     remove.onclick = () => {
       div.remove();
       total();
+      saveDraft();
     };
     div.append(remove);
     ps.onchange = () => {
@@ -258,8 +263,17 @@
           await sync();
         };
         card.append(retry);
-        const review = make("button", "Review & correct");
+        const review = make(
+          "button",
+          b.endpoint ? "Review original online bill" : "Review & correct",
+        );
         review.onclick = async () => {
+          if (b.endpoint) {
+            tell(
+              "This is an original online request. Retry it unchanged or void the rejected record before creating a replacement. It cannot be converted to an offline request.",
+            );
+            return;
+          }
           if (!navigator.onLine) {
             tell(
               "Reconnect to load current prices and your current shift before reviewing a rejected bill.",
@@ -374,6 +388,38 @@
     if (switched) reset();
     await list();
   }
+  function saveDraft() {
+    if (!snapshot?.user || !prepared || editing) return;
+    try {
+      const lines = [...document.querySelectorAll(".line")].map((d) => ({
+        productId: d.querySelector("[name=product]").value,
+        quantity: Number(d.querySelector("[name=quantity]").value),
+        addonIds: [...d.querySelectorAll("[name=addons] option:checked")]
+          .map((o) => o.value)
+          .filter(Boolean),
+        notes: d.querySelector("[name=notes]").value,
+      }));
+      const values = {};
+      for (const key of [
+        "customerName",
+        "cashReceived",
+        "serviceMode",
+        "sessionId",
+        "customerPhone",
+        "addressLine",
+        "city",
+      ])
+        values[key] = form.elements[key].value;
+      localStorage.setItem(
+        "cafe-offline-draft:" + snapshot.user.id,
+        JSON.stringify({ lines, values }),
+      );
+    } catch {
+      tell(
+        "Could not preserve the current draft on this device. Save the bill before reloading.",
+      );
+    }
+  }
   function reset() {
     draftTouched = false;
     editing = null;
@@ -400,7 +446,8 @@
       if (!Number.isFinite(cash) || Math.round(cash * 100) < c.total * 100)
         throw Error("Actual cash received must cover the bill.");
       const payload = {
-        requestId: editing?.id || crypto.randomUUID(),
+        requestId:
+          editing?.id || importedDraft?.requestId || crypto.randomUUID(),
         lines: c.lines,
         expectedTotal: c.total,
         expectedLineTotals: c.receipts.map((l) => l.total),
@@ -409,6 +456,7 @@
         accountId: snapshot.shift.drawer.accountId,
         shiftId: snapshot.shift.id,
         offline: true,
+        capturedAt: editing?.payload.capturedAt || new Date().toISOString(),
         serviceMode: form.elements.serviceMode.value,
         ...(form.elements.serviceMode.value === "DINE_IN"
           ? { sessionId: form.elements.sessionId.value }
@@ -432,6 +480,12 @@
           (s) => s.id === payload.sessionId,
         )?.table.name,
       });
+      localStorage.removeItem("cafe-offline-draft:" + snapshot.user.id);
+      if (importedDraft) {
+        localStorage.removeItem("cafe-counter-draft:" + snapshot.user.id);
+        localStorage.removeItem("engineer-cafe-pos-v1");
+        importedDraft = null;
+      }
       tell(
         "Provisional bill saved on this device. Print it below and keep the cash for reconciliation.",
       );
@@ -446,6 +500,7 @@
   document.getElementById("add").onclick = () => {
     add();
     total();
+    saveDraft();
   };
   document.getElementById("cancel-edit").onclick = reset;
   document.getElementById("sync").onclick = sync;
@@ -510,6 +565,91 @@
   tables();
   showPrepared();
   reset();
+  try {
+    if (snapshot?.user) {
+      const key = "cafe-counter-draft:" + snapshot.user.id;
+      const draft = JSON.parse(localStorage.getItem(key) || "null");
+      const intentKey = "cafe-sale-intent:COUNTER::" + snapshot.user.id;
+      const intent = JSON.parse(localStorage.getItem(intentKey) || "null");
+      if (intent?.ownerId === snapshot.user.id) {
+        const receipt = intent.receipt || {
+          cafeName: snapshot.settings.cafeName,
+          lines: (intent.payload.lines || []).map((l) => {
+            const p = product(l.productId);
+            return {
+              name: p?.name || l.productId,
+              quantity: l.quantity,
+              total: 0,
+              options: "Recovering original online bill; total shown below.",
+            };
+          }),
+          subtotal: intent.payload.expectedTotal,
+          tax: 0,
+          serviceMode: "TAKEAWAY",
+        };
+        await store.recoverOnline(intent, receipt);
+        localStorage.removeItem("cafe-offline-draft:" + snapshot.user.id);
+        localStorage.removeItem(intentKey);
+        localStorage.removeItem(key);
+        localStorage.removeItem("engineer-cafe-pos-v1");
+        tell(
+          "Your previous online bill is saved below with its original ID. It will retry unchanged. You can now take the next cash sale.",
+        );
+      } else if (draft?.ownerId === snapshot.user.id && draft.lines?.length) {
+        if (
+          draft.credit ||
+          draft.approvalId ||
+          (draft.account && draft.account !== snapshot.shift?.drawer.accountId)
+        ) {
+          protectedDraft = true;
+          editor.hidden = true;
+          prepared = false;
+          tell(
+            "Your saved bill uses credit, an approval discount or a different account. It is preserved. Reconnect to finish it in the online counter; it cannot be converted to a cash sale.",
+          );
+        } else {
+          importedDraft = draft;
+          draftTouched = true;
+          form.elements.customerName.value = draft.name || "Counter guest";
+          form.elements.cashReceived.value = draft.cash || "";
+          document.getElementById("lines").replaceChildren();
+          for (const line of draft.lines) add(line);
+          total();
+          tell(
+            "Your current bill has been restored. Check the total and cash, then save it once.",
+          );
+        }
+      }
+    }
+  } catch (e) {
+    prepared = false;
+    editor.hidden = true;
+    tell(
+      "Draft recovery could not finish. Return online before taking another bill. " +
+        e.message,
+    );
+  }
+  if (snapshot?.user && !protectedDraft) {
+    try {
+      const draft = JSON.parse(
+        localStorage.getItem("cafe-offline-draft:" + snapshot.user.id) ||
+          "null",
+      );
+      if (draft?.lines?.length) {
+        for (const [key, value] of Object.entries(draft.values || {}))
+          if (form.elements[key]) form.elements[key].value = value;
+        document.getElementById("lines").replaceChildren();
+        for (const line of draft.lines) add(line);
+        mode();
+        total();
+        draftTouched = true;
+      }
+    } catch {
+      tell(
+        "The saved offline draft could not be restored. Check the device storage before starting a new bill.",
+      );
+    }
+  }
   await list();
   if (navigator.onLine) {
     // Keep a prepared form usable during a router/WAN outage. A real login or

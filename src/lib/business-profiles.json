@@ -1,0 +1,44 @@
+{
+  "MANAGER": [
+    "admin",
+    "orders",
+    "payments",
+    "kitchen",
+    "tables",
+    "pos",
+    "table-orders",
+    "catalog",
+    "customers",
+    "settings",
+    "insights",
+    "inventory",
+    "stock-read",
+    "purchases",
+    "expenses",
+    "attendance",
+    "reports",
+    "cash",
+    "delivery"
+  ],
+  "CASHIER": [
+    "orders",
+    "payments",
+    "kitchen",
+    "tables",
+    "pos",
+    "table-orders",
+    "cash",
+    "delivery"
+  ],
+  "WAITER": [
+    "orders",
+    "kitchen",
+    "tables",
+    "table-orders"
+  ],
+  "CHEF": [
+    "orders",
+    "kitchen",
+    "stock-read"
+  ]
+}

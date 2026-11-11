@@ -1,0 +1,40 @@
+name: Project checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated-ci-only
+          POSTGRES_DB: cafe_operations_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:isolated-ci-only@127.0.0.1:5432/cafe_operations_test
+      AUTH_SECRET: isolated-ci-secret-for-test-only-minimum-32-characters
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:4188
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Offline-upgrade tests read the previous released shell from Git.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm audit --audit-level=moderate
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run db:deploy
+      - run: npm run build
+      - run: npm run test:integration

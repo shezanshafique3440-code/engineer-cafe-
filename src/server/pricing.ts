@@ -71,6 +71,7 @@ export async function priceCart(
     ? await db.product.findMany({
         where: { id: { in: productIds } },
         include: {
+          category: { select: { isActive: true } },
           addonGroups: {
             include: { addonGroup: { include: { addons: true } } },
           },
@@ -87,7 +88,7 @@ export async function priceCart(
       throw badRequest(
         "One of the items in your cart is no longer on the menu.",
       );
-    if (!product.isAvailable) {
+    if (!product.isAvailable || !product.category.isActive) {
       throw badRequest(`"${product.name}" is currently unavailable.`);
     }
     if (product.stock !== null && product.stock < line.quantity) {
@@ -349,9 +350,4 @@ export async function applyCoupon(
     },
     couponError: null,
   };
-}
-
-/** EC1024-style human-friendly order numbers. */
-export function generateOrderNumber(sequence: number): string {
-  return `EC${String(1000 + sequence).padStart(4, "0")}`;
 }

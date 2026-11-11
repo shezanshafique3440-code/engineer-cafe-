@@ -1,3 +1,4 @@
+import profiles from "./business-profiles.json";
 export const BUSINESS_PROFILES = [
   "MANAGER",
   "CASHIER",
@@ -5,41 +6,7 @@ export const BUSINESS_PROFILES = [
   "CHEF",
 ] as const;
 export type BusinessProfile = (typeof BUSINESS_PROFILES)[number];
-const PROFILE_CAPS: Record<BusinessProfile, string[]> = {
-  MANAGER: [
-    "admin",
-    "orders",
-    "payments",
-    "kitchen",
-    "tables",
-    "pos",
-    "table-orders",
-    "catalog",
-    "customers",
-    "settings",
-    "insights",
-    "inventory",
-    "stock-read",
-    "purchases",
-    "expenses",
-    "attendance",
-    "reports",
-    "cash",
-    "delivery",
-  ],
-  CASHIER: [
-    "orders",
-    "payments",
-    "kitchen",
-    "tables",
-    "pos",
-    "table-orders",
-    "cash",
-    "delivery",
-  ],
-  WAITER: ["orders", "kitchen", "tables", "table-orders"],
-  CHEF: ["orders", "kitchen", "stock-read"],
-};
+const PROFILE_CAPS: Record<BusinessProfile, string[]> = profiles;
 export const BUSINESS_CAPABILITIES = [
   ...new Set(Object.values(PROFILE_CAPS).flat()),
 ];

@@ -90,6 +90,22 @@ export async function businessTx<T>(fn: (tx: DB) => Promise<T>): Promise<T> {
     { timeout: 20000 },
   );
 }
+export async function businessReadTx<T>(
+  fn: (tx: DB) => Promise<T>,
+): Promise<T> {
+  const config = await prisma.businessConfig.findUnique({
+    where: { id: 1 },
+    select: { id: true },
+  });
+  if (!config) await businessTx(async () => undefined);
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRawUnsafe("SET TRANSACTION READ ONLY");
+      return fn(tx);
+    },
+    { isolationLevel: "RepeatableRead", timeout: 20000 },
+  );
+}
 export async function audit(
   tx: DB,
   actor: SessionUser,
@@ -236,6 +252,36 @@ export async function accountBalance(
     _sum: { debit: true, credit: true },
   });
   return paise(result._sum.debit ?? 0) - paise(result._sum.credit ?? 0);
+}
+/** One grouped query for a directory; avoids one aggregate per employee/customer. */
+export async function accountBalances(
+  tx: DB,
+  codes: string[],
+  partyIds?: string[],
+) {
+  const accounts = await tx.businessAccount.findMany({
+    where: { OR: [{ code: { in: codes } }, { id: { in: codes } }] },
+    select: { id: true, code: true },
+  });
+  const rows = await tx.businessPosting.groupBy({
+    by: ["accountId", "partyId"],
+    where: {
+      accountId: { in: accounts.map((a) => a.id) },
+      ...(partyIds ? { partyId: { in: partyIds } } : {}),
+    },
+    _sum: { debit: true, credit: true },
+  });
+  const values = new Map<string, bigint>();
+  for (const row of rows) {
+    const value = paise(row._sum.debit ?? 0) - paise(row._sum.credit ?? 0);
+    const account = accounts.find((a) => a.id === row.accountId)!;
+    for (const key of new Set([account.id, account.code])) {
+      values.set(`${key}:${row.partyId ?? ""}`, value);
+      values.set(`${key}:*`, (values.get(`${key}:*`) ?? 0n) + value);
+    }
+  }
+  return (account: string, party?: string) =>
+    values.get(`${account}:${party ?? "*"}`) ?? 0n;
 }
 export async function moneyAccount(
   tx: DB,

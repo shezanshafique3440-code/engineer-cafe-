@@ -1,26 +1,31 @@
 import { handle, json, notFound } from "@/server/api";
-import { getCurrentUser, isStaff } from "@/server/auth";
-import { findOrder, serializeOrder } from "@/server/orders";
+import { getCurrentUser } from "@/server/auth";
+import { serializeOrder } from "@/server/orders";
+import { readableOrder, trackingOrder } from "@/server/order-access";
+import { rateLimit } from "@/server/rate-limit";
 
-/**
- * Order lookup by id or EC#### number. A guest may open an order they placed
- * only by knowing its exact id/number; signed-in customers see their own,
- * staff see everything.
- */
 export const GET = handle(
-  async (_request: Request, ctx: { params: Promise<{ id: string }> }) => {
+  async (request: Request, ctx: { params: Promise<{ id: string }> }) => {
+    rateLimit(request, "order-lookup", 60, 60_000);
     const { id } = await ctx.params;
-    const user = await getCurrentUser();
-
-    const order = await findOrder({
-      OR: [{ id }, { orderNumber: id.toUpperCase() }],
+    const result = await readableOrder(
+      id,
+      await getCurrentUser(),
+      new URL(request.url).searchParams.get("tracking"),
+    );
+    if (!result)
+      throw notFound(
+        "We couldn't find that order. Sign in or use the private link from your receipt.",
+      );
+    const response = json({
+      order:
+        result.private &&
+        new URL(request.url).searchParams.get("view") !== "tracking"
+          ? serializeOrder(result.order)
+          : trackingOrder(result.order),
     });
-    if (!order) throw notFound("We couldn't find that order.");
-
-    if (order.userId && !isStaff(user?.role) && order.userId !== user?.id) {
-      throw notFound("We couldn't find that order.");
-    }
-
-    return json({ order: serializeOrder(order) });
+    response.headers.set("Cache-Control", "private, no-store");
+    response.headers.set("Referrer-Policy", "no-referrer");
+    return response;
   },
 );

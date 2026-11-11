@@ -48,7 +48,8 @@ export const POST = handle(async (request: Request) => {
     null,
     await getSettings(),
     {
-      ...(offline ? { offline: true, expectedShiftId: shiftId } : {}),
+      ...(offline ? { offline: true } : {}),
+      ...(shiftId ? { expectedShiftId: shiftId } : {}),
       approvalId: data.approvalId,
       cashReceived: data.cashReceived,
       actor,

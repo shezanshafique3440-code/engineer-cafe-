@@ -16,6 +16,7 @@ import {
   MapPin,
   Loader2,
 } from "lucide-react";
+import { readSaleIntent, saveSaleIntent, definiteRejection, type SaleIntent } from "@/lib/sale-intent";
 import { apiGet, apiPost, ApiError } from "@/lib/api-client";
 import { useCart } from "@/context/cart-context";
 import { useSession } from "@/context/session-context";
@@ -78,12 +79,18 @@ export function CheckoutView() {
   const [scheduled, setScheduled] = useState(false);
   const [scheduledLocal, setScheduledLocal] = useState("");
   const [requestId, setRequestId] = useState("");
+  const intentKey = `cafe-checkout-intent:${user?.id || "guest"}`;
+  const [pendingIntent, setPendingIntent] = useState<SaleIntent | null>(null);
   const [balance, setBalance] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    setRequestId(crypto.randomUUID());
-  }, []);
+    try {
+      const prior = readSaleIntent(intentKey, user?.id || "guest");
+      setPendingIntent(prior);
+      setRequestId(prior ? String(prior.payload.requestId) : crypto.randomUUID());
+    } catch { toast.error("Enable browser storage before placing an order safely."); }
+  }, [intentKey, user?.id]);
   useEffect(() => {
     if (user)
       void apiGet<{ balance: number }>("/api/loyalty")
@@ -207,21 +214,28 @@ export function CheckoutView() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (step === 1) {
+    if (step === 1 && !pendingIntent) {
       review();
       return;
     }
-    if (!quote || quoting || quoteError) return;
+    if (!pendingIntent && (!quote || quoting || quoteError)) return;
     setErrors({});
     setSubmitting(true);
 
     try {
-      const data = await apiPost<{ order: OrderDTO }>("/api/orders", payload());
+      const intent = pendingIntent ?? { ownerId: user?.id || "guest", endpoint: "/api/orders", payload: payload(), createdAt: new Date().toISOString() };
+      saveSaleIntent(intentKey, intent);
+      setPendingIntent(intent);
+      const data = await apiPost<{ order: OrderDTO }>(intent.endpoint, intent.payload);
+      if (!data?.order?.id) throw new Error("No server confirmation. Retry your original order.");
+      localStorage.removeItem(intentKey);
+      setPendingIntent(null);
 
       clear({ silent: true });
       toast.success(`Order ${data.order.orderNumber} placed!`);
-      router.push(`/orders/${data.order.orderNumber}?placed=1`);
+      router.push(`${data.order.trackingPath}&placed=1`);
     } catch (error) {
+      if (error instanceof ApiError && definiteRejection(error.status)) { localStorage.removeItem(intentKey); setPendingIntent(null); }
       if (error instanceof ApiError) {
         if (error.fields) setErrors(error.fields);
         toast.error(t(error.message));
@@ -234,6 +248,7 @@ export function CheckoutView() {
     }
   };
 
+  if (pendingIntent) return <section className="container py-16 space-y-4" aria-live="polite"><h1 className="text-2xl font-bold">Check your last order</h1><p>The connection ended before confirmation. Retry checks the same order ID; your original order details are preserved.</p><Button loading={submitting} onClick={() => void submit({ preventDefault() {} } as React.FormEvent)}>Recover original order</Button></section>;
   if (!hydrated) {
     return (
       <div className="container py-16 text-center">

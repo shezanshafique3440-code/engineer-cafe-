@@ -11,6 +11,7 @@ import {
 } from "@/lib/business-math";
 import {
   accountBalance,
+  accountBalances,
   audit,
   journal,
   moneyAccount,
@@ -218,7 +219,7 @@ export async function deliveryAction(tx: DB, actor: SessionUser, data: Action) {
   const amount = paise(data.amount);
   if (amount <= 0n) throw badRequest("Enter an amount greater than zero.");
   const { account, shiftId } = await moneyAccount(tx, actor, data.accountId);
-  await assertDemoMoney(tx,"DeliveryRider",rider.id,account);
+  await assertDemoMoney(tx, "DeliveryRider", rider.id, account);
   const cashHeld = await riderCash(tx, rider.id);
   if (data.action === "RECOVER") {
     if (!canBusiness(actor, "finance"))
@@ -369,33 +370,57 @@ export async function deliveryRead(tx: DB, start: Date, end: Date) {
       take: 300,
     }),
   ]);
+  const [balances, reversals, activeOrders, cashReceipts, cashTransfers] =
+    await Promise.all([
+      accountBalances(
+        tx,
+        ["RIDERS_PAYABLE"],
+        riders.map((r) => r.partyId),
+      ),
+      tx.businessPosting.groupBy({
+        by: ["partyId"],
+        where: {
+          partyId: { in: riders.map((r) => r.partyId) },
+          account: { code: "RIDERS_PAYABLE" },
+          journal: {
+            source: "REVERSAL",
+            date: filter,
+            reversalOf: { source: "RIDER_COMMISSION" },
+          },
+        },
+        _sum: { debit: true },
+      }),
+      tx.order.groupBy({
+        by: ["riderId"],
+        where: {
+          riderId: { in: riders.map((r) => r.id) },
+          status: { notIn: ["CANCELLED", "DELIVERED"] },
+        },
+        _count: { _all: true },
+      }),
+      tx.$queryRaw<
+        { riderId: string; amount: string }[]
+      >`SELECT o."riderId", SUM(CASE WHEN p.kind='ORDER_REFUND' THEN -p.amount ELSE p.amount END)::text AS amount FROM "BusinessPayment" p JOIN "Order" o ON o.id=p."orderId" JOIN "BusinessAccount" a ON a.id=p."accountId" WHERE o."riderId" IS NOT NULL AND a.code='RIDER_CASH' AND p.kind IN ('ORDER_RECEIPT','ORDER_REFUND') GROUP BY o."riderId"`,
+      tx.$queryRaw<
+        { riderId: string; amount: string }[]
+      >`SELECT t."riderId", SUM(t.amount)::text AS amount FROM "DeliveryTransfer" t JOIN "BusinessAccount" a ON a.id=t."accountId" WHERE t.kind='REMITTANCE' OR (t.kind='COMMISSION' AND a.code='RIDER_CASH') GROUP BY t."riderId"`,
+    ]);
   const summaries = [];
   for (const r of riders) {
     const earned = r.commissions.reduce((s, c) => s + paise(c.amount), 0n);
     // Reversals belong to their reversal journal's date, even if the original sale is outside this range.
-    const reversals = await tx.businessPosting.aggregate({
-      where: {
-        partyId: r.partyId,
-        account: { code: "RIDERS_PAYABLE" },
-        journal: {
-          source: "REVERSAL",
-          date: filter,
-          reversalOf: { source: "RIDER_COMMISSION" },
-        },
-      },
-      _sum: { debit: true },
-    });
-    const reversed = paise(reversals._sum.debit ?? 0);
+    const reversed = paise(
+      reversals.find((p) => p.partyId === r.partyId)?._sum.debit ?? 0,
+    );
     const paid = r.transfers
       .filter((t) => t.kind === "COMMISSION")
       .reduce((s, t) => s + paise(t.amount), 0n);
     const recovered = r.transfers
       .filter((t) => t.kind === "RECOVERY")
       .reduce((s, t) => s + paise(t.amount), 0n);
-    const due = -(await accountBalance(tx, "RIDERS_PAYABLE", r.partyId));
-    const active = await tx.order.count({
-      where: { riderId: r.id, status: { notIn: ["CANCELLED", "DELIVERED"] } },
-    });
+    const due = -balances("RIDERS_PAYABLE", r.partyId);
+    const active =
+      activeOrders.find((o) => o.riderId === r.id)?._count._all ?? 0;
     summaries.push({
       ...r,
       commissions: undefined,
@@ -406,7 +431,10 @@ export async function deliveryRead(tx: DB, start: Date, end: Date) {
       paid: decimal(paid),
       recovered: decimal(recovered),
       due: decimal(due),
-      cashHeld: decimal(await riderCash(tx, r.id)),
+      cashHeld: decimal(
+        paise(cashReceipts.find((p) => p.riderId === r.id)?.amount ?? 0) -
+          paise(cashTransfers.find((p) => p.riderId === r.id)?.amount ?? 0),
+      ),
       active,
       delivered: r.orders.length,
       averageMinutes: r.orders.length

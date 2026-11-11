@@ -438,6 +438,7 @@ async function workbook(
     ],
   );
   const notes: Row[] = [
+    { sheet: "Payments", scope: "Amounts are absolute. Reversed records remain in history with reversal status/date and zero active amount. Group active amounts by payment kind; use journal postings for net cash flow and profit." },
     {
       sheet: "All sheets",
       scope:
@@ -525,7 +526,13 @@ async function workbook(
         : data.parties,
     );
   for (const { spec, records } of sheets) {
-    addSheet(book, spec.name, spec.fields, records);
+    if (spec.name === "Payments") {
+      const rows = records.map(record => ({ ...record,
+        reversalStatus: at(record, "journal.reversedBy.id") ? "REVERSED" : "ACTIVE",
+        activeAmount: at(record, "journal.reversedBy.id") ? 0 : record.amount,
+      }));
+      addSheet(book, spec.name, [...spec.fields, "reversalStatus", "activeAmount"], rows);
+    } else addSheet(book, spec.name, spec.fields, records);
     notes.push({
       sheet: spec.name,
       scope:

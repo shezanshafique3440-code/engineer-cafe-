@@ -36,7 +36,7 @@ async function poll(f) {
         baseURL: base,
         viewport: { width: 390, height: 844 },
         reducedMotion: "reduce",
-        extraHTTPHeaders: { "X-Forwarded-For": `192.0.2.${ip}` },
+        extraHTTPHeaders: { "X-Real-IP": `192.0.2.${ip}` },
       });
       contexts.push(context);
       const r = await context.request.post("/api/auth/login", {

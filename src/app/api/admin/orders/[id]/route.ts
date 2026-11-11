@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { cartLineSchema } from "@/lib/validation";
+import { editOrder } from "@/server/edit-order";
 import { canBusiness, waiterOrderScope } from "@/lib/business-access";
 import { prisma } from "@/lib/prisma";
 import { orderDeleteSchema, orderStatusSchema } from "@/lib/validation";
@@ -103,3 +106,10 @@ export const DELETE = handle(
     });
   },
 );
+
+export const PUT = handle(async (request: Request, ctx: { params: Promise<{ id: string }> }) => {
+  const actor = await requireAdmin("payments");
+  const { id } = await ctx.params;
+  const data = await parseBody(request, z.object({ requestId: z.string().uuid(), version: z.string().datetime(), preview: z.boolean().default(false), expectedTotal: z.number().int().min(0).max(10000000).optional(), lines: z.array(cartLineSchema).min(1).max(60) }));
+  return json(await editOrder(id, actor, data));
+});

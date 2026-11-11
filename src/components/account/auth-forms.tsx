@@ -82,6 +82,7 @@ export function LoginForm({ adminMode = false }: { adminMode?: boolean }) {
       <Button type="submit" className="w-full" size="lg" loading={submitting}>
         {adminMode ? "Sign in to admin" : "Login"}
       </Button>
+      <Link href="/forgot-password" className="block text-center text-sm font-semibold text-chai-700">Forgot password?</Link>
     </form>
   );
 }
