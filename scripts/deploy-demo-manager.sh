@@ -18,12 +18,21 @@ OLD=$(git rev-parse HEAD)
 PREVIOUS_DEMO=587af3ca3aafc9938c2372f6a2c47c2b20e58823
 PREVIOUS_OFFLINE=7677e193235d31c91cccf6eef9ef727b1d39d689
 PREVIOUS_CASH=49d230c0a81cbc64a55053bcdf65221108f702a1
-if [ "$OLD" != "$PREVIOUS_CASH" ] && [ "$OLD" != "$BASE" ] && [ "$OLD" != "$PREVIOUS_DEMO" ] && [ "$OLD" != "$PREVIOUS_OFFLINE" ] && [ "$OLD" != "$TARGET" ]; then
+PREVIOUS_ROUTING=a94d8e822656e309bbec20c223023a93de0e1113
+if [ "$OLD" != "$PREVIOUS_ROUTING" ] && [ "$OLD" != "$PREVIOUS_CASH" ] && [ "$OLD" != "$BASE" ] && [ "$OLD" != "$PREVIOUS_DEMO" ] && [ "$OLD" != "$PREVIOUS_OFFLINE" ] && [ "$OLD" != "$TARGET" ]; then
  echo 'This installer expects the audited baseline, previous demo release, or the same target. Inspect the current commit first.'; exit 1
 fi
-if ! git diff --quiet "$BASE" "$TARGET" -- package.json package-lock.json src/lib/business-access.ts; then
- echo 'Unexpected dependencies or staff-role changes in this release. Stopping.'; exit 1
+if ! git diff --quiet "$BASE" "$TARGET" -- src/lib/business-access.ts; then
+ echo 'Unexpected staff-role changes in this release. Stopping.'; exit 1
 fi
+# This reviewed release adds only the pinned Excel writer; reject unrelated changes.
+node - "$BASE" "$TARGET" <<'JS'
+const {execFileSync}=require('node:child_process');const {deepStrictEqual}=require('node:assert/strict');
+const read=ref=>JSON.parse(execFileSync('git',['show',ref+':package.json'],{encoding:'utf8'}));
+const before=read(process.argv[2]),after=read(process.argv[3]);
+if(after.dependencies.exceljs!=='4.4.0')throw Error('Unexpected Excel dependency version.');
+delete after.dependencies.exceljs;deepStrictEqual(after,before,'Unexpected package changes.');
+JS
 pm2 describe engineer-cafe >/dev/null
 test -f .env
 test -f .next/BUILD_ID
@@ -78,7 +87,7 @@ gzip -t "$SNAPSHOT/website.tar.gz"
 mv .next "$SNAPSHOT/previous-build"
 MOVED=1
 git switch --detach "$TARGET"
-if [ ! -x node_modules/.bin/tsx ] || [ ! -x node_modules/.bin/prisma ]; then npm ci --no-audit --no-fund; fi
+if ! git diff --quiet "$OLD" "$TARGET" -- package-lock.json || [ ! -x node_modules/.bin/tsx ] || [ ! -x node_modules/.bin/prisma ]; then npm ci --no-audit --no-fund; fi
 npm run db:generate
 npm run db:deploy
 npm run typecheck
@@ -90,6 +99,8 @@ for attempt in $(seq 1 20); do
  sleep 2
 done
 status=$(curl --silent --show-error --max-time 20 -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/api/admin/demo-data)
+[ "$status" = 401 ]
+status=$(curl --silent --show-error --max-time 20 -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/api/admin/complete-report)
 [ "$status" = 401 ]
 curl --fail --silent --show-error --max-time 30 --resolve esellerstore.vip:443:127.0.0.1 https://esellerstore.vip/api/settings -o /dev/null
 # Verify every offline shell asset through both Next and public HTTPS before
@@ -109,6 +120,6 @@ else
 fi
 pm2 save >/dev/null
 trap - EXIT
-echo "PASS: Demo Data tools deployed at https://esellerstore.vip/admin/demo-data"
+echo "PASS: Cafe update deployed. Complete Excel report: https://esellerstore.vip/admin/business?section=overview"
 echo 'No demo data was loaded or reset by this installer. Use the owner page to preview and confirm.'
 echo "Private release snapshot: $SNAPSHOT"

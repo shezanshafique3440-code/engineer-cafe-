@@ -29,6 +29,7 @@ import {
 import { TASK_GUIDES, CAFE_TASKS } from "@/lib/cafe-tasks";
 import { TaskSteps } from "@/components/admin/task-steps";
 import { Notice, type Row } from "./shared";
+import { CompleteReportDownload } from "./complete-report-download";
 const SECTIONS = [
   ...BUSINESS_SECTIONS,
   { id: "suppliers", label: "Supplier balances", cap: "purchases" },
@@ -266,6 +267,7 @@ function Workspace() {
           This month
         </Button>
       </div>
+      {user?.role === "ADMIN" && <CompleteReportDownload from={from} to={to} />}
       <nav className="flex flex-wrap gap-2" aria-label="Business quick links">
         {allowed
           .filter((s) =>
