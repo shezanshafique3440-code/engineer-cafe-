@@ -259,6 +259,100 @@ function objects(book, name) {
       200,
       "Empty dated report remains a valid workbook",
     );
+    for (const suffix of [
+      "&module=unknown",
+      "&format=pdf",
+      "&module=riders&format=zip",
+      "&module=",
+    ]) {
+      eq(
+        (await request("?from=2001-01-01&to=2001-01-01" + suffix, ownerCookie))
+          .status,
+        400,
+      );
+    }
+    eq(
+      (await request("?from=2001-01-01&to=2001-01-01&format=zip", staffCookie))
+        .status,
+      403,
+    );
+    const individual = await request(
+      "?from=2001-01-01&to=2001-01-01&module=riders",
+      ownerCookie,
+    );
+    eq(individual.status, 200);
+    assert.match(individual.headers.get("content-disposition"), /Riders-2001/);
+    checks++;
+    const riders = new ExcelJS.Workbook();
+    await riders.xlsx.load(Buffer.from(await individual.arrayBuffer()));
+    eq(
+      riders.worksheets.map((s) => s.name).sort(),
+      [
+        "Summary",
+        "Current riders",
+        "Deliveries",
+        "Rider commissions",
+        "Rider settlements",
+        "Party balances",
+        "Read me",
+      ].sort(),
+    );
+    const zipped = await request(
+      "?from=2001-01-01&to=2001-01-01&format=zip",
+      ownerCookie,
+    );
+    eq(zipped.status, 200);
+    eq(zipped.headers.get("content-type"), "application/zip");
+    const { createRequire } = require("node:module");
+    const JSZip = createRequire(require.resolve("exceljs"))("jszip");
+    const archive = await JSZip.loadAsync(
+      Buffer.from(await zipped.arrayBuffer()),
+      { checkCRC32: true },
+    );
+    const expectedFiles = [
+      "Orders",
+      "Inventory",
+      "Purchases",
+      "Employees",
+      "Cash-Shifts",
+      "Riders",
+      "Financial-Report",
+      "Customers",
+      "Menu-Tables-Approvals",
+    ];
+    eq(
+      Object.keys(archive.files).sort(),
+      expectedFiles.map((n) => n + "-2001-01-01-to-2001-01-01.xlsx").sort(),
+    );
+    const seen = new Set();
+    for (const [name, file] of Object.entries(archive.files)) {
+      const child = new ExcelJS.Workbook();
+      await child.xlsx.load(await file.async("nodebuffer"));
+      assert.ok(child.getWorksheet("Read me"));
+      checks++;
+      for (const sheet of child.worksheets) seen.add(sheet.name);
+      if (name.startsWith("Orders-"))
+        eq(objects(child, "Orders").length, objects(book, "Orders").length);
+      if (name.startsWith("Financial-")) {
+        eq(
+          objects(child, "Summary").find(
+            (r) => r.Metric === "Posted net profit (PKR)",
+          ).Value,
+          Number(expected[0].income) - Number(expected[0].expenses),
+        );
+        eq(
+          objects(child, "Summary").some((r) => r.Metric.startsWith("Order")),
+          false,
+        );
+      }
+      if (name.startsWith("Employees-"))
+        eq(Boolean(child.getWorksheet("Orders")), false);
+    }
+    eq(
+      book.worksheets.every((sheet) => seen.has(sheet.name)),
+      true,
+      "All original detail sheets preserved across separate files",
+    );
     console.log(
       `PASS: ${checks} complete-report HTTP, XLSX, permissions, date-boundary, totals and read-only checks.`,
     );

@@ -1,5 +1,11 @@
 import "server-only";
 import ExcelJS from "exceljs";
+import {
+  REPORT_MODULES,
+  findReportModule,
+  type ReportModule,
+} from "@/lib/report-modules";
+import { zipWorkbooks } from "./zip";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { HttpError, badRequest } from "@/server/api";
@@ -189,7 +195,7 @@ function addSheet(
   return sheet;
 }
 
-export async function completeReport(bounds: Bounds, actorName: string) {
+async function readReport(bounds: Bounds, module?: ReportModule) {
   const generated = new Date();
   // One consistent, read-only snapshot. This route does not initialize or change accounting.
   const data = await prisma.$transaction(
@@ -198,15 +204,45 @@ export async function completeReport(bounds: Bounds, actorName: string) {
       const config = await tx.businessConfig.findUnique({ where: { id: 1 } });
       const sheets: { spec: SheetSpec; records: Row[] }[] = [];
       let total = 0;
-      for (const spec of REPORT_SHEETS) {
+      for (const spec of REPORT_SHEETS.filter(
+        (spec) =>
+          !module ||
+          (findReportModule(module)!.sheets as readonly string[]).includes(
+            spec.name,
+          ),
+      )) {
         const delegate = (
           tx as unknown as Record<
             string,
             { findMany(args: unknown): Promise<Row[]> }
           >
         )[spec.model];
+        let filter = scope(spec, bounds);
+        if (spec.name === "Payments" && module) {
+          if (module === "orders")
+            filter = { AND: [filter, { orderId: { not: null } }] };
+          if (module === "purchases")
+            filter = {
+              AND: [
+                filter,
+                {
+                  OR: [
+                    { purchaseId: { not: null } },
+                    { party: { kind: "SUPPLIER" } },
+                  ],
+                },
+              ],
+            };
+          if (module === "employees")
+            filter = { AND: [filter, { party: { kind: "EMPLOYEE" } }] };
+        }
+        if (
+          spec.name === "Current parties" &&
+          ["purchases", "customers"].includes(module ?? "")
+        )
+          filter = { kind: module === "purchases" ? "SUPPLIER" : "CUSTOMER" };
         const records = await delegate.findMany({
-          where: scope(spec, bounds),
+          where: filter,
           select: selection(spec.fields),
           orderBy: { id: "asc" },
           take: SHEET_LIMIT + 1,
@@ -288,7 +324,8 @@ export async function completeReport(bounds: Bounds, actorName: string) {
           expenses += paise(a.periodDebit) - paise(a.periodCredit);
         if (a.moneyAccount) money += paise(a.closingDebitMinusCredit);
       }
-      const orders = sheets.find((s) => s.spec.name === "Orders")!.records;
+      const orders =
+        sheets.find((s) => s.spec.name === "Orders")?.records ?? [];
       return {
         sheets,
         config,
@@ -328,6 +365,47 @@ export async function completeReport(bounds: Bounds, actorName: string) {
       maxWait: 5000,
     },
   );
+  return { ...data, generated };
+}
+
+type ReportData = Awaited<ReturnType<typeof readReport>>;
+function moduleRecords(name: string, records: Row[], module?: ReportModule) {
+  if (name === "Payments") {
+    if (module === "orders") return records.filter((r) => r.order != null);
+    if (module === "purchases")
+      return records.filter(
+        (r) => r.purchase != null || at(r, "party.kind") === "SUPPLIER",
+      );
+    if (module === "employees")
+      return records.filter(
+        (r) => r.payroll != null || at(r, "party.kind") === "EMPLOYEE",
+      );
+  }
+  if (name === "Current parties" && module === "purchases")
+    return records.filter((r) => r.kind === "SUPPLIER");
+  if (name === "Current parties" && module === "customers")
+    return records.filter((r) => r.kind === "CUSTOMER");
+  return records;
+}
+async function workbook(
+  data: ReportData,
+  bounds: Bounds,
+  actorName: string,
+  module?: ReportModule,
+) {
+  const { generated } = data;
+  const definition = module ? findReportModule(module) : null;
+  const financial = !module || module === "financial";
+  const sheets = data.sheets
+    .filter(
+      ({ spec }) =>
+        !definition ||
+        (definition.sheets as readonly string[]).includes(spec.name),
+    )
+    .map(({ spec, records }) => ({
+      spec,
+      records: moduleRecords(spec.name, records, module),
+    }));
   const book = new ExcelJS.Workbook();
   book.creator = "Engineer Cafe";
   book.created = generated;
@@ -347,7 +425,16 @@ export async function completeReport(bounds: Bounds, actorName: string) {
         metric: "Accounting integration enabled",
         value: data.config?.enabled ?? false,
       },
-      ...data.metrics,
+      { metric: "Report", value: definition?.label ?? "Complete report" },
+      ...(module && module !== "financial"
+        ? sheets.map((s) => ({
+            metric: s.spec.name + " rows",
+            value: s.records.length,
+          }))
+        : data.metrics.filter(
+            (metric) =>
+              module !== "financial" || !metric.metric.startsWith("Order"),
+          )),
     ],
   );
   const notes: Row[] = [
@@ -392,38 +479,52 @@ export async function completeReport(bounds: Bounds, actorName: string) {
         "These are different views of the same entries; do not sum sheets together. Expenses contains all EXPENSE-account debit/credit entries including reversals. Order delivery totals also appear in Orders.",
     },
   ];
-  addSheet(
-    book,
-    "Account balances",
-    [
-      "code",
-      "name",
-      "kind",
-      "moneyAccount",
-      "opening",
-      "periodDebit",
-      "periodCredit",
-      "closingDebitMinusCredit",
-    ],
-    data.accounts,
-  );
-  addSheet(
-    book,
-    "Party balances",
-    [
-      "partyId",
-      "kind",
-      "name",
-      "phone",
-      "accountCode",
-      "account",
-      "debit",
-      "credit",
-      "balanceDebitMinusCredit",
-    ],
-    data.parties,
-  );
-  for (const { spec, records } of data.sheets) {
+  if (financial)
+    addSheet(
+      book,
+      "Account balances",
+      [
+        "code",
+        "name",
+        "kind",
+        "moneyAccount",
+        "opening",
+        "periodDebit",
+        "periodCredit",
+        "closingDebitMinusCredit",
+      ],
+      data.accounts,
+    );
+  const partyKind = module
+    ? (
+        {
+          purchases: "SUPPLIER",
+          employees: "EMPLOYEE",
+          riders: "RIDER",
+          customers: "CUSTOMER",
+        } as Partial<Record<ReportModule, string>>
+      )[module]
+    : undefined;
+  if (financial || partyKind)
+    addSheet(
+      book,
+      "Party balances",
+      [
+        "partyId",
+        "kind",
+        "name",
+        "phone",
+        "accountCode",
+        "account",
+        "debit",
+        "credit",
+        "balanceDebitMinusCredit",
+      ],
+      partyKind
+        ? data.parties.filter((p) => p.kind === partyKind)
+        : data.parties,
+    );
+  for (const { spec, records } of sheets) {
     addSheet(book, spec.name, spec.fields, records);
     notes.push({
       sheet: spec.name,
@@ -438,4 +539,25 @@ export async function completeReport(bounds: Bounds, actorName: string) {
   }
   addSheet(book, "Read me", ["sheet", "scope", "rows"], notes);
   return book.xlsx.writeBuffer();
+}
+
+export async function completeReport(
+  bounds: Bounds,
+  actorName: string,
+  module?: ReportModule,
+) {
+  return workbook(await readReport(bounds, module), bounds, actorName, module);
+}
+export async function allReportFiles(bounds: Bounds, actorName: string) {
+  const data = await readReport(bounds);
+  const files = [];
+  for (const definition of REPORT_MODULES) {
+    files.push({
+      name: `${definition.file}-${bounds.from}-to-${bounds.to}.xlsx`,
+      buffer: new Uint8Array(
+        await workbook(data, bounds, actorName, definition.id),
+      ),
+    });
+  }
+  return zipWorkbooks(files);
 }

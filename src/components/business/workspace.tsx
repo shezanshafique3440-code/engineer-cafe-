@@ -267,7 +267,14 @@ function Workspace() {
           This month
         </Button>
       </div>
-      {user?.role === "ADMIN" && <CompleteReportDownload from={from} to={to} />}
+      {user?.role === "ADMIN" && (
+        <CompleteReportDownload
+          key={section.id}
+          section={section.id}
+          from={from}
+          to={to}
+        />
+      )}
       <nav className="flex flex-wrap gap-2" aria-label="Business quick links">
         {allowed
           .filter((s) =>

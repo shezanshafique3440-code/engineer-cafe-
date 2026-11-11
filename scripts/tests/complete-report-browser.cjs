@@ -49,20 +49,21 @@ async function session(context, user) {
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(base + "/admin/business?section=overview");
     const button = page.getByRole("button", {
-      name: "Download Complete Report",
+      name: "Download Excel",
       exact: true,
     });
     await button.waitFor();
     checks++;
     await page.getByLabel("From", { exact: true }).fill("2001-01-01");
     await page.getByLabel("To", { exact: true }).fill("2001-01-01");
+    await page.getByLabel("Report", { exact: true }).selectOption("riders");
     const [download] = await Promise.all([
       page.waitForEvent("download"),
       button.click(),
     ]);
     assert.equal(
       download.suggestedFilename(),
-      "Cafe-Complete-Report-2001-01-01-to-2001-01-01.xlsx",
+      "Riders-2001-01-01-to-2001-01-01.xlsx",
     );
     checks++;
     const book = new ExcelJS.Workbook();
@@ -72,8 +73,29 @@ async function session(context, user) {
     checks += 2;
     await page
       .getByRole("status")
-      .filter({ hasText: "Report downloaded for 2001-01-01 to 2001-01-01." })
+      .filter({
+        hasText: "Riders & deliveries downloaded for 2001-01-01 to 2001-01-01.",
+      })
       .waitFor();
+    checks++;
+    const [zipDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      page
+        .getByRole("button", { name: "Download All (ZIP)", exact: true })
+        .click(),
+    ]);
+    assert.equal(
+      zipDownload.suggestedFilename(),
+      "Cafe-All-Reports-2001-01-01-to-2001-01-01.zip",
+    );
+    checks++;
+    const { createRequire } = require("node:module");
+    const JSZip = createRequire(require.resolve("exceljs"))("jszip");
+    const zip = await JSZip.loadAsync(
+      fs.readFileSync(await zipDownload.path()),
+      { checkCRC32: true },
+    );
+    assert.equal(Object.keys(zip.files).length, 9);
     checks++;
     await page.getByLabel("From", { exact: true }).fill("2001-01-02");
     assert.equal(await button.isDisabled(), true);
@@ -129,7 +151,7 @@ async function session(context, user) {
       .waitFor();
     assert.equal(
       await page
-        .getByRole("button", { name: "Download Complete Report", exact: true })
+        .getByRole("button", { name: "Download Excel", exact: true })
         .count(),
       0,
     );

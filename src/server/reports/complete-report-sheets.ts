@@ -343,6 +343,7 @@ export const REPORT_SHEETS: SheetSpec[] = [
       "date",
       "kind",
       "party.name",
+      "party.kind",
       "order.orderNumber",
       "purchase.invoiceNumber",
       "payroll.period",
