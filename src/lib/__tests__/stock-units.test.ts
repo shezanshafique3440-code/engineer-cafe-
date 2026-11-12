@@ -31,7 +31,7 @@ test("Changing displayed unit keeps the canonical quantity, including fine recip
     }
 });
 test("Wrong measures, excess precision, negatives and too-large converted stock cannot be submitted", () => {
-  for (const input of [
+  for (const [raw, unit, base] of [
     ["1", "KG", "ML"],
     ["1", "L", "G"],
     ["-2", "G", "G"],
@@ -39,7 +39,7 @@ test("Wrong measures, excess precision, negatives and too-large converted stock 
     ["0.00001", "G", "G"],
     ["999999999999", "KG", "G"],
   ] as const)
-    assert.throws(() => toStockQuantity(...input));
+    assert.throws(() => toStockQuantity(raw, unit, base));
 });
 test("Stock cards show familiar units without rounding away small quantities", () => {
   assert.equal(stockAmount("2000", "G"), "2 kg");

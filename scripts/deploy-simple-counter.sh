@@ -31,6 +31,14 @@ pm2 describe engineer-cafe >/dev/null
 WORK=$(mktemp -d /var/backups/engineer-cafe/counter-release.XXXXXXXX)
 echo "Private release work: $WORK"
 git show "$TARGET:scripts/deploy-demo-manager.sh" > "$WORK/deploy.sh"
+# Compile the target in a separate source directory before any service is stopped.
+# Existing dependencies can be used only when their lockfile/schema are unchanged.
+if git diff --quiet HEAD "$TARGET" -- package-lock.json prisma/schema.prisma; then
+ git show "$TARGET:scripts/check-release-types.sh" > "$WORK/check-types.sh"
+ bash "$WORK/check-types.sh" "$TARGET" "$WORK/typecheck"
+else
+ echo 'Dependencies/schema differ: installer will check types after installing them.'
+fi
 if [ ! -s .next/BUILD_ID ]; then
  # Handle ONLY the exact interrupted release and private snapshot seen in the
  # operator's console. Never guess a snapshot or restore an old database dump.

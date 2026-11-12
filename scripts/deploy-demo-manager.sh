@@ -22,7 +22,8 @@ PREVIOUS_ROUTING=a94d8e822656e309bbec20c223023a93de0e1113
 PREVIOUS_REPORT=a1eb356135fbccc1313bb15b17bcfe468ce2a284
 PREVIOUS_COMBINED=bc90c19886439ec226f604709da296d2a8123404
 PREVIOUS_HARDENING=8c12296027dfd02cc4afec3cd78ac8e672828161
-if [ "$OLD" != "$PREVIOUS_HARDENING" ] && [ "$OLD" != "$PREVIOUS_COMBINED" ] && [ "$OLD" != "$PREVIOUS_REPORT" ] && [ "$OLD" != "$PREVIOUS_ROUTING" ] && [ "$OLD" != "$PREVIOUS_CASH" ] && [ "$OLD" != "$BASE" ] && [ "$OLD" != "$PREVIOUS_DEMO" ] && [ "$OLD" != "$PREVIOUS_OFFLINE" ] && [ "$OLD" != "$TARGET" ]; then
+PREVIOUS_SIMPLE=01cc501842b3684b89907ebe843f7bff18ecfaf3
+if [ "$OLD" != "$PREVIOUS_SIMPLE" ] && [ "$OLD" != "$PREVIOUS_HARDENING" ] && [ "$OLD" != "$PREVIOUS_COMBINED" ] && [ "$OLD" != "$PREVIOUS_REPORT" ] && [ "$OLD" != "$PREVIOUS_ROUTING" ] && [ "$OLD" != "$PREVIOUS_CASH" ] && [ "$OLD" != "$BASE" ] && [ "$OLD" != "$PREVIOUS_DEMO" ] && [ "$OLD" != "$PREVIOUS_OFFLINE" ] && [ "$OLD" != "$TARGET" ]; then
  echo 'This installer expects the audited baseline, previous demo release, or the same target. Inspect the current commit first.'; exit 1
 fi
 # Profile definitions moved to shared JSON so the worker applies the same grants.
