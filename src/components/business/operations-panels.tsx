@@ -19,6 +19,8 @@ import {
   type Field,
 } from "./shared";
 import { LineEditor, type IngredientLine } from "./stock-panels";
+import { StockQuantityInput } from "./stock-quantity-input";
+import { stockAmount } from "@/lib/stock-units";
 const note: Field = { name: "note", label: "Reason / reference" };
 export function ProcurementPanel({
   data,
@@ -286,22 +288,23 @@ export function StockCountsPanel({
                 key={text(i, "id")}
               >
                 <p className="mb-3 font-semibold">
-                  {text(i, "name")} · {text(i, "quantity")} {text(i, "unit")}{" "}
-                  recorded
+                  {text(i, "name")} ·{" "}
+                  {stockAmount(text(i, "quantity"), text(i, "unit"))} recorded
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Input
+                  <StockQuantityInput
                     label={"Counted " + text(i, "name")}
-                    type="number"
+                    base={text(i, "unit")}
+                    preferLarge
+                    required={false}
                     min="0"
-                    step="0.0001"
                     value={values[text(i, "id")]?.counted ?? ""}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       setValues((v) => ({
                         ...v,
                         [text(i, "id")]: {
                           addedValue: v[text(i, "id")]?.addedValue ?? "",
-                          counted: e.target.value,
+                          counted: value,
                         },
                       }))
                     }

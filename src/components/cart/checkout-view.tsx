@@ -16,7 +16,13 @@ import {
   MapPin,
   Loader2,
 } from "lucide-react";
-import { readSaleIntent, saveSaleIntent, definiteRejection, type SaleIntent } from "@/lib/sale-intent";
+import {
+  readSaleIntent,
+  saveSaleIntent,
+  clearSaleIntent,
+  definiteRejection,
+  type SaleIntent,
+} from "@/lib/sale-intent";
 import { apiGet, apiPost, ApiError } from "@/lib/api-client";
 import { useCart } from "@/context/cart-context";
 import { useSession } from "@/context/session-context";
@@ -88,8 +94,12 @@ export function CheckoutView() {
     try {
       const prior = readSaleIntent(intentKey, user?.id || "guest");
       setPendingIntent(prior);
-      setRequestId(prior ? String(prior.payload.requestId) : crypto.randomUUID());
-    } catch { toast.error("Enable browser storage before placing an order safely."); }
+      setRequestId(
+        prior ? String(prior.payload.requestId) : crypto.randomUUID(),
+      );
+    } catch {
+      toast.error("Enable browser storage before placing an order safely.");
+    }
   }, [intentKey, user?.id]);
   useEffect(() => {
     if (user)
@@ -223,19 +233,31 @@ export function CheckoutView() {
     setSubmitting(true);
 
     try {
-      const intent = pendingIntent ?? { ownerId: user?.id || "guest", endpoint: "/api/orders", payload: payload(), createdAt: new Date().toISOString() };
+      const intent = pendingIntent ?? {
+        ownerId: user?.id || "guest",
+        endpoint: "/api/orders",
+        payload: payload(),
+        createdAt: new Date().toISOString(),
+      };
       saveSaleIntent(intentKey, intent);
       setPendingIntent(intent);
-      const data = await apiPost<{ order: OrderDTO }>(intent.endpoint, intent.payload);
-      if (!data?.order?.id) throw new Error("No server confirmation. Retry your original order.");
-      localStorage.removeItem(intentKey);
+      const data = await apiPost<{ order: OrderDTO }>(
+        intent.endpoint,
+        intent.payload,
+      );
+      if (!data?.order?.id)
+        throw new Error("No server confirmation. Retry your original order.");
+      clearSaleIntent(intentKey);
       setPendingIntent(null);
 
       clear({ silent: true });
       toast.success(`Order ${data.order.orderNumber} placed!`);
       router.push(`${data.order.trackingPath}&placed=1`);
     } catch (error) {
-      if (error instanceof ApiError && definiteRejection(error.status)) { localStorage.removeItem(intentKey); setPendingIntent(null); }
+      if (error instanceof ApiError && definiteRejection(error.status)) {
+        clearSaleIntent(intentKey);
+        setPendingIntent(null);
+      }
       if (error instanceof ApiError) {
         if (error.fields) setErrors(error.fields);
         toast.error(t(error.message));
@@ -248,7 +270,24 @@ export function CheckoutView() {
     }
   };
 
-  if (pendingIntent) return <section className="container py-16 space-y-4" aria-live="polite"><h1 className="text-2xl font-bold">Check your last order</h1><p>The connection ended before confirmation. Retry checks the same order ID; your original order details are preserved.</p><Button loading={submitting} onClick={() => void submit({ preventDefault() {} } as React.FormEvent)}>Recover original order</Button></section>;
+  if (pendingIntent)
+    return (
+      <section className="container py-16 space-y-4" aria-live="polite">
+        <h1 className="text-2xl font-bold">Check your last order</h1>
+        <p>
+          The connection ended before confirmation. Retry checks the same order
+          ID; your original order details are preserved.
+        </p>
+        <Button
+          loading={submitting}
+          onClick={() =>
+            void submit({ preventDefault() {} } as React.FormEvent)
+          }
+        >
+          Recover original order
+        </Button>
+      </section>
+    );
   if (!hydrated) {
     return (
       <div className="container py-16 text-center">

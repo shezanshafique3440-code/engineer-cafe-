@@ -15,6 +15,8 @@ import {
   type Row,
   type Field,
 } from "./shared";
+import { paise, decimal } from "@/lib/business-math";
+import { stockAmount } from "@/lib/stock-units";
 import { LineEditor, type IngredientLine } from "./stock-panels";
 const note: Field = { name: "note", label: "Reason / reference" };
 const moneyAccounts = (data: Row) => options(rows(data, "accounts"));
@@ -53,6 +55,7 @@ export function PartiesPanel({
           },
           {
             name: "email",
+            advanced: true,
             label: "Email",
             type: "email",
             required: false,
@@ -60,6 +63,7 @@ export function PartiesPanel({
           },
           {
             name: "address",
+            advanced: true,
             label: "Address",
             required: false,
             value: text(editing ?? undefined, "address"),
@@ -89,53 +93,89 @@ export function PartiesPanel({
         }}
       />
       {!customers && (
-        <Form
-          title="Supplier payment / refund"
-          module="payments"
-          fields={[
-            {
-              name: "kind",
-              label: "Transaction",
-              type: "select",
-              value: "SUPPLIER_PAYMENT",
-              options: [
-                {
-                  value: "SUPPLIER_PAYMENT",
-                  label: "Pay supplier / supplier advance",
-                },
-                { value: "SUPPLIER_REFUND", label: "Receive supplier refund" },
-              ],
-            },
-            {
-              name: "partyId",
-              label: "Supplier",
-              type: "select",
-              options: options(items),
-            },
-            {
-              name: "amount",
-              label: "Amount (Rs.)",
-              type: "number",
-              min: "0.01",
-            },
-            {
-              name: "accountId",
-              label: "Money account",
-              type: "select",
-              options: moneyAccounts(data),
-            },
-            {
-              name: "date",
-              label: "Payment date",
-              type: "date",
-              value: text(data, "today"),
-            },
-            note,
-          ]}
-          build={(v) => ({ ...v })}
-          onDone={reload}
-          submitLabel="Record supplier payment"
-        />
+        <details className="surface p-4">
+          <summary className="min-h-11 cursor-pointer py-2 font-bold">
+            Record supplier payment or refund
+          </summary>
+          <Form
+            title="Supplier payment / refund"
+            module="payments"
+            review={(v) => (
+              <div className="space-y-2 text-sm">
+                <p>
+                  {v.kind === "SUPPLIER_REFUND"
+                    ? "Receive supplier refund"
+                    : "Pay supplier"}
+                  : <strong>{money(v.amount)}</strong>
+                </p>
+                <p>
+                  Supplier:{" "}
+                  {text(
+                    items.find((p) => p.id === v.partyId),
+                    "name",
+                  )}
+                </p>
+                <p>
+                  Account:{" "}
+                  {text(
+                    rows(data, "accounts").find((a) => a.id === v.accountId),
+                    "name",
+                  )}
+                </p>
+                <p>
+                  Confirm the money actually handed over. This changes the
+                  supplier balance, not ingredient stock.
+                </p>
+              </div>
+            )}
+            fields={[
+              {
+                name: "kind",
+                label: "Transaction",
+                type: "select",
+                value: "SUPPLIER_PAYMENT",
+                options: [
+                  {
+                    value: "SUPPLIER_PAYMENT",
+                    label: "Pay supplier / supplier advance",
+                  },
+                  {
+                    value: "SUPPLIER_REFUND",
+                    label: "Receive supplier refund",
+                  },
+                ],
+              },
+              {
+                name: "partyId",
+                label: "Supplier",
+                type: "select",
+                options: options(items),
+              },
+              {
+                name: "amount",
+                label: "Amount (Rs.)",
+                type: "number",
+                min: "0.01",
+              },
+              {
+                name: "accountId",
+                label: "Money account",
+                type: "select",
+                options: moneyAccounts(data),
+              },
+              {
+                name: "date",
+                label: "Payment date",
+                type: "date",
+                value: text(data, "today"),
+              },
+              note,
+            ]}
+            build={(v) => ({ ...v })}
+            onDone={reload}
+            submitLabel="Record supplier payment"
+          />
+        </details>
       )}
       <Table
         headers={[
@@ -160,8 +200,12 @@ export function PartiesPanel({
             <Cell>
               {money(p.balance)}
               <span className="block text-xs text-charcoal-500">
-                Negative means{" "}
-                {customers ? "customer credit" : "supplier advance / credit"}.
+                {Number(p.balance) < 0
+                  ? customers
+                    ? "Customer credit available"
+                    : "Supplier advance / credit available"
+                  : "Amount still owed"}
+                .
               </span>
             </Cell>
             {customers && <Cell>{money(p.creditLimit)}</Cell>}
@@ -195,10 +239,9 @@ export function PurchasesPanel({
   return (
     <div className="space-y-5">
       <Notice>
-        Receiving a purchase increases ingredient stock and records the supplier
-        bill. A payment reduces cash/bank and supplier dues; purchases become
-        food cost when ingredients are used. Enter quantities in each
-        ingredient’s stock unit.
+        Example: receive 2 litres of milk costing Rs. 600. Enter 2 L and a line
+        total of 600. If you pay 400 now, the supplier is owed 200. Stock is
+        received once; later payments are recorded separately.
       </Notice>
       <div className="flex flex-wrap gap-3">
         <Link
@@ -214,9 +257,87 @@ export function PurchasesPanel({
           Ingredients / stock
         </Link>
       </div>
+      {(!rows(data, "suppliers").length ||
+        !rows(data, "ingredients").length) && (
+        <Notice>
+          Add a supplier and at least one ingredient using the links above
+          before receiving a purchase.
+        </Notice>
+      )}
       <Form
         module="purchases"
         title="Receive supplier invoice"
+        description="1. Choose the supplier. 2. Add what arrived. 3. Enter what you actually paid and review."
+        disabled={
+          !rows(data, "suppliers").length || !rows(data, "ingredients").length
+        }
+        successMessage="Purchase saved. Stock received and supplier balance updated."
+        footer={(v) => (
+          <InvoiceTotals lines={lines} paid={String(v.paid || "0")} />
+        )}
+        review={(v) => {
+          if (
+            !lines.length ||
+            lines.some(
+              (l) => !l.ingredientId || !l.quantity || l.totalCost === "",
+            )
+          )
+            throw Error(
+              "Choose an ingredient, quantity and total cost for each invoice line.",
+            );
+          const total = lines.reduce((sum, l) => sum + paise(l.totalCost), 0n),
+            paid = paise(String(v.paid || "0"));
+          if (paid > total)
+            throw Error(
+              "Paid now is more than the invoice total. Record an advance separately in Supplier balances.",
+            );
+          if (paid > 0n && !v.accountId)
+            throw Error("Choose the account used to pay this supplier.");
+          return (
+            <div className="space-y-2 text-sm">
+              <p>
+                <strong>
+                  {text(
+                    rows(data, "suppliers").find((p) => p.id === v.supplierId),
+                    "name",
+                  )}
+                </strong>{" "}
+                · invoice {String(v.invoiceNumber)}
+              </p>
+              {lines.map((l, i) => (
+                <p key={i}>
+                  {text(
+                    rows(data, "ingredients").find(
+                      (r) => r.id === l.ingredientId,
+                    ),
+                    "name",
+                  )}{" "}
+                  ·{" "}
+                  {stockAmount(
+                    l.quantity,
+                    text(
+                      rows(data, "ingredients").find(
+                        (r) => r.id === l.ingredientId,
+                      ),
+                      "unit",
+                    ),
+                  )}{" "}
+                  · {money(l.totalCost)}
+                </p>
+              ))}
+              <p>
+                Invoice total: <strong>{money(decimal(total))}</strong>
+              </p>
+              <p>
+                Paid now: {money(decimal(paid))} · Still owed:{" "}
+                <strong>{money(decimal(total - paid))}</strong>
+              </p>
+              <p>
+                Confirming receives this stock and records this payment once.
+              </p>
+            </div>
+          );
+        }}
         submitLabel="Post invoice & receive stock"
         fields={[
           {
@@ -225,28 +346,42 @@ export function PurchasesPanel({
             type: "select",
             options: options(rows(data, "suppliers")),
           },
-          { name: "invoiceNumber", label: "Supplier invoice number" },
+          {
+            name: "invoiceNumber",
+            label: "Supplier invoice number",
+            placeholder: "e.g. INV-104 or the supplier receipt number",
+          },
           {
             name: "date",
+            advanced: true,
             label: "Invoice / accounting date",
             type: "date",
             value: text(data, "today"),
           },
           {
             name: "paid",
+            afterContent: true,
             label: "Paid now (Rs.)",
+            hint: "Enter 0 if nothing was paid. Pay the balance later from Supplier balances.",
             type: "number",
             min: "0",
             value: "0",
           },
           {
             name: "accountId",
+            afterContent: true,
             label: "Paid from",
+            visible: (v) => Number(v.paid) > 0,
             type: "select",
             options: accountOptions,
             required: false,
           },
-          { name: "note", label: "Reference / notes", required: false },
+          {
+            name: "note",
+            label: "Reference / notes",
+            required: false,
+            advanced: true,
+          },
         ]}
         build={(v) => ({
           ...v,
@@ -260,12 +395,14 @@ export function PurchasesPanel({
         }}
       >
         {() => (
-          <LineEditor
-            ingredients={rows(data, "ingredients")}
-            lines={lines}
-            setLines={setLines}
-            cost
-          />
+          <>
+            <LineEditor
+              ingredients={rows(data, "ingredients")}
+              lines={lines}
+              setLines={setLines}
+              cost
+            />
+          </>
         )}
       </Form>
       {returning && (
@@ -395,13 +532,45 @@ export function ExpensesPanel({
   return (
     <div className="space-y-5">
       <Notice>
-        Salary accruals and ingredient usage are posted by payroll and orders.
-        Record other expenses here once. Owner investment, withdrawals and money
-        transfers do not count as operating profit.
+        For gas, rent, electricity or a repair: choose Business expense, enter
+        the amount actually paid and the account it came from, then give a short
+        reason. Salary payments belong in Payroll; supplier payments belong in
+        Purchases.
       </Notice>
       <Form
         title="Record expense / money movement"
         module="money"
+        review={(v) => (
+          <div className="space-y-2 text-sm">
+            <p>
+              <strong>{String(v.kind).replaceAll("_", " ")}</strong> ·{" "}
+              {money(v.amount)}
+            </p>
+            <p>
+              Account:{" "}
+              {text(
+                rows(data, "accounts").find((a) => a.id === v.accountId),
+                "name",
+              )}
+            </p>
+            {v.kind === "TRANSFER" && (
+              <p>
+                To:{" "}
+                {text(
+                  rows(data, "accounts").find((a) => a.id === v.toAccountId),
+                  "name",
+                )}
+              </p>
+            )}
+            <p>
+              {String(v.date)} · {String(v.note)}
+            </p>
+            <p>
+              Confirm only money that actually moved. This creates the
+              accounting entry.
+            </p>
+          </div>
+        )}
         fields={[
           {
             name: "kind",
@@ -486,7 +655,12 @@ export function ExpensesPanel({
         onDone={reload}
         submitLabel="Post transaction"
       />
-      <JournalList data={data} reload={reload} />
+      <details className="surface p-4">
+        <summary className="min-h-11 cursor-pointer py-2 font-bold">
+          Previous transactions & corrections
+        </summary>
+        <JournalList data={data} reload={reload} />
+      </details>
     </div>
   );
 }
@@ -574,4 +748,51 @@ export function JournalList({
       ))}
     </div>
   );
+}
+
+function InvoiceTotals({
+  lines,
+  paid,
+}: {
+  lines: IngredientLine[];
+  paid: string;
+}) {
+  try {
+    const total = lines.reduce((sum, l) => sum + paise(l.totalCost || "0"), 0n),
+      payment = paise(paid || "0");
+    return (
+      <section
+        aria-label="Invoice totals"
+        className="rounded-xl border border-chai-200 bg-chai-50 p-4"
+      >
+        <div className="grid gap-3 sm:grid-cols-3">
+          <p>
+            Invoice total
+            <strong className="block text-lg">{money(decimal(total))}</strong>
+          </p>
+          <p>
+            Paid now
+            <strong className="block text-lg">{money(decimal(payment))}</strong>
+          </p>
+          <p>
+            Still owed
+            <strong className="block text-lg">
+              {money(decimal(total - payment))}
+            </strong>
+          </p>
+        </div>
+        {payment > total && (
+          <p role="alert" className="mt-2 text-sm text-chilli-600">
+            Paid now exceeds the invoice. Check the amount before continuing.
+          </p>
+        )}
+      </section>
+    );
+  } catch {
+    return (
+      <p role="status" className="text-sm">
+        Enter valid line totals and payment to calculate the balance.
+      </p>
+    );
+  }
 }

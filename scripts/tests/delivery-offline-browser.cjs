@@ -252,6 +252,7 @@ async function poll(fn, message) {
       has: page.getByRole("heading", { name: "Add rider", exact: true }),
     });
     const code = "B" + randomUUID().slice(0, 7);
+    await riderForm.getByText("More details (optional)", {exact:true}).click();
     await riderForm.getByLabel("Unique rider code").fill(code);
     await riderForm.getByLabel("Rider name").fill("Browser Rider");
     await riderForm.getByLabel(/^Phone/).fill("03001234567");

@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   readSaleIntent,
   saveSaleIntent,
+  clearSaleIntent,
   definiteRejection,
   type SaleIntent,
 } from "@/lib/sale-intent";
@@ -280,7 +281,7 @@ function Counter({
       );
       if (!result?.order?.id)
         throw new Error("No server confirmation. Retry this original bill.");
-      localStorage.removeItem(intentKey);
+      clearSaleIntent(intentKey);
       localStorage.removeItem(draftKey);
       setPendingIntent(null);
       setReceipt(result.order);
@@ -307,7 +308,7 @@ function Counter({
       );
     } catch (e) {
       if (e instanceof ApiError && definiteRejection(e.status)) {
-        localStorage.removeItem(intentKey);
+        clearSaleIntent(intentKey);
         setPendingIntent(null);
       }
       toast.error(

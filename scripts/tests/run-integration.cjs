@@ -84,7 +84,10 @@ async function start() {
     "complete-report-browser.cjs",
     "hardening-integration.cjs",
     "hardening-browser.cjs",
+    "simple-counter-browser.cjs",
     "offline-startup-browser.cjs",
+    "easy-cafe-browser.cjs",
+    "easy-business-browser.cjs",
   ]) {
     await start();
     try {

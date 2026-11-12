@@ -55,7 +55,7 @@ const fs = require("node:fs");
     await page.setViewportSize({ width, height: 900 });
     for (const section of sections) {
       await page.goto("/admin/business?section=" + section);
-      await page.getByLabel("Workspace", { exact: true }).waitFor();
+      await page.getByLabel("Switch task", { exact: true }).waitFor();
       await page.waitForFunction(
         () =>
           !document.body.innerText.includes("Loading workspace") &&
@@ -136,9 +136,9 @@ const fs = require("node:fs");
     const p = await c.newPage();
     p.on("pageerror", (e) => errors.push(e.message));
     await p.goto("/admin/business?section=" + target);
-    await p.getByLabel("Workspace", { exact: true }).waitFor();
+    await p.getByLabel("Switch task", { exact: true }).waitFor();
     const available = await p
-      .getByLabel("Workspace", { exact: true })
+      .getByLabel("Switch task", { exact: true })
       .locator("option")
       .allTextContents();
     assert.equal(available.includes("Payroll"), false);

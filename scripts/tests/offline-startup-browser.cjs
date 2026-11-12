@@ -669,6 +669,7 @@ async function poll(fn, message) {
     await ip
       .getByRole("heading", { name: "✓ Offline counter ready" })
       .waitFor();
+    await ip.goto(origin + "/admin/tools");
     eq((await ip.locator('a[href="/admin/demo-data"]').count()) > 0, true);
     await identity.setOffline(true);
     await ip.evaluate(() => window.dispatchEvent(new Event("focus")));

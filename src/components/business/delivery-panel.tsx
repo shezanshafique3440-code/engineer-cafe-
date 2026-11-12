@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Form,
   Table,
@@ -28,6 +28,7 @@ export function DeliveryPanel({
   reload: () => void;
 }) {
   const { user } = useSession();
+  const generatedCode = useRef("");
   const riders = rows(data, "riders"),
     orders = rows(data, "orders"),
     totals = object(data, "totals");
@@ -108,6 +109,7 @@ export function DeliveryPanel({
   };
   const done = () => {
     setEditing(null);
+    generatedCode.current = "";
     reload();
   };
   return (
@@ -240,7 +242,10 @@ export function DeliveryPanel({
             fields={[
               {
                 name: "code",
+                advanced: true,
                 label: "Unique rider code",
+                required: false,
+                hint: "Leave blank for an automatic rider code.",
                 value: text(editing ?? undefined, "code"),
               },
               {
@@ -263,6 +268,11 @@ export function DeliveryPanel({
             build={(v) => ({
               ...v,
               action: "SAVE",
+              code:
+                v.code ||
+                editing?.code ||
+                (generatedCode.current ||=
+                  "R-" + crypto.randomUUID().slice(0, 8).toUpperCase()),
               id: editing?.id,
               version: editing?.version,
             })}
@@ -314,6 +324,34 @@ export function DeliveryPanel({
           <Form
             key={"cash:" + selectedRider}
             title="Receive rider cash"
+            submitLabel="Review cash received"
+            review={(v) => (
+              <div className="space-y-2 text-sm">
+                <p>
+                  Rider:{" "}
+                  <strong>
+                    {text(
+                      riders.find((r) => r.id === v.riderId),
+                      "party.name",
+                    )}
+                  </strong>
+                </p>
+                <p>
+                  Cash actually received: <strong>{money(v.amount)}</strong>
+                </p>
+                <p>
+                  Received into:{" "}
+                  {text(
+                    rows(data, "accounts").find((a) => a.id === v.accountId),
+                    "name",
+                  )}
+                </p>
+                <p>
+                  This moves existing rider cash into the selected account. It
+                  does not create another sale.
+                </p>
+              </div>
+            )}
             module="delivery"
             description="Record cash actually handed into the selected drawer/bank/wallet. This transfers existing money; it is not a second sale."
             fields={paymentFields
@@ -339,6 +377,32 @@ export function DeliveryPanel({
           <Form
             key={"payout:" + selectedRider}
             title="Commission payout / recovery"
+            submitLabel="Review commission transaction"
+            review={(v) => (
+              <div className="space-y-2 text-sm">
+                <p>
+                  {v.action === "RECOVER"
+                    ? "Receive overpayment recovery"
+                    : "Pay commission"}
+                  : <strong>{money(v.amount)}</strong>
+                </p>
+                <p>
+                  Rider:{" "}
+                  {text(
+                    riders.find((r) => r.id === v.riderId),
+                    "party.name",
+                  )}
+                </p>
+                <p>
+                  Account:{" "}
+                  {text(
+                    rows(data, "accounts").find((a) => a.id === v.accountId),
+                    "name",
+                  )}
+                </p>
+                <p>Only confirm money actually handed over.</p>
+              </div>
+            )}
             module="delivery"
             description="Pay only the outstanding commission. For a negative due after cancellation, record an actual cash recovery. Rider cash can fund a payout only up to that rider's recorded cash held."
             fields={[

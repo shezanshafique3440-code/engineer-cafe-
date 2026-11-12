@@ -46,7 +46,8 @@ assert.ok(["localhost", "127.0.0.1"].includes(new URL(base).hostname));
   await form
     .getByLabel(/^Ingredient/)
     .selectOption({ label: "Operations milk · ML" });
-  await form.getByLabel(/^Quantity \(stock unit\)/).fill("10");
+  await form.getByLabel("Unit for Quantity", {exact:true}).selectOption("ML");
+  await form.getByLabel("Quantity", {exact:true}).fill("10");
   await form.getByLabel(/^Line total/).fill("100");
   const note = "Mobile purchase form " + Date.now();
   await form.getByLabel(/^Reason \/ reference/).fill(note);
@@ -55,6 +56,7 @@ assert.ok(["localhost", "127.0.0.1"].includes(new URL(base).hostname));
     .click();
   await page.getByText(note, { exact: true }).waitFor();
   await page.goto("/admin/business?section=stockcounts");
+  await page.getByLabel("Unit for Counted Operations milk", { exact: true }).selectOption("ML");
   await page.getByLabel("Counted Operations milk", { exact: true }).fill("9");
   const stockForm = page.locator("form").filter({
     has: page.getByRole("heading", {

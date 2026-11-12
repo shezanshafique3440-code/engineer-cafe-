@@ -3,28 +3,23 @@
 import { canBusiness } from "@/lib/business-access";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { CAFE_TASKS } from "@/lib/cafe-tasks";
+import {
+  adminNavigation,
+  adminLinkActive,
+  adminToolMatches,
+} from "@/lib/admin-navigation";
+import { navigationIcon } from "./navigation-icons";
+import { CounterStatusBar } from "./counter-status-bar";
 import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
-  ShoppingBag,
-  Package,
-  FolderTree,
-  Users,
-  Ticket,
-  Star,
-  BarChart3,
-  Settings,
-  Mail,
   LogOut,
   Menu,
   X,
   ExternalLink,
   Search,
   WifiOff,
-  ChefHat,
-  Sparkles,
-  QrCode,
+  Settings,
 } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { useSession } from "@/context/session-context";
@@ -33,105 +28,31 @@ import { NewOrderAlert } from "./new-order-alert";
 import { useDialogFocus } from "@/hooks/use-dialog-focus";
 import { cn, initials } from "@/lib/utils";
 
-const EXTRA_NAV = [
-  { href: "/admin/system", label: "System health", icon: Settings },
-  { href: "/admin/demo-data", label: "Demo Data", icon: Package },
-  { href: "/admin/business", label: "Cafe business system", icon: BarChart3 },
-  {
-    href: "/admin/table-orders",
-    label: "Waiter order desk",
-    icon: ShoppingBag,
-  },
-  { href: "/admin/pos", label: "Counter POS", icon: ShoppingBag },
-  { href: "/admin/experience", label: "Rewards & scheduling", icon: Sparkles },
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/kitchen", label: "Kitchen live", icon: ChefHat },
-  { href: "/admin/insights", label: "Business insights", icon: Sparkles },
-  { href: "/admin/qr-studio", label: "QR menu studio", icon: QrCode },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
-  { href: "/admin/products", label: "Products", icon: Package },
-  { href: "/admin/categories", label: "Categories", icon: FolderTree },
-  { href: "/admin/customers", label: "Customers", icon: Users },
-  { href: "/admin/coupons", label: "Coupons", icon: Ticket },
-  { href: "/admin/reviews", label: "Reviews", icon: Star },
-  { href: "/admin/messages", label: "Messages", icon: Mail },
-  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
-];
-
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const { user, logout } = useSession();
   const settings = useSettings();
-  const capFor = (href: string) =>
-    ({
-      "/admin": "orders",
-      "/admin/dashboard": "insights",
-      "/admin/business": "business",
-      "/admin/pos": "pos",
-      "/admin/table-orders": "table-orders",
-      "/admin/experience": "admin",
-      "/admin/kitchen": "kitchen",
-      "/admin/insights": "insights",
-      "/admin/qr-studio": "catalog",
-      "/admin/orders": "orders",
-      "/admin/products": "catalog",
-      "/admin/categories": "catalog",
-      "/admin/customers": "customers",
-      "/admin/coupons": "catalog",
-      "/admin/reviews": "catalog",
-      "/admin/messages": "customers",
-      "/admin/analytics": "insights",
-      "/admin/settings": "settings",
-    })[href] ?? "admin";
+  const navigation = adminNavigation(user);
+  const asLink = (tool: (typeof navigation.tools)[number]) => ({
+    ...tool,
+    icon: navigationIcon(tool.icon),
+  });
   const mainNav = [
     { href: "/admin", label: "Daily home", icon: LayoutDashboard },
-    ...CAFE_TASKS.filter((task) => canBusiness(user, task.cap)).map((task) => ({
-      href: task.href,
-      label: task.label,
-      icon:
-        task.id === "kitchen"
-          ? ChefHat
-          : task.id === "overview"
-            ? BarChart3
-            : task.id === "staff" || task.id === "attendance"
-              ? Users
-              : task.id === "inventory" || task.id === "purchases"
-                ? Package
-                : ShoppingBag,
-    })),
+    ...navigation.primary.map(asLink),
   ];
-  const extraNav = EXTRA_NAV.filter(item => !["/admin/demo-data", "/admin/system"].includes(item.href) || user?.role === "ADMIN").filter((item) =>
-    capFor(item.href) === "business"
-      ? Boolean(user && user.role !== "CUSTOMER")
-      : canBusiness(user, capFor(item.href)),
-  ).filter(
-    (item) =>
-      !["/admin", "/admin/pos", "/admin/kitchen", "/admin/orders"].includes(
-        item.href,
-      ),
-  );
-  const visibleNav = [...mainNav, ...extraNav];
-
-  const quickPaths =
-    user?.businessProfile === "CHEF"
-      ? ["/admin/kitchen", "/admin/orders"]
-      : user?.businessProfile === "WAITER"
-        ? ["/admin/business?section=tables", "/admin/kitchen"]
-        : ["/admin/pos", "/admin/business?section=tables"];
-  const quickNav = mainNav.filter(
-    (item) => item.href === "/admin" || quickPaths.includes(item.href),
-  );
+  const extraNav = navigation.tools.map(asLink);
+  const toolsLink = {
+    href: "/admin/tools",
+    label: "All tools & administration",
+    icon: Settings,
+  };
+  const visibleNav = [...mainNav, toolsLink, ...extraNav];
+  const quickNav = navigation.primary.map(asLink);
   const quickLabel = (href: string) =>
-    ({
-      "/admin": "Home",
-      "/admin/pos": "New sale",
-      "/admin/business?section=tables": "Tables",
-      "/admin/kitchen": "Kitchen",
-      "/admin/orders": "Orders",
-    })[href] ?? "Open";
+    quickNav.find((item) => item.href === href)?.label ?? "Home";
 
   const [open, setOpen] = useState(false);
   const [offline, setOffline] = useState(false);
@@ -154,20 +75,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const isActive = (href: string) => {
-    const [path, query] = href.split("?");
-    if (path === "/admin") return pathname === path;
-    if (query)
-      return (
-        pathname === path &&
-        searchParams.get("section") ===
-          new URLSearchParams(query).get("section")
-      );
-    return (
-      pathname === path &&
-      !(path === "/admin/business" && searchParams.has("section"))
-    );
-  };
+  const isActive = (href: string) =>
+    adminLinkActive(href, pathname, searchParams.get("section"));
+  const activeTool = extraNav.find((item) => isActive(item.href));
 
   const sidebar = (
     <div className="admin-sidebar flex h-full flex-col bg-charcoal-900 text-cream-100">
@@ -191,39 +101,45 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <input
           type="search"
           aria-label="Find an admin page"
-          placeholder="Search admin tools…"
+          placeholder="Find any admin tool…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           className="min-h-11 w-full rounded-xl border border-charcoal-700 bg-charcoal-800 py-2 pl-10 pr-3 text-base text-cream-50 placeholder:text-charcoal-300"
         />
       </div>
-      {extraNav.length > 0 && (
-        <button
-          type="button"
-          className="mx-3 mt-3 min-h-11 rounded-xl border border-charcoal-700 px-3 text-left text-sm font-semibold text-cream-100"
-          onClick={(event) =>
-            event.currentTarget
-              .closest(".admin-sidebar")
-              ?.querySelector("[data-admin-website-tools]")
-              ?.scrollIntoView({ behavior: "smooth", block: "start" })
-          }
-        >
-          Website & admin tools ↓
-        </button>
-      )}
+      <Link
+        href="/admin/tools"
+        onClick={() => setOpen(false)}
+        aria-current={isActive("/admin/tools") ? "page" : undefined}
+        className={cn(
+          "mx-3 mt-3 flex min-h-12 items-center gap-2 rounded-xl border px-3 py-3 text-sm font-bold",
+          isActive("/admin/tools")
+            ? "border-chai-500 bg-chai-600 text-white"
+            : "border-charcoal-600 bg-charcoal-800 text-cream-50 hover:bg-charcoal-700",
+        )}
+      >
+        <Settings className="h-4 w-4 shrink-0" aria-hidden />
+        All tools & administration
+      </Link>
+      <p className="mx-4 mt-2 text-xs leading-relaxed text-charcoal-300">
+        Reports, stock, employees & website tools
+      </p>
       <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Admin">
         {[
-          { label: "Daily operations & business", items: mainNav },
-          { label: "Website & administration", items: extraNav },
+          { label: "Daily counter", items: mainNav },
+          {
+            label: query.trim() ? "Other matching tools" : "Current tool",
+            items: query.trim() ? extraNav : activeTool ? [activeTool] : [],
+          },
         ].map((group) => {
           const items = group.items.filter((item) =>
-            item.label.toLowerCase().includes(query.trim().toLowerCase()),
+            adminToolMatches(item, query),
           );
           return items.length ? (
             <section
               key={group.label}
               data-admin-website-tools={
-                group.items === extraNav ? "true" : undefined
+                group.label !== "Daily counter" ? "true" : undefined
               }
               aria-label={group.label}
               className="mb-4"
@@ -251,9 +167,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </section>
           ) : null;
         })}
-        {!visibleNav.some((item) =>
-          item.label.toLowerCase().includes(query.trim().toLowerCase()),
-        ) && (
+        {!visibleNav.some((item) => adminToolMatches(item, query)) && (
           <p className="p-3 text-sm text-charcoal-300">
             No matching page. Try Orders or Products.
           </p>
@@ -369,6 +283,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               )}
             </span>
           </div>
+        )}
+        {(canBusiness(user, "pos") || canBusiness(user, "cash")) && (
+          <CounterStatusBar />
         )}
         <main
           id="admin-main"

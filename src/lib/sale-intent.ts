@@ -30,7 +30,15 @@ export function readSaleIntent(
 /** Must finish before any network write: failure blocks submission rather than risking a duplicate. */
 export function saveSaleIntent(key: string, intent: SaleIntent) {
   localStorage.setItem(key, JSON.stringify(intent));
+  if (typeof window !== "undefined")
+    window.dispatchEvent(new Event("cafe:outbox-changed"));
 }
 export function definiteRejection(status: number) {
   return [400, 422].includes(status);
+}
+
+export function clearSaleIntent(key: string) {
+  localStorage.removeItem(key);
+  if (typeof window !== "undefined")
+    window.dispatchEvent(new Event("cafe:outbox-changed"));
 }

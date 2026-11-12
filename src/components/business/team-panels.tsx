@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { apiPost } from "@/lib/api-client";
-import { Button } from "@/components/ui";
+import { Button, Input } from "@/components/ui";
 import {
   Form,
   Table,
@@ -29,13 +29,16 @@ export function StaffPanel({
   reload: () => void;
 }) {
   const [editing, setEditing] = useState<Row | null>(null),
-    [advance, setAdvance] = useState<Row | null>(null);
+    [advance, setAdvance] = useState<Row | null>(null),
+    [search, setSearch] = useState("");
   const done = () => {
     setEditing(null);
     setAdvance(null);
+    generatedCode.current = "";
     reload();
   };
   const staff = rows(data, "employees");
+  const generatedCode = useRef("");
   return (
     <div className="space-y-5">
       <Notice>
@@ -47,6 +50,8 @@ export function StaffPanel({
       <Form
         key={text(editing ?? undefined, "id", "new")}
         title={editing ? "Edit employee" : "Add employee"}
+        description="Enter the name, job and agreed salary. Employees do not need a login unless they use the system."
+        successMessage="Employee saved. Record attendance, then review salary in Payroll."
         module="staff"
         fields={[
           {
@@ -57,6 +62,9 @@ export function StaffPanel({
           {
             name: "code",
             label: "Employee code",
+            required: false,
+            advanced: true,
+            hint: "Leave blank for an automatic code when adding a new employee.",
             value: text(editing ?? undefined, "code"),
           },
           {
@@ -84,12 +92,17 @@ export function StaffPanel({
           {
             name: "basePay",
             label: "Contract pay (Rs.)",
+            hint: (v) =>
+              v.payBasis === "DAILY"
+                ? "Pay for one working day, e.g. 1500. Attendance determines paid days."
+                : "Full monthly salary, e.g. 35000. The system calculates the agreed period.",
             type: "number",
             min: "0",
             value: text(editing ?? undefined, "basePay", "0"),
           },
           {
             name: "overtimeRate",
+            advanced: true,
             label: "Approved overtime rate per hour (Rs.)",
             type: "number",
             min: "0",
@@ -103,6 +116,7 @@ export function StaffPanel({
           },
           {
             name: "leftOn",
+            advanced: true,
             label: "Leaving date",
             type: "date",
             required: false,
@@ -110,6 +124,7 @@ export function StaffPanel({
           },
           {
             name: "notes",
+            advanced: true,
             label: "Employment notes",
             required: false,
             value: text(editing ?? undefined, "notes"),
@@ -124,12 +139,14 @@ export function StaffPanel({
             ? [
                 {
                   name: "createLogin",
+                  advanced: true,
                   label: "Create a staff login",
                   type: "checkbox" as const,
                   value: false,
                 },
                 {
                   name: "email",
+                  advanced: true,
                   label: "Login email",
                   type: "email" as const,
                   visible: (v: Record<string, string | boolean>) =>
@@ -137,6 +154,7 @@ export function StaffPanel({
                 },
                 {
                   name: "password",
+                  advanced: true,
                   label: "Initial password",
                   type: "password" as const,
                   visible: (v: Record<string, string | boolean>) =>
@@ -145,6 +163,7 @@ export function StaffPanel({
                 },
                 {
                   name: "profile",
+                  advanced: true,
                   label: "Staff access",
                   type: "select" as const,
                   options: ["WAITER", "CHEF", "CASHIER", "MANAGER"].map(
@@ -159,7 +178,11 @@ export function StaffPanel({
         ]}
         build={(v) => ({
           name: v.name,
-          code: v.code,
+          code:
+            v.code ||
+            editing?.code ||
+            (generatedCode.current ||=
+              "EMP-" + crypto.randomUUID().slice(0, 8).toUpperCase()),
           phone: v.phone,
           designation: v.designation,
           payBasis: v.payBasis,
@@ -235,6 +258,12 @@ export function StaffPanel({
           submitLabel="Record staff transaction"
         />
       )}
+      <Input
+        label="Find an employee"
+        placeholder="Search name or employee code…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
       <Table
         headers={[
           "Employee",
@@ -246,51 +275,57 @@ export function StaffPanel({
         ]}
         empty={!staff.length}
       >
-        {staff.map((e) => (
-          <tr key={text(e, "id")}>
-            <Cell>
-              <strong>{text(e, "party.name")}</strong>
-              <p className="text-xs text-charcoal-500">
-                {text(e, "code")} · {text(e, "designation")}
-              </p>
-              <p className="text-xs">
-                Joined {day(e.joinedOn)}
-                {e.leftOn ? " · Left " + day(e.leftOn) : ""}
-                {!e.isActive ? " · Inactive" : ""}
-              </p>
-            </Cell>
-            <Cell>
-              {money(e.basePay)}
-              <p className="text-xs">
-                {text(e, "payBasis")} · OT {money(e.overtimeRate)}/h
-              </p>
-            </Cell>
-            <Cell>{money(e.advance)}</Cell>
-            <Cell>{money(e.salaryDue)}</Cell>
-            <Cell>
-              {text(e, "access.user.email", "No login")}
-              <p className="text-xs">{text(e, "access.profile")}</p>
-            </Cell>
-            <Cell>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setEditing(e)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setAdvance(e)}
-                >
-                  Record payment
-                </Button>
-              </div>
-            </Cell>
-          </tr>
-        ))}
+        {staff
+          .filter((e) =>
+            (text(e, "party.name") + " " + text(e, "code"))
+              .toLowerCase()
+              .includes(search.trim().toLowerCase()),
+          )
+          .map((e) => (
+            <tr key={text(e, "id")}>
+              <Cell>
+                <strong>{text(e, "party.name")}</strong>
+                <p className="text-xs text-charcoal-500">
+                  {text(e, "code")} · {text(e, "designation")}
+                </p>
+                <p className="text-xs">
+                  Joined {day(e.joinedOn)}
+                  {e.leftOn ? " · Left " + day(e.leftOn) : ""}
+                  {!e.isActive ? " · Inactive" : ""}
+                </p>
+              </Cell>
+              <Cell>
+                {money(e.basePay)}
+                <p className="text-xs">
+                  {text(e, "payBasis")} · OT {money(e.overtimeRate)}/h
+                </p>
+              </Cell>
+              <Cell>{money(e.advance)}</Cell>
+              <Cell>{money(e.salaryDue)}</Cell>
+              <Cell>
+                {text(e, "access.user.email", "No login")}
+                <p className="text-xs">{text(e, "access.profile")}</p>
+              </Cell>
+              <Cell>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setEditing(e)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setAdvance(e)}
+                  >
+                    Record payment
+                  </Button>
+                </div>
+              </Cell>
+            </tr>
+          ))}
       </Table>
     </div>
   );
@@ -448,6 +483,7 @@ export function AttendancePanel({
           },
           {
             name: "clockInTime",
+            advanced: true,
             label: "Actual clock-in (Pakistan time)",
             type: "time",
             required: false,
@@ -455,6 +491,7 @@ export function AttendancePanel({
           },
           {
             name: "clockOutTime",
+            advanced: true,
             label: "Actual clock-out (Pakistan time)",
             type: "time",
             required: false,
@@ -463,6 +500,7 @@ export function AttendancePanel({
           },
           {
             name: "overtimeHours",
+            advanced: true,
             label: "Approved overtime hours",
             type: "number",
             min: "0",
@@ -472,6 +510,7 @@ export function AttendancePanel({
           },
           {
             name: "notes",
+            advanced: true,
             label: "Shift / attendance note",
             required: false,
             value: text(editing ?? undefined, "notes"),
@@ -574,6 +613,7 @@ export function PayrollPanel({
     },
     {
       name: "bonus",
+      advanced: true,
       label: "Bonus (Rs.)",
       type: "number",
       min: "0",
@@ -581,6 +621,7 @@ export function PayrollPanel({
     },
     {
       name: "deduction",
+      advanced: true,
       label: "Other deduction (Rs.)",
       type: "number",
       min: "0",
@@ -588,6 +629,7 @@ export function PayrollPanel({
     },
     {
       name: "recoverAdvance",
+      advanced: true,
       label: "Recover outstanding salary advance",
       type: "checkbox",
       value: editing ? Boolean(getSnapshot(editing).recoverAdvance) : true,

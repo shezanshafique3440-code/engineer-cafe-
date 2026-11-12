@@ -73,14 +73,17 @@ function Workspace() {
     setError("");
     try {
       const result = await apiGet<Row>(
-          "/api/admin/business/" +
-            moduleName +
-            "?" +
-            new URLSearchParams({ from, to }),
-        );
+        "/api/admin/business/" +
+          moduleName +
+          "?" +
+          new URLSearchParams({ from, to }),
+      );
       if (sequence === loadSequence.current) setData(result);
     } catch (e) {
-      if (sequence === loadSequence.current) setError(e instanceof Error ? e.message : "Could not load this workspace.");
+      if (sequence === loadSequence.current)
+        setError(
+          e instanceof Error ? e.message : "Could not load this workspace.",
+        );
     } finally {
       if (sequence === loadSequence.current) setLoading(false);
     }
@@ -161,19 +164,134 @@ function Workspace() {
               "Choose a task and follow the steps below."}
           </p>
         </div>
-        <Button
-          variant="secondary"
-          loading={loading}
-          onClick={() => void load()}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/tools" className="btn-secondary">
+            All tools
+          </Link>
+          <Button
+            variant="secondary"
+            loading={loading}
+            onClick={() => void load()}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
       </header>
-      {TASK_GUIDES[section.id] && <TaskSteps {...TASK_GUIDES[section.id]} />}
-      <div className="surface grid gap-3 p-4 md:grid-cols-[2fr_1fr_1fr]">
+      {TASK_GUIDES[section.id] && (
+        <TaskSteps compact {...TASK_GUIDES[section.id]} />
+      )}
+      <details
+        key={section.id}
+        open={["overview", "ledger", "audit"].includes(section.id)}
+        className="surface p-4"
+      >
+        <summary className="min-h-11 cursor-pointer py-2 text-sm font-bold">
+          History dates & Excel downloads
+        </summary>
+        <p className="mb-3 text-xs text-charcoal-500">
+          These dates filter history and reports. Current stock and balances
+          remain current.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Input
+            label="From"
+            type="date"
+            value={from}
+            onChange={(e) => {
+              if (e.target.value) setFrom(e.target.value);
+            }}
+          />
+          <Input
+            label="To"
+            type="date"
+            value={to}
+            onChange={(e) => {
+              if (e.target.value) setTo(e.target.value);
+            }}
+          />
+        </div>
+        <div
+          className="flex flex-wrap items-center gap-2"
+          aria-label="Report dates"
+        >
+          <span className="text-sm text-charcoal-500">Report dates:</span>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setFrom(today);
+              setTo(today);
+            }}
+          >
+            Today
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setFrom(today.slice(0, 7) + "-01");
+              setTo(today);
+            }}
+          >
+            This month
+          </Button>
+        </div>
+        {user?.role === "ADMIN" && (
+          <CompleteReportDownload
+            key={section.id}
+            section={section.id}
+            from={from}
+            to={to}
+          />
+        )}
+        <nav className="flex flex-wrap gap-2" aria-label="Business quick links">
+          {allowed
+            .filter((s) =>
+              [
+                "overview",
+                "tables",
+                "inventory",
+                "cash",
+                "payroll",
+                "setup",
+              ].includes(s.id),
+            )
+            .map((s) => (
+              <Link
+                key={s.id}
+                href={"/admin/business?section=" + s.id}
+                aria-current={s.id === section.id ? "page" : undefined}
+                className={
+                  "rounded-full border px-3 py-2 text-xs font-semibold " +
+                  (s.id === section.id
+                    ? "border-chai-500 bg-chai-50 text-chai-800"
+                    : "border-cream-300 bg-surface text-charcoal-600")
+                }
+              >
+                {s.label}
+              </Link>
+            ))}
+        </nav>
+      </details>
+      {error ? (
+        <ErrorState
+          title="Workspace could not load"
+          description={error}
+          onRetry={() => void load()}
+        />
+      ) : !data ? (
+        <div role="status" className="grid animate-pulse gap-4 sm:grid-cols-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="surface h-32 bg-cream-100" />
+          ))}
+        </div>
+      ) : (
+        main
+      )}
+      <div className="surface p-3">
         <Select
-          label="Workspace"
+          label="Switch task"
           value={section.id}
           onChange={(e) =>
             router.push("/admin/business?section=" + e.target.value)
@@ -216,107 +334,13 @@ function Workspace() {
                 .filter((s) => group.ids.includes(s.id))
                 .map((s) => (
                   <option key={s.id} value={s.id}>
-                    {CAFE_TASKS.find((t) => t.id === s.id)?.label ?? s.label} ·{" "}
-                    {s.label}
+                    {CAFE_TASKS.find((t) => t.id === s.id)?.label ?? s.label}
                   </option>
                 ))}
             </optgroup>
           ))}
         </Select>
-        <Input
-          label="From"
-          type="date"
-          value={from}
-          onChange={(e) => {
-            if (e.target.value) setFrom(e.target.value);
-          }}
-        />
-        <Input
-          label="To"
-          type="date"
-          value={to}
-          onChange={(e) => {
-            if (e.target.value) setTo(e.target.value);
-          }}
-        />
       </div>
-      <div
-        className="flex flex-wrap items-center gap-2"
-        aria-label="Report dates"
-      >
-        <span className="text-sm text-charcoal-500">Report dates:</span>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => {
-            setFrom(today);
-            setTo(today);
-          }}
-        >
-          Today
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => {
-            setFrom(today.slice(0, 7) + "-01");
-            setTo(today);
-          }}
-        >
-          This month
-        </Button>
-      </div>
-      {user?.role === "ADMIN" && (
-        <CompleteReportDownload
-          key={section.id}
-          section={section.id}
-          from={from}
-          to={to}
-        />
-      )}
-      <nav className="flex flex-wrap gap-2" aria-label="Business quick links">
-        {allowed
-          .filter((s) =>
-            [
-              "overview",
-              "tables",
-              "inventory",
-              "cash",
-              "payroll",
-              "setup",
-            ].includes(s.id),
-          )
-          .map((s) => (
-            <Link
-              key={s.id}
-              href={"/admin/business?section=" + s.id}
-              aria-current={s.id === section.id ? "page" : undefined}
-              className={
-                "rounded-full border px-3 py-2 text-xs font-semibold " +
-                (s.id === section.id
-                  ? "border-chai-500 bg-chai-50 text-chai-800"
-                  : "border-cream-300 bg-surface text-charcoal-600")
-              }
-            >
-              {s.label}
-            </Link>
-          ))}
-      </nav>
-      {error ? (
-        <ErrorState
-          title="Workspace could not load"
-          description={error}
-          onRetry={() => void load()}
-        />
-      ) : !data ? (
-        <div role="status" className="grid animate-pulse gap-4 sm:grid-cols-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="surface h-32 bg-cream-100" />
-          ))}
-        </div>
-      ) : (
-        main
-      )}
     </div>
   );
 }

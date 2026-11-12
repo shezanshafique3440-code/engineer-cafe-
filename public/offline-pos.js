@@ -1,6 +1,12 @@
 (async () => {
   const connection = document.getElementById("connection");
+  const connectionSummary = document.getElementById("counter-connection");
+  const shiftSummary = document.getElementById("counter-shift");
+  function networkLabel(text) {
+    if (connectionSummary) connectionSummary.textContent = text;
+  }
   const showConnection = () => {
+    networkLabel(navigator.onLine ? "Checking connection…" : "Offline");
     connection.textContent = navigator.onLine
       ? "Cash counter — every bill saves on this device first. Check each sync status below."
       : "Offline — bills are saved on this device and synchronized on reconnect.";
@@ -38,8 +44,88 @@
     snapshot = await store.snapshot();
   } catch {
     tell("Offline storage is unavailable. Keep using online POS.");
+    if (document.getElementById("counter-pending"))
+      document.getElementById("counter-pending").textContent =
+        "Storage unavailable";
     return;
   }
+  let probing = false;
+  const cachedShiftLabel = () => {
+    if (shiftSummary)
+      shiftSummary.textContent = snapshot?.shift
+        ? "Cached · " + snapshot.shift.drawer.name
+        : "Not prepared";
+  };
+  async function probeConnection() {
+    if (probing || document.hidden) return;
+    if (!navigator.onLine) {
+      networkLabel("Offline");
+      cachedShiftLabel();
+      return;
+    }
+    probing = true;
+    const controller = new AbortController(),
+      timeout = setTimeout(() => controller.abort(), 4000);
+    try {
+      const response = await fetch("/api/admin/counter-status", {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      if (response.status === 401 || response.status === 403) {
+        networkLabel("Sign in again");
+        cachedShiftLabel();
+        return;
+      }
+      if (!response.ok) throw Error("Counter connection unavailable");
+      const current = await response.json();
+      if (
+        typeof current.actorId !== "string" ||
+        typeof current.enabled !== "boolean" ||
+        !Object.hasOwn(current, "shift")
+      )
+        throw Error("Counter connection unavailable");
+      networkLabel("Online");
+      if (shiftSummary)
+        shiftSummary.textContent = !snapshot?.user
+          ? "Not prepared"
+          : current.actorId !== snapshot.user.id
+            ? "Original cashier required"
+            : !current.enabled
+              ? "Setup needed"
+              : !current.shift || current.shift.id !== snapshot.shift?.id
+                ? "Shift changed · refresh online"
+                : current.shift.drawer.name;
+    } catch {
+      networkLabel(navigator.onLine ? "Connection unavailable" : "Offline");
+      cachedShiftLabel();
+    } finally {
+      clearTimeout(timeout);
+      probing = false;
+    }
+  }
+  window.addEventListener("offline", cachedShiftLabel);
+  window.addEventListener("online", () => void probeConnection());
+  window.addEventListener("focus", () => void probeConnection());
+  setInterval(() => void probeConnection(), 15000);
+  // Online-only tools must not silently strand an unfinished cash bill.
+  document.querySelectorAll("a[data-online-tool]").forEach((link) =>
+    link.addEventListener("click", (event) => {
+      const unfinished =
+        prepared &&
+        draftTouched &&
+        [...document.querySelectorAll(".line [name=product]")].some(
+          (input) => input.value,
+        );
+      if (!navigator.onLine || unfinished) {
+        event.preventDefault();
+        tell(
+          unfinished
+            ? "Save the current bill before leaving this counter. Its draft is preserved on this device."
+            : "This tool needs internet. Keep using the saved cash counter and synchronize when connected.",
+        );
+      }
+    }),
+  );
   function mode() {
     const m = form.elements.serviceMode.value;
     document.getElementById("table-fields").hidden = m !== "DINE_IN";
@@ -66,6 +152,7 @@
         ? "No cash shift is open under this login. Open your own cash shift, then click Refresh prepared menu & shift."
         : "Sign in to Counter POS and open your own cash shift, then return here.";
     editor.hidden = !prepared;
+    cachedShiftLabel();
     document.getElementById("prepared").textContent = snapshot?.user
       ? `${snapshot.user.name} · ${snapshot.shift?.drawer.name || "No open shift"} · cached ${new Date(snapshot.savedAt).toLocaleString()}`
       : "Open the online POS and prepare this device while signed in with an open cash shift.";
@@ -236,7 +323,17 @@
     const area = document.getElementById("bills");
     area.replaceChildren();
     if (!snapshot?.user) return;
-    for (const b of await store.list(snapshot.user.id)) {
+    const bills = await store.list(snapshot.user.id);
+    const pending = bills.filter((b) => b.state === "pending").length,
+      review = bills.filter((b) => b.state === "conflict").length;
+    const count = document.getElementById("counter-pending");
+    if (count)
+      count.textContent = review
+        ? `${pending} pending · ${review} need review`
+        : pending
+          ? `${pending} pending sync`
+          : "No pending bills";
+    for (const b of bills) {
       const card = make("section");
       card.append(
         make(
@@ -556,6 +653,11 @@
         snapshot = null;
         editor.hidden = true;
         document.getElementById("bills").replaceChildren();
+        cachedShiftLabel();
+        networkLabel("Sign in again");
+        if (document.getElementById("counter-pending"))
+          document.getElementById("counter-pending").textContent =
+            "Sign in to view bills";
         tell(
           "Cashier signed out. Sign in online before preparing another bill.",
         );
@@ -651,6 +753,7 @@
     }
   }
   await list();
+  void probeConnection();
   if (navigator.onLine) {
     // Keep a prepared form usable during a router/WAN outage. A real login or
     // permission rejection below still closes it; sync independently verifies

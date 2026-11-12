@@ -39,6 +39,14 @@ async function poll(f) {
         extraHTTPHeaders: { "X-Real-IP": `192.0.2.${ip}` },
       });
       contexts.push(context);
+      await context.addInitScript(() => {
+        window.print = () => {};
+        if (typeof SyncManager !== "undefined")
+          Object.defineProperty(SyncManager.prototype, "register", {
+            configurable: true,
+            value: async () => {},
+          });
+      });
       const r = await context.request.post("/api/auth/login", {
         data: { email, password: "Business-QA-123!" },
       });
@@ -65,13 +73,18 @@ async function poll(f) {
     for (const [email, primary, forbidden, ip] of [
       ["cashier@example.test", "New sale", "Pay salaries", 101],
       ["waiter@example.test", "Tables & orders", "New sale", 102],
-      ["chef@example.test", "Kitchen orders", "Riders & deliveries", 103],
+      ["chef@example.test", "Kitchen", "Riders & deliveries", 103],
     ]) {
       const a = await login(email, ip);
       await a.page.goto("/admin");
       await a.page
         .getByRole("heading", {
-          name: "What would you like to do?",
+          name: email.startsWith("chef")
+            ? "Kitchen desk"
+            : email.startsWith("waiter")
+              ? "Table service"
+              : "Daily counter",
+          level: 1,
           exact: true,
         })
         .waitFor();
@@ -98,7 +111,7 @@ async function poll(f) {
         eq(summary.shift, null);
         eq(summary.unassigned, null);
       }
-      await a.page.getByLabel("Current status", { exact: true }).waitFor();
+      await a.page.getByLabel("Order activity", { exact: true }).waitFor();
       await a.page.screenshot({
         path: artifacts + "/" + email.split("@")[0] + "-home-mobile.png",
         fullPage: true,
@@ -112,13 +125,14 @@ async function poll(f) {
       page = a.page;
     await page.goto("/admin");
     await page
-      .getByRole("heading", { name: "What would you like to do?", exact: true })
+      .getByRole("heading", { name: "Daily counter", level: 1, exact: true })
       .waitFor();
     await page.setViewportSize({ width: 1440, height: 900 });
-    const adminNav = page.getByRole("navigation", {
-      name: "Admin",
-      exact: true,
-    });
+    await page.goto("/admin/tools");
+    await page
+      .getByRole("heading", { name: "All tools & administration", level: 1 })
+      .waitFor();
+    const adminNav = page.locator("main");
     for (const label of [
       "Dashboard",
       "Products",
@@ -132,7 +146,7 @@ async function poll(f) {
       "Rewards & scheduling",
       "QR menu studio",
     ]) {
-      const link = adminNav.getByRole("link", { name: label, exact: true });
+      const link = adminNav.getByRole("link", { name: new RegExp("^" + label) });
       eq(await link.count(), 1, "Missing admin tool: " + label);
       eq(
         await link.evaluate((el) => Boolean(el.closest("details:not([open])"))),
@@ -197,12 +211,13 @@ async function poll(f) {
         if (section === "home")
           await page
             .getByRole("heading", {
-              name: "What would you like to do?",
+              name: "Daily counter",
+              level: 1,
               exact: true,
             })
             .waitFor();
         else {
-          await page.getByLabel("Workspace", { exact: true }).waitFor();
+          await page.getByLabel("Switch task", { exact: true }).waitFor();
           await page
             .locator("main")
             .getByLabel("Task steps", { exact: true })
@@ -229,7 +244,7 @@ async function poll(f) {
         );
         checks++;
         if (width === 1440 && section === "home") {
-          await page.getByLabel("Current status", { exact: true }).waitFor();
+          await page.getByLabel("Order activity", { exact: true }).waitFor();
           await page.screenshot({ path: artifacts + "/easy-home-desktop.png" });
         }
         if (
@@ -395,6 +410,7 @@ async function poll(f) {
       await emp.getByRole("button", { name: "Present", exact: true }).count(),
       0,
     );
+    await page.getByText("History dates & Excel downloads", { exact: true }).click();
     await page.getByRole("button", { name: "This month", exact: true }).click();
     await emp.getByText("PRESENT", { exact: true }).waitFor();
     // Close checklist checks durable local bills, then requires explicit review.
@@ -412,7 +428,7 @@ async function poll(f) {
     const check = page.getByLabel("Before closing", { exact: true });
     await check
       .getByText(
-        "No offline bills are pending for this login on this device.",
+        "No saved bills await confirmation or sync for this login on this device.",
         {
           exact: true,
         },
@@ -449,6 +465,7 @@ async function poll(f) {
         const tx = db.transaction("bills", "readwrite");
         tx.objectStore("bills").put({
           id: "easy-ui-pending",
+          createdAt: new Date().toISOString(),
           ownerId: owner,
           state: "pending",
           payload: { requestId: "easy-ui-pending", expectedTotal: 20 },
@@ -463,7 +480,7 @@ async function poll(f) {
       .getByRole("button", { name: "Count & close shift", exact: true })
       .click();
     await check
-      .getByText("1 offline bills are pending or need review.", {
+      .getByText("1 saved bills await confirmation, sync or review.", {
         exact: true,
       })
       .waitFor();

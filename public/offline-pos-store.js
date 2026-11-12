@@ -15,7 +15,22 @@
     return new Promise((resolve, reject) => {
       const tx = db.transaction(name, mode);
       const req = fn(tx.objectStore(name));
-      tx.oncomplete = () => resolve(req.result);
+      tx.oncomplete = () => {
+        resolve(req.result);
+        if (name === "bills" && mode === "readwrite") {
+          if (typeof window !== "undefined")
+            window.dispatchEvent(new Event("cafe:outbox-changed"));
+          try {
+            if (typeof BroadcastChannel !== "undefined") {
+              const channel = new BroadcastChannel("cafe-offline-counter");
+              channel.postMessage({ type: "outbox-changed" });
+              channel.close();
+            }
+          } catch {
+            /* Cross-tab hints are optional; the durable write already completed. */
+          }
+        }
+      };
       tx.onerror = () => reject(tx.error);
       tx.onabort = () =>
         reject(tx.error || new Error("Offline storage aborted."));
@@ -260,7 +275,9 @@
       };
       await run("bills", "readwrite", (s) => s.put(bill));
       if (typeof window !== "undefined" && "serviceWorker" in navigator)
-        void navigator.serviceWorker.ready.then(reg => reg.sync?.register("cafe-counter-outbox")).catch(() => {});
+        void navigator.serviceWorker.ready
+          .then((reg) => reg.sync?.register("cafe-counter-outbox"))
+          .catch(() => {});
       return bill;
     },
     sync: (owner) =>

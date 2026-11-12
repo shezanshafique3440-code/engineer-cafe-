@@ -1,4 +1,5 @@
 "use client";
+import { readSaleIntent } from "./sale-intent";
 import type { OrderDTO } from "@/server/orders";
 export type CounterSnapshot = {
   user: { id: string; name: string };
@@ -70,4 +71,27 @@ export async function prepareCounterShell(): Promise<void> {
     await bootstrap;
   }
   await window.CafeOfflineBootstrap!.prepareShell();
+}
+
+/** Read-only device summary, including a POST that is awaiting confirmation. */
+export async function readCounterDevice(ownerId: string) {
+  const store = await counterStore();
+  const [snapshot, bills] = await Promise.all([
+    store.snapshot(),
+    store.list(ownerId),
+  ]);
+  const intent = readSaleIntent(
+    `cafe-sale-intent:COUNTER::${ownerId}`,
+    ownerId,
+  );
+  const recovered = Boolean(
+    intent && !bills.some((b) => b.id === intent.payload.requestId),
+  );
+  return {
+    snapshot: snapshot?.user.id === ownerId ? snapshot : null,
+    pending:
+      bills.filter((b) => b.state === "pending").length + (recovered ? 1 : 0),
+    review: bills.filter((b) => b.state === "conflict").length,
+    recoverOnline: recovered,
+  };
 }
